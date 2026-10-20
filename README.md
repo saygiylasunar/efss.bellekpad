@@ -67,3 +67,7 @@ npm run vault -- search ritim
 ```
 
 See [storage boundaries and recovery instructions](docs/DATA_STORAGE.md).
+
+## EFSS Markdown positional variable values (P1.3)
+
+`&Tarih` remains an ordinary reference. `&Tarih{2026-10-26, 2026-11-01}` carries an explicit **candidate** list of values, while `&Not{"first, second", third}` supports comma-bearing quoted strings. The parser retains exact ranges and the original source; typed inspection only validates configured variable types and does not overwrite any observations. See `docs/EFSS_BINDINGS.md`.

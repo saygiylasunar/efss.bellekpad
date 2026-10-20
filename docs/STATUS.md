@@ -19,3 +19,9 @@ Added Node-only LocalDocumentVault for EFSS documents, saving original UTF-8 sou
 A minimal opt-in local CLI can import canonical EFSS Markdown, inspect index counts and search source IDs without exposing excerpts. No SQLite, external services, model downloads or runtime GPU tests.
 
 Not complete: browser IndexedDB storage, full backup/export + attachments, migration versioning, crash-safe lock recovery, durable semantic and graph metadata, reversible rich-text UI, automatic content conflict merge.
+
+## P1.3 — Positional EFSS variable binding syntax
+
+The EFSS Markdown scanner recognizes `&Variable{value0, value1, ...}` as one source-ranged variable token. Quoted string values may contain commas and escaped quotes. Invalid/oversized bindings fail closed with diagnostics rather than silently becoming references. Typed inspectors validate each value against explicitly registered schemas and create inert, provenance-linked candidates; parsing never changes stored observations, activates commands, or performs type inference. All existing reference syntax remains supported.
+
+Not yet implemented: committing selected binding candidates into persistent ledger records, variable scope/rename, named properties or syntax migrations. These require explicit product contracts.

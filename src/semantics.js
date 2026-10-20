@@ -1,4 +1,5 @@
 import { EFSS_CONTRACT } from "./contract.js";
+import { readVariableBinding } from "./binding-syntax.js";
 
 export const SEMANTIC_GRAMMAR = EFSS_CONTRACT.grammarVersion;
 
@@ -165,9 +166,24 @@ export function scanSemantics(body) {
       if (line[i] === "&") {
         const match = REF.exec(line.slice(i));
         if (match && line[i + match[0].length] !== ";") {
+          const afterName = i + match[0].length;
+          let end = afterName;
+          let binding = undefined;
+          if (line[afterName] === "{") {
+            const parsed = readVariableBinding(line, afterName, offset);
+            end = parsed.end;
+            if (parsed.error) {
+              diagnostics.push({ code: "BAD_VARIABLE_BINDING", reason: parsed.error,
+                start: offset + i, end: offset + end, line: lineIndex + 1 });
+              i = end;
+              continue;
+            }
+            binding = parsed.binding;
+          }
           tokens.push({ type: "variable", target: { type: "variable", value: match[1].normalize("NFC") },
-            start: offset + i, end: offset + i + match[0].length, line: lineIndex + 1 });
-          i += match[0].length;
+            ...(binding ? { binding } : {}), start: offset + i,
+            end: offset + end, line: lineIndex + 1 });
+          i = end;
           continue;
         }
       }
