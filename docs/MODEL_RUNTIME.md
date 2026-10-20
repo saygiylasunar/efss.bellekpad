@@ -78,3 +78,13 @@ Provider telemetry supports `onEvent(event)`; emitted events contain route, mode
 Run `npm run test:trace` to execute Node's built-in tests using the supervised runtime. It appends all command progress to the same local JSONL debug log. Diagnoses include `EXECUTABLE_NOT_FOUND`, `MODEL_NOT_FOUND`, `CUDA_OUT_OF_MEMORY`, `DEVICE_UNAVAILABLE`, `FORMAT_UNSUPPORTED`, `PORT_IN_USE`, `PERMISSION_DENIED`, `COMMAND_EXIT_NONZERO` and `CANCELLED`. These are pattern-based categories: full stderr must still be inspected for ambiguous cases.
 
 Logs are local private files, and their contents should be reviewed before any bug report is shared.
+
+## Versioned evaluation baseline
+
+`ModelLab` registers intended base/adapter/retrieval layers. `runModelEvaluation` executes the same explicit local test suite against each model and produces per-case pass/fail, required-token hit-rate, latency and token counts when available. This lexical match benchmark is a **smoke/regression test**, NOT a measurement of broad reasoning quality.
+
+```powershell
+npm run eval -- examples/eval-suite.example.json <loaded-model-id>
+```
+
+Private test suites belong outside Git, for example under `.efss/evals/`. Runtime logs include case IDs, statuses, error classifications and timing, not prompts, image bytes or model outputs. Regression acceptance should additionally examine human-rated answers and cited evidence.

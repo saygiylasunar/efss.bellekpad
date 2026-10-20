@@ -26,3 +26,9 @@ Node-only runtime supervisor, append-only JSONL logs, local model inventory and 
 Vision-language input is an explicit `createImageMessage` with a verified local compatible chat runtime. Image generation uses `ComfyWorkflowProvider` with trusted local ComfyUI workflows; GGUF and Safetensors weights are not interchangeable.
 
 `npm run test:trace` appends test progress and failures to local `.efss/logs/`. See `docs/MODEL_RUNTIME.md`.
+
+Model and adapter baseline evaluations:
+
+```powershell
+npm run eval -- examples/eval-suite.example.json <loaded-model-id>
+```

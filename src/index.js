@@ -15,3 +15,4 @@ export { indexEmbeddings, queryWithMemory } from "./ai-pipeline.js";
 export { ModelLab } from "./model-lab.js";
 export { createImageMessage } from "./multimodal.js";
 export { ComfyWorkflowProvider } from "./comfy-provider.js";
+export { validateEvaluationSuite, runModelEvaluation } from "./model-evaluator.js";

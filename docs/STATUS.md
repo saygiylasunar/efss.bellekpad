@@ -7,3 +7,5 @@ Added: audited filename-only model catalog for GGUF/Safetensors; append-only loc
 Added: OpenAI-compatible multimodal user image messages for compatible VL servers and a localhost-only ComfyUI workflow queue/history adapter for image generation. Neither is automatically activated. No checkpoints loaded, no provider credentials stored.
 
 Pending: live Windows/RTX 3060 testing, accurate memory telemetry, trusted full model manifests, Hugging Face Safetensors model host support, persisted eval records, cancel running ComfyUI jobs, cross-process kill switch, UI.
+
+Evaluation: opt-in, repeatable local suite runner with recorded aggregate pass rate and latency, no prompt leakage to logs. Fine tuning and checkpoint synthesis not implemented.
