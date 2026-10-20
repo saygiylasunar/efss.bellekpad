@@ -113,7 +113,11 @@ export class LocalDocumentVault {
     try {
       const existing = await this.read(kind, id);
       if (existing && kind === "variable") {
-        const previous = parseVariableSchemaDocument(existing);
+        // An invalid schema must remain repairable using the normal revision
+        // check. Only an already-valid constant definition is immutable.
+        let previous = null;
+        try { previous = parseVariableSchemaDocument(existing); }
+        catch { /* malformed old definitions may be replaced, not silently loaded */ }
         if (previous?.symbolKind === "constant" && existing.source !== source)
           throw new Error("CONSTANT_DEFINITION_IMMUTABLE");
       }
