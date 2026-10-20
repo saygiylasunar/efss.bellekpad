@@ -8,11 +8,11 @@ import { inspectVariableBindings } from "../src/binding-resolver.js";
 
 function registry() {
   const types = new VariableTypeRegistry();
-  types.register({ id: "when", label: "Tarih", value: { type: "date" } });
-  types.register({ id: "quantity", label: "Miktar", value: { type: "number", min: 0, max: 100 } });
-  types.register({ id: "enabled", label: "Açık", value: { type: "boolean" } });
-  types.register({ id: "text", label: "Not", value: { type: "text" } });
-  types.register({ id: "category", label: "Kategori", value: { type: "enum", choices: ["müzik", "sanat"] } });
+  types.register({ id: "when", label: "Tarih", cardinality: "many", value: { type: "date" } });
+  types.register({ id: "quantity", label: "Miktar", cardinality: "many", value: { type: "number", min: 0, max: 100 } });
+  types.register({ id: "enabled", label: "Açık", cardinality: "many", value: { type: "boolean" } });
+  types.register({ id: "text", label: "Not", cardinality: "many", value: { type: "text" } });
+  types.register({ id: "category", label: "Kategori", cardinality: "many", value: { type: "enum", choices: ["müzik", "sanat"] } });
   return types;
 }
 test("semantic scanner sees positional bindings as one reference with source range", () => {
@@ -78,4 +78,23 @@ test("CRLF and Unicode remain lossless through AST serialization", () => {
   const tokens = ast.blocks.flatMap(block => block.symbols);
   assert.deepEqual(tokens.map(t => body.slice(t.start, t.end)),
     ['&Miktar{26, 48}', '&Not{"emoji 😀"}']);
+});
+
+test("a list without an explicit many declaration is rejected, not remembered", () => {
+  const types = new VariableTypeRegistry();
+  types.register({ id: "count", label: "Sayım", value: { type: "number" } });
+  const result = inspectVariableBindings("&Sayım{26, 48} ve &Sayım{26}", types);
+  assert.equal(result.candidates.length, 1);
+  assert.deepEqual(result.candidates[0].values, [26]);
+  assert.ok(result.diagnostics.some(d => d.code === "VARIABLE_CARDINALITY_MISMATCH"));
+});
+
+test("a constant is referenced, never overwritten from a Paper binding", () => {
+  const types = new VariableTypeRegistry();
+  types.register({ id: "ratio", label: "Oran", symbolKind: "constant",
+    value: { type: "number" }, fixedValue: 1.5 });
+  const result = inspectVariableBindings("&Oran ve &Oran{2}", types);
+  assert.equal(result.candidates.length, 0);
+  assert.deepEqual(result.diagnostics.map(d => d.code), ["CONSTANT_INLINE_VALUE_FORBIDDEN"]);
+  assert.equal(types.resolve("Oran").fixedValue, 1.5);
 });

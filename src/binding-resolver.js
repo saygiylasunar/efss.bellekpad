@@ -40,11 +40,21 @@ export function inspectVariableBindings(body, types, { sourceId = null } = {}) {
       diagnostics.push({ code: "UNKNOWN_VARIABLE_BINDING", start: token.start, end: token.end });
       continue;
     }
+    if (definition.symbolKind === "constant") {
+      diagnostics.push({ code: "CONSTANT_INLINE_VALUE_FORBIDDEN",
+        start: token.start, end: token.end });
+      continue;
+    }
+    if (definition.cardinality === "one" && token.binding.values.length !== 1) {
+      diagnostics.push({ code: "VARIABLE_CARDINALITY_MISMATCH",
+        start: token.start, end: token.end });
+      continue;
+    }
     try {
       const values = token.binding.values.map(item =>
         validateTypedValue(definition.value, cast(item.value, definition.value.type)));
       candidates.push(Object.freeze({
-        variableId: definition.id, variableType: definition.value.type,
+        variableId: definition.id, variableType: definition.value.type, cardinality: definition.cardinality,
         values: Object.freeze(values),
         provenance: Object.freeze({ sourceId, start: token.start, end: token.end }),
         status: "candidate", effect: "none"

@@ -6,9 +6,7 @@ import { EntityRegistry } from "./registry.js";
 import { buildGraph } from "./graph.js";
 import { LocalDocumentVault } from "./local-document-vault.js";
 import { VariableTypeRegistry } from "./typed-variables.js";
-import { inspectVariableBindings } from "./binding-resolver.js";
 import { loadVariableSchemas } from "./variable-schema-documents.js";
-import { LocalObservationLedger } from "./local-observation-ledger.js";
 
 const KINDS = new Set(EFSS_CONTRACT.kinds);
 const IDENT = /^[A-Za-z][A-Za-z0-9_-]{0,127}$/;
@@ -272,7 +270,7 @@ export class LocalKnowledgeGraph {
 
   async snapshot({ allowRestricted = false } = {}) {
     if (typeof allowRestricted !== "boolean") throw new TypeError("INVALID_GRAPH_VIEW");
-    const { documents, revisions, types, registry } = await this.#documentsAndRegistry({ allowRestricted });
+    const { documents, revisions, registry } = await this.#documentsAndRegistry({ allowRestricted });
     const derived = buildGraph(documents, registry);
     const nodes = new Set(derived.nodes);
     const edges = derived.edges.map(edge => ({
@@ -281,20 +279,6 @@ export class LocalKnowledgeGraph {
         offset: edge.evidence.offset }
     }));
     const diagnostics = [...derived.unresolved];
-    const valueCandidates = [];
-    for (const doc of documents) {
-      // Conversations can contain AI-authored text: not an observation source.
-      if (doc.metadata.kind === "conversation") continue;
-      const sourceId = doc.metadata.kind + ":" + doc.metadata.id;
-      const inspected = inspectVariableBindings(doc.body, types, { sourceId });
-      diagnostics.push(...inspected.diagnostics.map(d => ({ sourceId, ...d })));
-      for (const candidate of inspected.candidates) {
-        valueCandidates.push({
-          ...candidate,
-          provenance: { ...candidate.provenance, revision: revisions.get(sourceId) }
-        });
-      }
-    }
     const records = await this.#load();
     const relations = [];
     for (const relation of records.values()) {
@@ -327,15 +311,7 @@ export class LocalKnowledgeGraph {
         confidence: relation.confidence, evidence: { ...relation.evidence },
         relationId: relation.id });
     }
-    // Reviewed typed observations are data, not relation edges or instructions.
-    const observationLedger = new LocalObservationLedger({
-      vault: this.#vault, types: this.#types, root: this.#folder
-    });
-    const observationView = await observationLedger.snapshot({ allowRestricted });
-    diagnostics.push(...observationView.diagnostics);
-    return { nodes: [...nodes].sort(), edges, relations, valueCandidates,
-      observations: observationView.active,
-      observationHistory: observationView.history,
-      diagnostics, documents: documents.length };
+    return { nodes: [...nodes].sort(), edges, relations, diagnostics,
+      documents: documents.length };
   }
 }

@@ -1,45 +1,26 @@
-# P1.0 — Local shared-model paths
+# EFSS BellekPad — Current status
 
-Added: versioned JSON model-root manifest and independent YAML generator for ComfyUI `extra_model_paths.yaml`. Multiple model roots and multiple paths per category, including configurable custom-node categories. No duplication of large models.
+**Active stage: P1.4 contract cleanup (schema version 2)**
 
-Added: local-only path inventory preflight, no-clobber YAML export and opt-in overwrite-with-backup. The generator does not modify ComfyUI config or launch model processes automatically. A runtime config is local/private; public repository contains placeholders only.
+Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
-The user may defer all local experiments. CI verifies mapping and overwrite safety with temporary directories.
+## Critical design correction
 
-Known limits: custom ComfyUI model classes require supporting nodes; a directory does not establish runtime model compatibility; no automatic merging with existing YAML; no live hardware tests.
+There are only two symbol mutability classes: **variable** and **constant**. Six explicit value types and two explicit cardinalities (`one` default, `many` opt-in for variables). Every typed symbol must have a definition. An inline list of values is never assumed to be the history of a changing quantity.
 
-## P1.1 decision: scan scope
+The overlapping `VariableLedger` and `LocalObservationLedger` APIs and their automatic graph observation view have been retired. No local user files are modified or deleted. Previous source code remains recoverable via Git history. Legacy version-1 schema documents with empty property bags remain readable; nonempty legacy properties require explicit migration.
 
-Only user-configured model categories and paths may be scanned via the runtime CLI. Discovery defaults to primary model categories; LoRA and auxiliary assets are separated behind opt-in `--components`. No whole-PC scan. File type/classification is indicative only, not runtime compatibility proof. No local user GPU scanning or live model test was performed.
+See [SYMBOL_CONTRACT.md](SYMBOL_CONTRACT.md) for normative rules.
 
-## P1.2 — First durable document station
+## Previous implementation milestones
 
-Added Node-only LocalDocumentVault for EFSS documents, saving original UTF-8 source to ignored local .efss/vault; atomic replace with exclusive per-document lock and SHA-256 revision compare; safe identity validation; list/read; deterministic memory-index rebuild, restricted sources omitted by default.
+- P0.x: Original parser, semantic references, AST, memory stations, local model connectors and evaluation framework.
+- P1.0–P1.1: Configured multi-disk ComfyUI model-folder map, restricted model discovery, separate LoRA/ancillary discovery.
+- P1.2: Private revision-aware Node document vault.
+- P1.3: Typed EFSS `&Variable{...}` syntax.
+- P1.4: Source-scoped, review-gated persistent relation graph and EFSS type schema documents.
+- P1.4b (retired): Overly broad observation journaling; kept only in Git history, not the current product API.
 
-A minimal opt-in local CLI can import canonical EFSS Markdown, inspect index counts and search source IDs without exposing excerpts. No SQLite, external services, model downloads or runtime GPU tests.
+## Pending
 
-Not complete: browser IndexedDB storage, full backup/export + attachments, migration versioning, crash-safe lock recovery, durable semantic and graph metadata, reversible rich-text UI, automatic content conflict merge.
-
-## P1.3 — Positional EFSS variable binding syntax
-
-The EFSS Markdown scanner recognizes `&Variable{value0, value1, ...}` as one source-ranged variable token. Quoted string values may contain commas and escaped quotes. Invalid/oversized bindings fail closed with diagnostics rather than silently becoming references. Typed inspectors validate each value against explicitly registered schemas and create inert, provenance-linked candidates; parsing never changes stored observations, activates commands, or performs type inference. All existing reference syntax remains supported.
-
-Not yet implemented: committing selected binding candidates into persistent ledger records, variable scope/rename, named properties or syntax migrations. These require explicit product contracts.
-
-## P1.4 — Durable, evidence-scoped relational memory
-
-Added `LocalKnowledgeGraph`: rebuildable Markdown-derived links plus a private append-only ledger of proposed, explicitly approved, and retired relations. Every approved relation has source document revision + body range + text fingerprint. After document changes, prior approvals are labeled stale and withheld from graph edges. Proposals can never elevate themselves. Restricted documents are excluded by default.
-
-Added typed variable-binding candidate extraction with source revisions, **without** treating candidates as committed facts. Document-source nodes and variable definitions share EntityRegistry semantics; no network, model or GPU is invoked. Private journal files live beneath ignored `.efss/knowledge/`.
-
-Next: durable variable schema documents and approved observation ledger; browser IndexedDB adapter; UI; graph traversal ranking/embedding; safe schema migrations.
-
-## P1.4a — Reopenable variable definitions
-
-Added an inert versioned `:::efss.schema` JSON block for `kind: variable` EFSS documents, rebuilding `VariableTypeRegistry` from the local vault. Malformed schema, duplicate definitions and invalid type fields fail closed. Restricted schemas cannot become public graph entities. The graph can now reconstruct typed value candidates from disk without requiring an application-hardcoded schema.
-
-No automatic acceptance of variable values; persistence of approved typed observations still pending.
-
-## P1.4b — Typed Observation Ledger
-
-Added LocalObservationLedger: review-gated, source-revision-bound typed observations persisted in a local append-only JSONL journal. Approved values survive restart. Edited sources or schemas invalidate previous approvals; retired and stale records remain in history. Default views hide restricted sources. Conversation sources are ineligible. LocalKnowledgeGraph exposes observations separately from edges. Browser persistence, model inference and review UI remain pending.
+Browser IndexedDB storage and migration tools; portable secure backup/restore; an actual note/editor UI; relation-review interface; local real-hardware model tests; real semantic retrieval evaluated on representative user-approved data. **Working CI tests validate code paths, not product usefulness or model inference quality.**

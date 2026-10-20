@@ -1,64 +1,18 @@
 # EFSS BellekPad
 
-Experimental, dependency-free EFSS Markdown and memory kernel. Own parser, AST, typed variables and source-traced context; no external Markdown or editor framework.
+Local-first experimental EFSS Markdown and contextual-memory kernel. Own Markdown parser, AST, source-linked references and offline document vault. **A stored value is not automatically a fact or the current state of a real-world object.**
 
-## Verify
+## Symbol contract (P1.4 cleanup)
 
-```sh
-npm run check
-npm test
-```
+There are **two** kinds of typed symbols: `variable` and `constant`. They use the same six allowed value types (`text`, `number`, `boolean`, `date`, `enum`, `reference`). A variable holds **one** inline value candidate by default; a list is allowed only when `cardinality: "many"` was explicitly declared. A constant must have exactly one fixed value in its definition and cannot be reassigned through a Paper binding or rewritten under the same document identity.
 
-## Shared local AI model folders (without duplicate files)
+`&Miktar{26}` is a typed candidate **only when Miktar is declared**; it is not a time-series observation, automatic state update or inference. `&Miktar{26,48}` is rejected for a default one-value variable. `&Pi` references an immutable constant defined in a variable-schema document.
 
-BellekPad uses a private JSON manifest and generates ComfyUI's native `extra_model_paths.yaml` file. Nothing is moved or copied. See [shared model path instructions](docs/COMFY_MODEL_PATHS.md).
+See [symbol rules and migration](docs/SYMBOL_CONTRACT.md) and [syntax](docs/EFSS_BINDINGS.md).
 
-```powershell
-# Copy config/model-paths.example.json to config/model-paths.local.json first.
-npm run comfy:paths -- --config config/model-paths.local.json
-```
+## Local persistence
 
-## Local AI runtime and diagnostics
-
-```powershell
-npm run runtime -- help
-npm run runtime -- scan config/model-paths.local.json
-npm run runtime -- gpu
-npm run runtime -- running
-npm run runtime -- estimate publisher/model 4096
-```
-
-Node-only runtime supervisor, append-only private JSONL logs, local model inventory and experimental model lab: `docs/MODEL_RUNTIME.md`. Model weights, personal data and runtime logs are excluded from Git. No model is automatically loaded or trained.
-
-Vision-language input is an explicit `createImageMessage` with a verified local compatible chat runtime. Image generation uses `ComfyWorkflowProvider` with trusted local ComfyUI workflows. GGUF and Safetensors weights are not interchangeable.
-
-`npm run test:trace` appends test progress and failures to local `.efss/logs/`.
-
-Model and adapter evaluations:
-
-```powershell
-npm run eval -- examples/eval-suite.example.json <loaded-model-id>
-```
-
-## Explicit model discovery
-
-Only categories and folders declared in the private model-paths JSON are searched.
-Primary model discovery excludes `loras`, `vae`, `text_encoders` and other auxiliary assets.
-To inspect ancillary assets **separately**, explicitly run:
-
-```powershell
-npm run runtime -- scan config/model-paths.local.json --components
-```
-
-Whole-disk scanning is not a supported CLI action. All findings are unverified until loaded and tested in a compatible runtime.
-
-## Public-source sanity check
-
-Before pushing, run `npm run sanity` (working tree) or `npm run sanity:staged` (Git index). The CI also checks for accidentally tracked local configuration, credential-like strings and identifiable paths. Optional private term lists belong in `.efss/private-terms.json`, never in the repository. To enable an optional local pre-commit gate, run `git config core.hooksPath .githooks` **once per local clone**. See `docs/PRIVACY.md`.
-
-## Durable EFSS documents (Node local-first, P1.2)
-
-A private file-backed vault stores **original EFSS Markdown source**, with SHA-256 optimistic revision checks and atomic file replacement. The searchable memory index can be rebuilt from saved documents. No private document is checked into Git. This is a local Node adapter; a future browser IndexedDB adapter will share the document contract.
+Canonical EFSS Markdown lives in the Git-ignored `.efss/vault/`, protected by revision checks. Explicit, reviewed **relations** can live in `.efss/knowledge/relations.jsonl`. The speculative duplicate observation journals have been **retired from the active product API**; existing local journal files are not deleted, and previous implementation remains in Git history. Graph snapshots do not auto-promote arbitrary typed values into a second memory.
 
 ```powershell
 npm run vault -- status
@@ -66,22 +20,29 @@ npm run vault -- import .efss/imports/document.md
 npm run vault -- search ritim
 ```
 
-See [storage boundaries and recovery instructions](docs/DATA_STORAGE.md).
+See [data-storage boundaries](docs/DATA_STORAGE.md) and [knowledge graph](docs/KNOWLEDGE_GRAPH.md).
 
-## EFSS Markdown positional variable values (P1.3)
+## Local model connections (optional)
 
-`&Tarih` remains an ordinary reference. `&Tarih{2026-10-26, 2026-11-01}` carries an explicit **candidate** list of values, while `&Not{"first, second", third}` supports comma-bearing quoted strings. The parser retains exact ranges and the original source; typed inspection only validates configured variable types and does not overwrite any observations. See `docs/EFSS_BINDINGS.md`.
+This experimental project also offers a local OpenAI-compatible LLM provider, ComfyUI workflow adapter and directory-scoped model inventory. Nothing is automatically trained or downloaded. Model search only visits user-declared directories; it excludes LoRA and ancillary assets from the primary model list.
 
-## Local knowledge graph (P1.4)
+```powershell
+# Copy config/model-paths.example.json to config/model-paths.local.json first.
+npm run comfy:paths -- --config config/model-paths.local.json
+npm run runtime -- scan config/model-paths.local.json
+npm run runtime -- scan config/model-paths.local.json --components
+```
 
-EFSS source documents remain canonical. `LocalKnowledgeGraph` rebuilds syntactic links from the private `LocalDocumentVault`, while **explicitly reviewed relationships** are recorded in a private append-only JSONL journal. Relationship proposals are *not* automatically accepted or sent to an LLM. Accepted inferences are tied to the exact source revision, UTF-16 range, and a fingerprint of that text. Edited evidence invalidates old inferences.
+Refer to [runtime](docs/MODEL_RUNTIME.md) and [ComfyUI path mapping](docs/COMFY_MODEL_PATHS.md).
 
-Typed `&Variable{...}` values are discoverable as source-backed **candidates**, never auto-overwrites. A future ledger-approval layer will persist accepted variable observations and schema definitions.
+## Development checks
 
-[Architecture and safeguards](docs/KNOWLEDGE_GRAPH.md)
+```sh
+npm run sanity
+npm run check
+npm test
+```
 
-EFSS variable schemas may also be saved as private `kind: variable` documents containing an explicit inert `:::efss.schema` JSON block. This allows type definitions and typed candidate extraction to survive restarts without hardcoding them. See `docs/KNOWLEDGE_GRAPH.md`.
+The public-source sanity check and GitHub Actions help catch private paths or credential patterns, but they cannot guarantee that all private information is absent. Local personal data, trained models, private notes, logs, and keys must stay off the public repository. See [privacy policy](docs/PRIVACY.md).
 
-## Reviewed variable observations (P1.4b)
-
-`LocalObservationLedger` stores approved typed values from exact EFSS Paper/Project bindings in a local, append-only journal. Proposals require explicit approval; changed source documents or changed schemas make old observations stale. `LocalKnowledgeGraph.snapshot()` exposes approved current observations separately from relation edges. See `docs/KNOWLEDGE_GRAPH.md`.
+**Not yet a user-facing note editor.** Browser IndexedDB, UI, migration/import tooling and live model testing remain future work.

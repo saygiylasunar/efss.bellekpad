@@ -3,6 +3,7 @@ import { open, mkdir, lstat, readdir, readFile, rename, unlink } from "node:fs/p
 import { dirname, join, resolve } from "node:path";
 import { EFSS_CONTRACT } from "./contract.js";
 import { parseDocument } from "./efss-markdown.js";
+import { parseVariableSchemaDocument } from "./variable-schema-documents.js";
 import { MemoryStations } from "./memory-stations.js";
 
 const VALID_ID = /^[A-Za-z][A-Za-z0-9_-]{0,127}$/;
@@ -111,6 +112,11 @@ export class LocalDocumentVault {
     let temp = null;
     try {
       const existing = await this.read(kind, id);
+      if (existing && kind === "variable") {
+        const previous = parseVariableSchemaDocument(existing);
+        if (previous?.symbolKind === "constant" && existing.source !== source)
+          throw new Error("CONSTANT_DEFINITION_IMMUTABLE");
+      }
       if (existing && expectedRevision === null) throw new Error("DOCUMENT_ALREADY_EXISTS");
       if (expectedRevision !== null && (!existing ||
           existing.revision !== expectedRevision)) throw new Error("DOCUMENT_VERSION_CONFLICT");

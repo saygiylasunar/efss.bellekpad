@@ -214,32 +214,31 @@ test("duplicate record ids are rejected rather than merged across sessions", asy
   assert.equal((await graph.snapshot()).relations.length, 1);
 });
 
-test("approved graph and typed binding candidates are separate levels of authority", async t => {
+test("graph stores explicit references, not automatic arbitrary values", async t => {
   const { vault, graph, types } = await setup(t);
   types.register({ id: "count", label: "Count", value: { type: "number" } });
-  const body = "Collect &Count{26, 48} with &Topic{alpha}.";
-  const saved = await save(vault, "paper", "alpha", body);
+  await save(vault, "paper", "alpha", "Collect &Count{26, 48}.");
   const snap = await graph.snapshot();
-  assert.equal(snap.valueCandidates.length, 2);
-  assert.deepEqual(snap.valueCandidates.find(x => x.variableId === "count").values, [26, 48]);
-  assert.equal(snap.valueCandidates[0].effect, "none");
-  assert.equal(snap.valueCandidates[0].provenance.revision, saved.revision);
-  assert.equal(snap.edges.some(x => x.origin === "approved-relation"), false);
+  assert.ok(snap.edges.some(e => e.to === "variable:count"));
+  assert.equal(Object.hasOwn(snap, "valueCandidates"), false);
+  assert.equal(Object.hasOwn(snap, "observations"), false);
 });
 
-test("AI-authored conversation values are not promoted to extracted observations", async t => {
+test("conversation text does not create a second automatic observation channel", async t => {
   const { vault, graph } = await setup(t);
-  await save(vault, "conversation", "talk", "@Person:Demo\n&Topic{person}\n@AI:Example\n&Topic{model}");
+  await save(vault, "conversation", "talk",
+    "@Person:Demo\n&Topic{person}\n@AI:Example\n&Topic{model}");
   const snap = await graph.snapshot();
-  assert.deepEqual(snap.valueCandidates, []);
+  assert.equal(Object.hasOwn(snap, "observations"), false);
+  assert.equal(snap.edges.some(e => e.origin === "approved-relation"), false);
 });
 
-test("restricted document bindings never enter the default view", async t => {
+test("restricted documents do not become graph sources by default", async t => {
   const { vault, graph } = await setup(t);
-  await save(vault, "paper", "one", "&Topic{secret}", { visibility: "restricted" });
-  assert.deepEqual((await graph.snapshot()).valueCandidates, []);
-  const permitted = await graph.snapshot({ allowRestricted: true });
-  assert.equal(permitted.valueCandidates.length, 1);
+  await save(vault, "paper", "one", "&Topic{secret}",
+    { visibility: "restricted" });
+  assert.equal((await graph.snapshot()).documents, 0);
+  assert.equal((await graph.snapshot({ allowRestricted: true })).documents, 1);
 });
 
 test("restricted variable definitions do not surface through registered aliases", async t => {
