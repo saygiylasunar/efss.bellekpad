@@ -17,3 +17,6 @@ coverage/
 local-models/
 training-data/
 checkpoints/
+config/model-paths.local.json
+config/*.local.json
+extra_model_paths.yaml

@@ -9,25 +9,32 @@ npm run check
 npm test
 ```
 
-## Local model diagnostics
+## Shared local AI model folders (without duplicate files)
+
+BellekPad uses a private JSON manifest and generates ComfyUI's native `extra_model_paths.yaml` file. Nothing is moved or copied. See [shared model path instructions](docs/COMFY_MODEL_PATHS.md).
+
+```powershell
+# Copy config/model-paths.example.json to config/model-paths.local.json first.
+npm run comfy:paths -- --config config/model-paths.local.json
+```
+
+## Local AI runtime and diagnostics
 
 ```powershell
 npm run runtime -- help
-npm run runtime -- scan "D:\AI\models"
+npm run runtime -- scan "D:/AI/models"
 npm run runtime -- gpu
 npm run runtime -- running
 npm run runtime -- estimate publisher/model 4096
 ```
 
-Node-only runtime supervisor, append-only JSONL logs, local model inventory and future model lab: see `docs/MODEL_RUNTIME.md`. Model weights, personal data and runtime logs are excluded from Git. No model is automatically loaded or trained.
+Node-only runtime supervisor, append-only private JSONL logs, local model inventory and experimental model lab: `docs/MODEL_RUNTIME.md`. Model weights, personal data and runtime logs are excluded from Git. No model is automatically loaded or trained.
 
-## Vision and debug
+Vision-language input is an explicit `createImageMessage` with a verified local compatible chat runtime. Image generation uses `ComfyWorkflowProvider` with trusted local ComfyUI workflows. GGUF and Safetensors weights are not interchangeable.
 
-Vision-language input is an explicit `createImageMessage` with a verified local compatible chat runtime. Image generation uses `ComfyWorkflowProvider` with trusted local ComfyUI workflows; GGUF and Safetensors weights are not interchangeable.
+`npm run test:trace` appends test progress and failures to local `.efss/logs/`.
 
-`npm run test:trace` appends test progress and failures to local `.efss/logs/`. See `docs/MODEL_RUNTIME.md`.
-
-Model and adapter baseline evaluations:
+Model and adapter evaluations:
 
 ```powershell
 npm run eval -- examples/eval-suite.example.json <loaded-model-id>

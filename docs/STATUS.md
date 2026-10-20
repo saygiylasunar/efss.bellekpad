@@ -1,11 +1,9 @@
-# P0.8
+# P1.0 — Local shared-model paths
 
-Own EFSS Markdown parser, AST and typed graph are separate from local runtime adapters.
+Added: versioned JSON model-root manifest and independent YAML generator for ComfyUI `extra_model_paths.yaml`. Multiple model roots and multiple paths per category, including configurable custom-node categories. No duplication of large models.
 
-Added: audited filename-only model catalog for GGUF/Safetensors; append-only local JSONL runtime logging; allowlisted CLI command supervisor; model lab experiment manifests; mapped runtime errors. Unit tests and traced-test command.
+Added: local-only path inventory preflight, no-clobber YAML export and opt-in overwrite-with-backup. The generator does not modify ComfyUI config or launch model processes automatically. A runtime config is local/private; public repository contains placeholders only.
 
-Added: OpenAI-compatible multimodal user image messages for compatible VL servers and a localhost-only ComfyUI workflow queue/history adapter for image generation. Neither is automatically activated. No checkpoints loaded, no provider credentials stored.
+The user may defer all local experiments. CI verifies mapping and overwrite safety with temporary directories.
 
-Pending: live Windows/RTX 3060 testing, accurate memory telemetry, trusted full model manifests, Hugging Face Safetensors model host support, persisted eval records, cancel running ComfyUI jobs, cross-process kill switch, UI.
-
-Evaluation: opt-in, repeatable local suite runner with recorded aggregate pass rate and latency, no prompt leakage to logs. Fine tuning and checkpoint synthesis not implemented.
+Known limits: custom ComfyUI model classes require supporting nodes; a directory does not establish runtime model compatibility; no automatic merging with existing YAML; no live hardware tests.

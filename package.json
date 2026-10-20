@@ -1,6 +1,6 @@
 {
   "name": "efss-bellekpad",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,9 +9,10 @@
   "scripts": {
     "test": "node --test",
     "test:trace": "node tools/efss-runtime.mjs test",
-    "check": "node --check src/index.js && node --check src/local-runtime.js && node --check src/model-catalog.js && node --check src/runtime-log.js && node --check src/runtime-supervisor.js && node --check src/runtime-errors.js && node --check src/model-lab.js && node --check src/model-evaluator.js && node --check src/multimodal.js && node --check src/comfy-provider.js && node --check src/model-provider.js && node --check tools/efss-runtime.mjs && node --check tools/efss-eval.mjs && node --check test/runtime-stack.test.js && node --check test/multimodal.test.js && node --check test/runtime-errors.test.js && node --check test/model-evaluator.test.js",
+    "check": "node --check src/index.js && node --check src/local-runtime.js && node --check src/model-catalog.js && node --check src/runtime-log.js && node --check src/runtime-supervisor.js && node --check src/runtime-errors.js && node --check src/model-lab.js && node --check src/model-evaluator.js && node --check src/multimodal.js && node --check src/comfy-provider.js && node --check src/comfy-paths.js && node --check src/comfy-paths-io.js && node --check src/model-provider.js && node --check tools/comfy-paths.mjs && node --check tools/efss-runtime.mjs && node --check tools/efss-eval.mjs && node --check test/comfy-paths.test.js",
     "runtime": "node tools/efss-runtime.mjs",
     "eval": "node tools/efss-eval.mjs",
-    "demo": "node examples/local-memory.mjs"
+    "demo": "node examples/local-memory.mjs",
+    "comfy:paths": "node tools/comfy-paths.mjs"
   }
 }
