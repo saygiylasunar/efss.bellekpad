@@ -1,13 +1,1 @@
-{
-  "name": "efss-bellekpad",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "test": "node --test",
-    "check": "node --check src/efss-markdown.js && node --check test/efss-markdown.test.js"
-  }
-}
+{"name":"efss-bellekpad","version":"0.0.2","private":true,"type":"module","engines":{"node":">=20"},"scripts":{"test":"node --test","check":"node --check src/contract.js && node --check src/semantics.js && node --check src/registry.js && node --check src/context-engine.js && node --check src/graph.js && node --check src/conversation.js"}}

@@ -1,9 +1,9 @@
-# P0
+# P0.2
 
-Contract: draft / v0.1.0.
+Contract: experimental.
 
-Implemented: envelope codec, variable-token scan, round-trip checks.
+Implemented: stable entity identifiers, explicit directives, alias resolver, scoped context packets, typed reference graph, conversation attribution and deterministic lexical retrieval.
 
-Next: typed AST, richer formatting, persistence adapter, safe migrations.
+Safety boundaries: source provenance retained; passive mentions do not activate instructions; archived model turns cannot issue active directives; denied and unresolved references remain diagnostic. No provider calls or model training occur in this package.
 
-Publish only implementation-neutral status here.
+Next: lossless block AST, version migration rules, persistent indices, embeddings adapter, editor projection.

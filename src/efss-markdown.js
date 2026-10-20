@@ -1,4 +1,6 @@
-export const FORMAT_VERSION = "0.1.0";
+import { EFSS_CONTRACT } from "./contract.js";
+
+export const FORMAT_VERSION = EFSS_CONTRACT.documentVersion;
 
 const TICK = String.fromCharCode(96);
 const REF = /^&([\p{L}_][\p{L}\p{M}\p{N}_-]*)/u;
