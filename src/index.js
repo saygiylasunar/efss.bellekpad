@@ -10,3 +10,5 @@ export { parseInline, parseMarkdownAst, serializeMarkdownAst, editMarkdownAst } 
 export { VARIABLE_SCHEMA_VERSION, VARIABLE_TYPES, defineField, validateTypedValue, VariableTypeRegistry } from "./typed-variables.js";
 export { VariableLedger, inspectTypedMentions } from "./variable-ledger.js";
 export { MemoryStations, lexicalTerms, cosineSimilarity } from "./memory-stations.js";
+export { OpenAICompatibleProvider, ProviderError } from "./model-provider.js";
+export { indexEmbeddings, queryWithMemory } from "./ai-pipeline.js";

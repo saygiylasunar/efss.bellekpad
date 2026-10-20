@@ -1,13 +1,9 @@
-# P0.5
+# P0.6
 
-EFSS Markdown core: own grammar, editable source-retaining AST, typed values, explicit reference commands and provenance-aware context plans.
+Added: opt-in OpenAI-compatible provider with loopback default, remote HTTPS opt-in, model discovery, embedding and chat calls, cancellation, input/output shape validation.
 
-Memory stations: document -> source ranges -> lexical terms -> optional external embeddings -> scored recall -> cited context tray. Supports repeat-term *candidates* and evidence-bound relation *hypotheses*. Relational hypotheses are not approved facts until confirmed. Source updates invalidate derivative vectors and hypotheses.
+Added: adapter bridge from source-traced memory segments to model-specific embeddings and cited chat context. No autonomous commands. No secrets or personal data in the repository.
 
-Model embeddings are NOT generated in the core. External providers can attach vectors identified by model and dimensions. Stored vectors are not a substitute for source text and cannot be decoded back into it.
+Added: optional local runtime demo. No live hardware test, native LM Studio integration or persistent vector store yet. Reranking, speech and vision are separate future adapters.
 
-No inference of meaning from word frequency alone. No automatic model training, semantic extraction, storage backend or API/network provider is implemented.
-
-Pending decisions: value binding syntax for multi-valued variables; scope and lifecycle of variables; inference approval/forgetting policy; semantic index backend; retrieval budget; canonical document storage and migrations.
-
-Node built-in tests, zero runtime dependencies. No user data or private profiles stored here.
+CI: Node syntax checks and offline mock-provider unit tests. No external runtime dependencies.
