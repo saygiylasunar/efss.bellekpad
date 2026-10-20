@@ -8,6 +8,7 @@ import { LocalDocumentVault } from "./local-document-vault.js";
 import { VariableTypeRegistry } from "./typed-variables.js";
 import { inspectVariableBindings } from "./binding-resolver.js";
 import { loadVariableSchemas } from "./variable-schema-documents.js";
+import { LocalObservationLedger } from "./local-observation-ledger.js";
 
 const KINDS = new Set(EFSS_CONTRACT.kinds);
 const IDENT = /^[A-Za-z][A-Za-z0-9_-]{0,127}$/;
@@ -326,7 +327,15 @@ export class LocalKnowledgeGraph {
         confidence: relation.confidence, evidence: { ...relation.evidence },
         relationId: relation.id });
     }
+    // Reviewed typed observations are data, not relation edges or instructions.
+    const observationLedger = new LocalObservationLedger({
+      vault: this.#vault, types: this.#types, root: this.#folder
+    });
+    const observationView = await observationLedger.snapshot({ allowRestricted });
+    diagnostics.push(...observationView.diagnostics);
     return { nodes: [...nodes].sort(), edges, relations, valueCandidates,
+      observations: observationView.active,
+      observationHistory: observationView.history,
       diagnostics, documents: documents.length };
   }
 }

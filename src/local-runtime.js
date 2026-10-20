@@ -8,3 +8,4 @@ export { discoverConfiguredModels, modelCategoryPolicy } from "./model-discovery
 export { LocalDocumentVault } from "./local-document-vault.js";
 export { LocalKnowledgeGraph } from "./local-knowledge-graph.js";
 export { loadVariableSchemas, parseVariableSchemaDocument } from "./variable-schema-documents.js";
+export { LocalObservationLedger } from "./local-observation-ledger.js";

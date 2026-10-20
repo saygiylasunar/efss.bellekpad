@@ -39,3 +39,7 @@ Next: durable variable schema documents and approved observation ledger; browser
 Added an inert versioned `:::efss.schema` JSON block for `kind: variable` EFSS documents, rebuilding `VariableTypeRegistry` from the local vault. Malformed schema, duplicate definitions and invalid type fields fail closed. Restricted schemas cannot become public graph entities. The graph can now reconstruct typed value candidates from disk without requiring an application-hardcoded schema.
 
 No automatic acceptance of variable values; persistence of approved typed observations still pending.
+
+## P1.4b — Typed Observation Ledger
+
+Added LocalObservationLedger: review-gated, source-revision-bound typed observations persisted in a local append-only JSONL journal. Approved values survive restart. Edited sources or schemas invalidate previous approvals; retired and stale records remain in history. Default views hide restricted sources. Conversation sources are ineligible. LocalKnowledgeGraph exposes observations separately from edges. Browser persistence, model inference and review UI remain pending.

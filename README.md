@@ -81,3 +81,7 @@ Typed `&Variable{...}` values are discoverable as source-backed **candidates**, 
 [Architecture and safeguards](docs/KNOWLEDGE_GRAPH.md)
 
 EFSS variable schemas may also be saved as private `kind: variable` documents containing an explicit inert `:::efss.schema` JSON block. This allows type definitions and typed candidate extraction to survive restarts without hardcoding them. See `docs/KNOWLEDGE_GRAPH.md`.
+
+## Reviewed variable observations (P1.4b)
+
+`LocalObservationLedger` stores approved typed values from exact EFSS Paper/Project bindings in a local, append-only journal. Proposals require explicit approval; changed source documents or changed schemas make old observations stale. `LocalKnowledgeGraph.snapshot()` exposes approved current observations separately from relation edges. See `docs/KNOWLEDGE_GRAPH.md`.

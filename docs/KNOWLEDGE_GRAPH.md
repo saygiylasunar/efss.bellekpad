@@ -79,3 +79,7 @@ When this is stored as `.efss/vault/variable/count.md`, the default knowledge gr
 Supported value types are limited to the existing built-ins. Malformed documents, unknown types, duplicate aliases and conflicts with explicitly supplied type registries fail closed. Restricted variable documents are excluded from default public views.
 
 Observation candidates are **not** committed facts; the approved, source-revision-aware observation ledger remains a separate milestone.
+
+## P1.4b — Reviewed values
+
+Values bound by `&Miktar{26, 48}` are candidates until explicitly proposed and approved through `LocalObservationLedger`. Its separate local journal stores values with source revision, body offsets, text fingerprint and variable schema fingerprint. The `snapshot()` method returns `active` approved/current records and a `history` of summaries without values. Source or schema edits mark old approvals stale; retired records remain in history. Restricted source/definition documents are hidden by default. Only Paper and Project documents may provide proposed binding observations, not AI-authored conversation turns. The graph's `observations` property never automatically generates relationship edges or instructions.

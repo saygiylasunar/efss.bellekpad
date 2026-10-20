@@ -48,3 +48,7 @@ A browser application cannot directly access arbitrary local files; desktop/loca
 Inferred relationships need explicit approval before entering the graph, and approved links must still match the **source revision and exact excerpt fingerprint**. Stale, retired and proposed relationships are never treated as approved facts. The default snapshot excludes restricted documents and their links.
 
 The ledger is an **early local prototype**, not a cross-device replicated database or transactional backup format. There is no automatic stale-lock recovery, full crash recovery, browser storage, conflict reconciliation or backup/restore UI yet.
+
+## Observation journal
+
+The opt-in LocalObservationLedger records typed candidate values under `.efss/knowledge/observations.jsonl`. This location is excluded from Git. Every event is an immutable proposal, approval or retirement. The journal includes typed values, so its contents and backups must stay private. Source revision, selected text fingerprint and variable schema digest are rechecked before treating an observation as current. The journal uses exclusive mutation locks and fsync but is not a distributed database or a complete crash-recovery solution.
