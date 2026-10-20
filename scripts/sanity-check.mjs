@@ -58,6 +58,7 @@ export function auditText(text, { privateTerms = [] } = {}) {
 export function auditPath(file) {
   if (typeof file !== "string") throw new TypeError("Invalid path");
   const name = file.replace(/\\/g, "/");
+  if (name === ".env.example") return [];
   return DENIED_PATH.test(name) ? [{ category: "FORBIDDEN_TRACKED_PATH", line: null }] : [];
 }
 export function readPrivateTerms(file = DENYLIST) {
