@@ -1,7 +1,8 @@
+import { EFSS_CONTRACT } from "./contract.js";
 import { scanSemantics } from "./semantics.js";
 import { VariableTypeRegistry, validateTypedValue } from "./typed-variables.js";
 
-const DOC_ID = /^(paper|project|conversation):[A-Za-z][A-Za-z0-9_-]{0,127}$/;
+const DOC_ID = new RegExp("^(?:" + EFSS_CONTRACT.kinds.join("|") + "):[A-Za-z][A-Za-z0-9_-]{0,127}$");
 const NUMERIC = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/;
 
 function cast(raw, type) {
