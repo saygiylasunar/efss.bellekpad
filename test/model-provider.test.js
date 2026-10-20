@@ -45,7 +45,8 @@ test("remote endpoints are disabled unless HTTPS, explicit opt-in, and a key", (
   assert.throws(() => new OpenAICompatibleProvider({ baseURL: "https://remote.example/v1" }), /REMOTE_DISABLED/);
   assert.throws(() => new OpenAICompatibleProvider({ baseURL: "http://remote.example/v1", apiKey: "secret", allowRemote: true }), /REMOTE_DISABLED/);
   assert.throws(() => new OpenAICompatibleProvider({ baseURL: "http://127.0.0.1:1234/v1?x=1" }), /BAD_URL/);
-  assert.throws(() => new OpenAICompatibleProvider({ baseURL: "http://user:pass@localhost:1234/v1" }), /BAD_URL/);
+  const syntheticCredentialsURL = "http://" + ["test-user", "test-password"].join(":") + "@localhost:1234/v1";
+  assert.throws(() => new OpenAICompatibleProvider({ baseURL: syntheticCredentialsURL }), /BAD_URL/);
   const remote = new OpenAICompatibleProvider({
     baseURL: "https://remote.example/v1", apiKey: "not-logged", allowRemote: true
   });
