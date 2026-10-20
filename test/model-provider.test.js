@@ -58,8 +58,8 @@ test("embedding and chat shape verified; provider never interprets excerpts as c
   assert.deepEqual(embedding.vectors, [[1, 0, 0], [0, 1, 0]]);
   const chat = await provider.chat({ model: "chat-small", messages: [{ role: "user", content: "Merhaba" }] });
   assert.equal(chat.content, "Kaynaklı yanıt.");
-  assert.equal(JSON.parse(calls[1].options.body).model, "embed-small");
-  assert.equal(JSON.parse(calls[2].options.body).stream, false);
+  assert.equal(JSON.parse(calls[0].options.body).model, "embed-small");
+  assert.equal(JSON.parse(calls[1].options.body).stream, false);
 });
 
 test("invalid requests are rejected locally before any model call", async () => {
