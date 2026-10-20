@@ -55,3 +55,15 @@ Whole-disk scanning is not a supported CLI action. All findings are unverified u
 ## Public-source sanity check
 
 Before pushing, run `npm run sanity` (working tree) or `npm run sanity:staged` (Git index). The CI also checks for accidentally tracked local configuration, credential-like strings and identifiable paths. Optional private term lists belong in `.efss/private-terms.json`, never in the repository. To enable an optional local pre-commit gate, run `git config core.hooksPath .githooks` **once per local clone**. See `docs/PRIVACY.md`.
+
+## Durable EFSS documents (Node local-first, P1.2)
+
+A private file-backed vault stores **original EFSS Markdown source**, with SHA-256 optimistic revision checks and atomic file replacement. The searchable memory index can be rebuilt from saved documents. No private document is checked into Git. This is a local Node adapter; a future browser IndexedDB adapter will share the document contract.
+
+```powershell
+npm run vault -- status
+npm run vault -- import .efss/imports/document.md
+npm run vault -- search ritim
+```
+
+See [storage boundaries and recovery instructions](docs/DATA_STORAGE.md).

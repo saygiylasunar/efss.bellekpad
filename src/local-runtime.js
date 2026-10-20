@@ -5,3 +5,4 @@ export { RuntimeSupervisor, planRuntimeCommand } from "./runtime-supervisor.js";
 export { ModelLab } from "./model-lab.js";
 export { classifyRuntimeFailure } from "./runtime-errors.js";
 export { discoverConfiguredModels, modelCategoryPolicy } from "./model-discovery.js";
+export { LocalDocumentVault } from "./local-document-vault.js";

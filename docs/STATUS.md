@@ -11,3 +11,11 @@ Known limits: custom ComfyUI model classes require supporting nodes; a directory
 ## P1.1 decision: scan scope
 
 Only user-configured model categories and paths may be scanned via the runtime CLI. Discovery defaults to primary model categories; LoRA and auxiliary assets are separated behind opt-in `--components`. No whole-PC scan. File type/classification is indicative only, not runtime compatibility proof. No local user GPU scanning or live model test was performed.
+
+## P1.2 — First durable document station
+
+Added Node-only LocalDocumentVault for EFSS documents, saving original UTF-8 source to ignored local .efss/vault; atomic replace with exclusive per-document lock and SHA-256 revision compare; safe identity validation; list/read; deterministic memory-index rebuild, restricted sources omitted by default.
+
+A minimal opt-in local CLI can import canonical EFSS Markdown, inspect index counts and search source IDs without exposing excerpts. No SQLite, external services, model downloads or runtime GPU tests.
+
+Not complete: browser IndexedDB storage, full backup/export + attachments, migration versioning, crash-safe lock recovery, durable semantic and graph metadata, reversible rich-text UI, automatic content conflict merge.
