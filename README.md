@@ -20,3 +20,9 @@ npm run runtime -- estimate publisher/model 4096
 ```
 
 Node-only runtime supervisor, append-only JSONL logs, local model inventory and future model lab: see `docs/MODEL_RUNTIME.md`. Model weights, personal data and runtime logs are excluded from Git. No model is automatically loaded or trained.
+
+## Vision and debug
+
+Vision-language input is an explicit `createImageMessage` with a verified local compatible chat runtime. Image generation uses `ComfyWorkflowProvider` with trusted local ComfyUI workflows; GGUF and Safetensors weights are not interchangeable.
+
+`npm run test:trace` appends test progress and failures to local `.efss/logs/`. See `docs/MODEL_RUNTIME.md`.

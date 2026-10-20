@@ -13,3 +13,5 @@ export { MemoryStations, lexicalTerms, cosineSimilarity } from "./memory-station
 export { OpenAICompatibleProvider, ProviderError } from "./model-provider.js";
 export { indexEmbeddings, queryWithMemory } from "./ai-pipeline.js";
 export { ModelLab } from "./model-lab.js";
+export { createImageMessage } from "./multimodal.js";
+export { ComfyWorkflowProvider } from "./comfy-provider.js";

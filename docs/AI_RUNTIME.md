@@ -8,16 +8,17 @@ The EFSS core owns the grammar, source ranges, graph and context assembly. A loc
 | --- | --- | --- | --- |
 | Markdown, AST, variable grammar | None | Deterministic EFSS parser | — |
 | Semantic index | Multilingual embedding | Qwen3-Embedding-0.6B | BGE-M3 or Qwen3-Embedding-4B |
-| Candidate concept discovery | Instruction LLM | Qwen3.5-4B | Qwen3-4B-Instruct |
-| Evidence-backed relation proposals | Instruction / reasoning LLM | Qwen3.5-9B Q4 | Qwen3-8B Q4 |
+| Candidate concept discovery | Instruction LLM | Qwen3-14B Q4 GGUF | Locally available capable reasoning model |
+| Evidence-backed relation proposals | Instruction / reasoning LLM | Qwen3-14B Q4 GGUF | Vision-aware VL model if image evidence |
 | Reranking | Reranker | Qwen3-Reranker-0.6B | Not wired yet |
-| Context-grounded chat | Chat / reasoning LLM | Qwen3.5-9B Q4 | Qwen3.5-4B |
-| Images / diagrams | Vision-language model | Qwen3.5-4B or Qwen3-VL-4B-Instruct | Not wired yet |
+| Context-grounded chat | Chat / reasoning LLM | Qwen3-14B Q4 GGUF | Verified 7B–9B+ vision-language variant for visual requests |
+| Image reading and interpretation | Vision-language model | Qwen2.5-VL-7B FP8 complete checkpoint | Qwen3-VL-4B BF16 complete checkpoint |
+| Image creation / editing | Diffusion workflow | Compatible Z-Image / FLUX workflow | Requires ComfyUI runtime and matching components |
 | Speech input | Speech-to-text | Whisper large-v3-turbo | Not wired yet |
 
 For 12GB VRAM reference: Qwen3.5-4B Q4 checkpoints are roughly 3.3–4.0GB and 9B around 6.6–7.6GB *on disk*; GPU residency also needs KV cache, runtime memory, and display reserve. Qwen3-Embedding-0.6B is approximately 639MB in common quantized distributions. Prefer staged loading rather than running every model simultaneously.
 
-Model families are examples, not pinned provider model IDs. Discover actual IDs with GET /v1/models. Weights, KV cache, display overhead and concurrent model loads all contribute to memory requirements. Start at 4096–8192 tokens for 8B Q4 on a 12GB class GPU; confirm measured memory before increasing. Large context support on a model card does not mean it fits in VRAM.
+Model families are examples, not pinned provider model IDs. Discover actual IDs with GET /v1/models. Weights, KV cache, display overhead and concurrent model loads all contribute to memory requirements. Start at 4096 tokens for 14B Q4 on a 12 GiB-class GPU; confirm measured memory before increasing. Large context support on a model card does not mean it fits in VRAM.
 
 ## Runtime
 
@@ -38,3 +39,7 @@ For a manual run: start the local inference server, load a chat model and option
 - **AI execution:** independent adapter, no implicit tool execution.
 
 The adapter is tested with mocked HTTP responses; hardware performance and native LM Studio connection remain to be tested on a user machine.
+
+## Runtime control, formats, diagnostics
+
+See `docs/MODEL_RUNTIME.md` for local inventory, GGUF/SAFETENSORS compatibility, Windows commands, append-only error logging, 14B-first reasoning profiles, explicit VL input and trusted image-generation workflows. Personal model file paths are never hardcoded in the public repository.

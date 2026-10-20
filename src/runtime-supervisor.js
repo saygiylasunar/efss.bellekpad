@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import { RuntimeLog } from "./runtime-log.js";
+import { classifyRuntimeFailure } from "./runtime-errors.js";
 
 const NAME = /^[a-zA-Z0-9_./:@+-]{1,250}$/;
 const ALLOWED_ACTIONS = new Set(["models", "running", "estimate", "load",
-  "unload", "gpu", "server-start", "server-stop"]);
+  "unload", "gpu", "test", "server-start", "server-stop"]);
 const MAX_OUTPUT = 32000;
 
 function modelKey(value) {
@@ -15,6 +16,7 @@ function modelKey(value) {
 
 export function planRuntimeCommand(action, { model = null, contextLength = 4096, gpu = "auto" } = {}) {
   if (!ALLOWED_ACTIONS.has(action)) throw new Error("ACTION_NOT_ALLOWED");
+  if (action === "test") return { action, executable: process.execPath, args: ["--test"] };
   if (action === "gpu") return { action, executable: "nvidia-smi",
     args: ["--query-gpu=name,memory.total,memory.used,utilization.gpu",
       "--format=csv,noheader,nounits"] };
@@ -91,7 +93,10 @@ export class RuntimeSupervisor {
         else errorOutput = (errorOutput + incoming).slice(-MAX_OUTPUT);
         void this.#logger.write({ level: "debug", event: "command-output",
           stage: stream, action, bytes: Buffer.byteLength(incoming),
-          output: incoming });
+          output: incoming }).catch(() => {
+            this.#onStatus?.({ stage: "logging", state: "failed", action,
+              errorCode: "LOG_WRITE_FAILED" });
+          });
         this.#onStatus?.({ stage: stream, state: "streaming", action,
           output: incoming });
       };
@@ -102,17 +107,19 @@ export class RuntimeSupervisor {
         settled = true;
         this.#active = null;
         const cancelled = state.cancelled;
+        const failure = classifyRuntimeFailure({ error, exitCode: code, stderr: errorOutput, cancelled });
         const ok = !cancelled && !error && code === 0;
         const result = { ok, action, exitCode: code,
           cancelled, durationMs: Date.now() - started,
           stdout: output, stderr: errorOutput,
-          errorCode: cancelled ? "CANCELLED" : error ? "PROCESS_ERROR" :
-            code === 0 ? null : "COMMAND_EXIT_NONZERO" };
+          errorCode: failure.code, errorCategory: failure.category,
+          failureStage: failure.stage };
         await this.#logger.write({ level: ok ? "info" : "error",
-          event: "command-finished", stage: "exit", action,
+          event: "command-finished", stage: ok ? "exit" : failure.stage, action,
           state: ok ? "completed" : cancelled ? "cancelled" : "failed",
           exitCode: code, elapsedMs: result.durationMs, code: result.errorCode,
-          kind: error?.name ?? null, message: error?.message ?? null });
+          kind: error?.name ?? failure.category, message: error?.message ??
+            (ok ? null : "Command failed during " + failure.stage) });
         this.#onStatus?.({ stage: "exit", state: ok ? "completed" : "failed",
           action, exitCode: code, errorCode: result.errorCode });
         resolve(result);
@@ -120,7 +127,10 @@ export class RuntimeSupervisor {
       child.on("error", error => { void complete(null, error); });
       child.on("close", code => { void complete(code); });
       void this.#logger.write({ event: "command-started", stage: "spawn",
-        action, pid: child.pid ?? null, state: "running" });
+        action, pid: child.pid ?? null, state: "running" }).catch(() => {
+          this.#onStatus?.({ stage: "logging", state: "failed", action,
+            errorCode: "LOG_WRITE_FAILED" });
+        });
       this.#onStatus?.({ stage: "spawn", state: "running", action,
         pid: child.pid ?? null });
     });

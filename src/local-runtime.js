@@ -3,3 +3,4 @@ export { classifyModelFile, scanModelDirectory, estimateFit } from "./model-cata
 export { RuntimeLog, redactLogText } from "./runtime-log.js";
 export { RuntimeSupervisor, planRuntimeCommand } from "./runtime-supervisor.js";
 export { ModelLab } from "./model-lab.js";
+export { classifyRuntimeFailure } from "./runtime-errors.js";

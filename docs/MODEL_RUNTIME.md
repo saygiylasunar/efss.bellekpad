@@ -64,3 +64,17 @@ Training data must be opt-in, source-attributed and locally redacted before any 
 - Safe browser-to-local companion bridge with explicit consent.
 - Vision message multipart API, image generation workflow connector, model checkpoint validation.
 - Rebuildable vector indices, persistent experiment results and dataset governance.
+
+## Vision / image generation API routes
+
+The API adapter accepts **explicit** `image/png`, `image/jpeg` or `image/webp` image data URIs as user-message content parts. Construct a local image message with `createImageMessage({prompt, images:[{mimeType,base64}]})`, then pass it to `OpenAICompatibleProvider.chat()` after loading a *verified* vision-language model. No remote image URLs are fetched by this adapter. The runtime must actually expose image-capable `/v1/chat/completions`; a text-only model cannot interpret image parts.
+
+ComfyUI image-generation workflows are separate from VL image reading. `ComfyWorkflowProvider` queues an explicit trusted API-format workflow at a loopback ComfyUI server (`/prompt`) and requests its `/history/<id>`. The client does not auto-download models, load checkpoints, install custom nodes or expose arbitrary shell execution. Imported workflows can invoke custom node code; only run locally trusted workflows. Job queuing does not prove image generation succeeded.
+
+Provider telemetry supports `onEvent(event)`; emitted events contain route, model ID, status, elapsed milliseconds and normalized error code, never image bytes or prompt contents.
+
+## Traced tests and error taxonomy
+
+Run `npm run test:trace` to execute Node's built-in tests using the supervised runtime. It appends all command progress to the same local JSONL debug log. Diagnoses include `EXECUTABLE_NOT_FOUND`, `MODEL_NOT_FOUND`, `CUDA_OUT_OF_MEMORY`, `DEVICE_UNAVAILABLE`, `FORMAT_UNSUPPORTED`, `PORT_IN_USE`, `PERMISSION_DENIED`, `COMMAND_EXIT_NONZERO` and `CANCELLED`. These are pattern-based categories: full stderr must still be inspected for ambiguous cases.
+
+Logs are local private files, and their contents should be reviewed before any bug report is shared.

@@ -1,9 +1,9 @@
-# P0.7
+# P0.8
 
-Added: model file catalog (GGUF and Safetensors) using conservative filename-only heuristics; 12 GiB planning estimate is not a compatibility guarantee. Separate local runtime module for Node, keeping core browser-compatible.
+Own EFSS Markdown parser, AST and typed graph are separate from local runtime adapters.
 
-Added: append-only private JSONL runtime events with timestamps, stages, errors and redacted bounded output; strictly allowlisted LM Studio and GPU status commands, supervised process state, per-command kill switch and CLI.
+Added: audited filename-only model catalog for GGUF/Safetensors; append-only local JSONL runtime logging; allowlisted CLI command supervisor; model lab experiment manifests; mapped runtime errors. Unit tests and traced-test command.
 
-Added: ModelLab experiment/adapter manifest with evaluation stage gates. This is a research scaffold, not a model trainer or a new foundation model.
+Added: OpenAI-compatible multimodal user image messages for compatible VL servers and a localhost-only ComfyUI workflow queue/history adapter for image generation. Neither is automatically activated. No checkpoints loaded, no provider credentials stored.
 
-No weights, training data, provider credentials, personal model files, API tokens or logs in GitHub. No model was run on user GPU remotely. GGUF loading goes through LM Studio; Safetensors components require the corresponding HF/ComfyUI runtime. Vision and image generation routes planned, not yet implemented.
+Pending: live Windows/RTX 3060 testing, accurate memory telemetry, trusted full model manifests, Hugging Face Safetensors model host support, persisted eval records, cancel running ComfyUI jobs, cross-process kill switch, UI.

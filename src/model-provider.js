@@ -68,16 +68,34 @@ function checkVectors(result, count) {
   return indexed.map(x => x.vector);
 }
 
+function validMessageContent(content, role) {
+  if (typeof content === "string") return content.length <= MAX_TEXT;
+  if (role !== "user" || !Array.isArray(content) || !content.length || content.length > 6) return false;
+  return content.every(item => {
+    if (!item || typeof item !== "object") return false;
+    if (item.type === "text") return typeof item.text === "string" && item.text.length <= MAX_TEXT;
+    if (item.type === "image_url") {
+      const url = item.image_url?.url;
+      return typeof url === "string" && url.length <= 12 * 1024 * 1024 &&
+        /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(url);
+    }
+    return false;
+  });
+}
+
 export class OpenAICompatibleProvider {
   #base;
   #apiKey;
   #fetch;
   #timeout;
+  #onEvent;
 
   constructor({ baseURL = "http://127.0.0.1:1234/v1", apiKey = null,
-    allowRemote = false, fetchImpl = globalThis.fetch, timeoutMs = 90000 } = {}) {
+    allowRemote = false, fetchImpl = globalThis.fetch, timeoutMs = 90000,
+    onEvent = null } = {}) {
     if (typeof fetchImpl !== "function" || !Number.isSafeInteger(timeoutMs) ||
         timeoutMs < 100 || timeoutMs > 600000) throw new ProviderError("BAD_CONFIGURATION");
+    if (onEvent !== null && typeof onEvent !== "function") throw new ProviderError("BAD_CONFIGURATION");
     if (apiKey !== null && (typeof apiKey !== "string" || !apiKey.trim())) {
       throw new ProviderError("BAD_CONFIGURATION");
     }
@@ -85,12 +103,21 @@ export class OpenAICompatibleProvider {
     this.#apiKey = apiKey;
     this.#fetch = fetchImpl;
     this.#timeout = timeoutMs;
+    this.#onEvent = onEvent;
   }
 
   get kind() { return "openai-compatible"; }
   get scope() { return LOOPBACK_HOSTS.has(new URL(this.#base).hostname) ? "loopback" : "remote"; }
 
+  #notify(event) {
+    try { this.#onEvent?.(event); } catch { /* A telemetry observer must not change inference behavior. */ }
+  }
+
   async #request(method, path, payload = null, signal = undefined) {
+    const startedAt = Date.now();
+    const model = payload?.model ?? null;
+    this.#notify({ event: "provider-request", route: path, model,
+      state: "running", stage: "request" });
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (signal?.aborted) throw new ProviderError("CANCELLED");
@@ -113,8 +140,14 @@ export class OpenAICompatibleProvider {
       if (Number.isFinite(size) && size > MAX_RESPONSE) throw new ProviderError("RESPONSE_TOO_LARGE");
       const data = await response.json();
       if (!data || typeof data !== "object") throw new ProviderError("BAD_RESPONSE");
+      this.#notify({ event: "provider-request", route: path, model,
+        state: "completed", stage: "response", elapsedMs: Date.now() - startedAt });
       return data;
     } catch (error) {
+      this.#notify({ event: "provider-request", route: path, model,
+        state: "failed", stage: "response", elapsedMs: Date.now() - startedAt,
+        code: error instanceof ProviderError ? error.code :
+          controller.signal.aborted ? "TIMEOUT_OR_CANCELLED" : "TRANSPORT_ERROR" });
       if (error instanceof ProviderError) throw error;
       if (controller.signal.aborted) {
         throw new ProviderError(signal?.aborted ? "CANCELLED" : "TIMEOUT");
@@ -149,7 +182,7 @@ export class OpenAICompatibleProvider {
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 64 ||
         messages.some(message => !message ||
           !["system", "user", "assistant"].includes(message.role) ||
-          typeof message.content !== "string" || message.content.length > MAX_TEXT) ||
+          !validMessageContent(message.content, message.role)) ||
         typeof temperature !== "number" || !Number.isFinite(temperature) ||
         temperature < 0 || temperature > 2 ||
         !Number.isSafeInteger(maxTokens) || maxTokens < 1 || maxTokens > 8192) {

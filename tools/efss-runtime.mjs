@@ -8,6 +8,7 @@ const HELP = [
   "",
   "node tools/efss-runtime.mjs scan <folder>",
   "node tools/efss-runtime.mjs models",
+  "node tools/efss-runtime.mjs test",
   "node tools/efss-runtime.mjs running",
   "node tools/efss-runtime.mjs gpu",
   "node tools/efss-runtime.mjs status",
