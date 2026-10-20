@@ -25,3 +25,11 @@ Not complete: browser IndexedDB storage, full backup/export + attachments, migra
 The EFSS Markdown scanner recognizes `&Variable{value0, value1, ...}` as one source-ranged variable token. Quoted string values may contain commas and escaped quotes. Invalid/oversized bindings fail closed with diagnostics rather than silently becoming references. Typed inspectors validate each value against explicitly registered schemas and create inert, provenance-linked candidates; parsing never changes stored observations, activates commands, or performs type inference. All existing reference syntax remains supported.
 
 Not yet implemented: committing selected binding candidates into persistent ledger records, variable scope/rename, named properties or syntax migrations. These require explicit product contracts.
+
+## P1.4 — Durable, evidence-scoped relational memory
+
+Added `LocalKnowledgeGraph`: rebuildable Markdown-derived links plus a private append-only ledger of proposed, explicitly approved, and retired relations. Every approved relation has source document revision + body range + text fingerprint. After document changes, prior approvals are labeled stale and withheld from graph edges. Proposals can never elevate themselves. Restricted documents are excluded by default.
+
+Added typed variable-binding candidate extraction with source revisions, **without** treating candidates as committed facts. Document-source nodes and variable definitions share EntityRegistry semantics; no network, model or GPU is invoked. Private journal files live beneath ignored `.efss/knowledge/`.
+
+Next: durable variable schema documents and approved observation ledger; browser IndexedDB adapter; UI; graph traversal ranking/embedding; safe schema migrations.

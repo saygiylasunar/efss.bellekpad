@@ -40,3 +40,11 @@ The CLI shows source identifiers, counts and match scores, not plaintext excerpt
 - Durable graph/variable/provenance records with atomic multi-record transactions.
 
 A browser application cannot directly access arbitrary local files; desktop/local Node and browser storage adapters are deliberately kept separate.
+
+## Knowledge graph layer (P1.4)
+
+`LocalKnowledgeGraph` stores a private review ledger at `.efss/knowledge/relations.jsonl`. Every event is append-only, validated on replay, protected by an exclusive mutation lock, and fsynced. It does not rewrite EFSS Markdown files. Derivative syntax graph links are rebuilt from the source vault each time a snapshot is requested.
+
+Inferred relationships need explicit approval before entering the graph, and approved links must still match the **source revision and exact excerpt fingerprint**. Stale, retired and proposed relationships are never treated as approved facts. The default snapshot excludes restricted documents and their links.
+
+The ledger is an **early local prototype**, not a cross-device replicated database or transactional backup format. There is no automatic stale-lock recovery, full crash recovery, browser storage, conflict reconciliation or backup/restore UI yet.

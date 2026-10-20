@@ -71,3 +71,11 @@ See [storage boundaries and recovery instructions](docs/DATA_STORAGE.md).
 ## EFSS Markdown positional variable values (P1.3)
 
 `&Tarih` remains an ordinary reference. `&Tarih{2026-10-26, 2026-11-01}` carries an explicit **candidate** list of values, while `&Not{"first, second", third}` supports comma-bearing quoted strings. The parser retains exact ranges and the original source; typed inspection only validates configured variable types and does not overwrite any observations. See `docs/EFSS_BINDINGS.md`.
+
+## Local knowledge graph (P1.4)
+
+EFSS source documents remain canonical. `LocalKnowledgeGraph` rebuilds syntactic links from the private `LocalDocumentVault`, while **explicitly reviewed relationships** are recorded in a private append-only JSONL journal. Relationship proposals are *not* automatically accepted or sent to an LLM. Accepted inferences are tied to the exact source revision, UTF-16 range, and a fingerprint of that text. Edited evidence invalidates old inferences.
+
+Typed `&Variable{...}` values are discoverable as source-backed **candidates**, never auto-overwrites. A future ledger-approval layer will persist accepted variable observations and schema definitions.
+
+[Architecture and safeguards](docs/KNOWLEDGE_GRAPH.md)
