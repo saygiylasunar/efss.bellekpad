@@ -1,4 +1,4 @@
-import { isAbsolute, win32, posix } from "node:path";
+import { isAbsolute, win32 } from "node:path";
 
 export const COMFY_PATH_SCHEMA_VERSION = 1;
 const LABEL = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
@@ -65,7 +65,7 @@ export function validateComfyPathManifest(raw) {
 }
 
 function fullPath(basePath, rel) {
-  return (basePath + "/" + rel).replace(/\/+/g, "/");
+  return basePath + "/" + rel;
 }
 
 export function listComfyModelPaths(manifest) {
