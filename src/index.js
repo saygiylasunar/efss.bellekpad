@@ -7,3 +7,5 @@ export { buildGraph, neighbors } from "./graph.js";
 export { parseConversationBody, serializeConversationBody } from "./conversation.js";
 export { InlineRules, createInlineRules } from "./inline-rules.js";
 export { parseInline, parseMarkdownAst, serializeMarkdownAst, editMarkdownAst } from "./ast.js";
+export { VARIABLE_SCHEMA_VERSION, VARIABLE_TYPES, defineField, validateTypedValue, VariableTypeRegistry } from "./typed-variables.js";
+export { VariableLedger, inspectTypedMentions } from "./variable-ledger.js";

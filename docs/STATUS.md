@@ -1,11 +1,11 @@
-# P0.3
+# P0.4
 
-Core: custom EFSS source parser and reversible block/inline AST.
+Core: own EFSS Markdown grammar, source-retaining AST, semantic commands and context plans.
 
-Added: isolated inline rule registry, range-based text patching, source locations, deterministic diagnostic boundaries. Content serialization retains original body line endings; envelope serialization remains canonical LF.
+Added: typed variable schemas (text, number, boolean, date, enum, reference), property validation, source-traced observation ledger, non-activating typed mention lookup.
 
-Unified: variable reference extraction delegates to semantic scanner. Document kinds follow central contract. Inert extension blocks do not activate commands or references.
+No inline assignment syntax is finalized. Schemas and observations live in memory only. Variable references never inject stored values into model context automatically.
 
-Checks: Node built-in test runner. No runtime dependencies.
+Next: syntax contract, schema migrations, canonical persistence, relation attributes, editor projection.
 
-Open: nested CommonMark constructs, complete editorial attributes, typed values, stable AST node IDs, incremental reparse, custom rule persistence, formal grammar migration, UI adapter, durable storage and AI providers.
+Node native tests; zero runtime dependencies.
