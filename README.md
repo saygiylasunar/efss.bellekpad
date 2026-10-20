@@ -1,6 +1,6 @@
 # EFSS BellekPad
 
-Experimental, dependency-free EFSS Markdown and context kernel. Own parser and AST: no external Markdown/editor framework.
+Experimental, dependency-free EFSS Markdown and memory kernel. Own parser, AST, typed variables and source-traced context; no external Markdown or editor framework.
 
 ## Verify
 
@@ -9,15 +9,14 @@ npm run check
 npm test
 ```
 
-## Core components
+## Local model diagnostics
 
-- `parseDocument`, `serializeDocument`: canonical EFSS envelope.
-- `parseMarkdownAst`, `serializeMarkdownAst`, `editMarkdownAst`: source-retaining AST and text edits.
-- `InlineRules`: configurable inline syntax.
-- `VariableTypeRegistry`, `VariableLedger`: typed definitions and source-backed values.
-- `buildGraph`, `buildContext`: explicit references, scoped context import and inert mentions.
-- `MemoryStations`: source-preserving paragraph/block index, lexical recall, optional model-specific embeddings, recurring-term candidates, evidence-backed relation hypotheses, model-neutral context tray.
+```powershell
+npm run runtime -- help
+npm run runtime -- scan "D:\AI\models"
+npm run runtime -- gpu
+npm run runtime -- running
+npm run runtime -- estimate publisher/model 4096
+```
 
-No language model, persistence layer, network calls, or UI ships with this core. A repeated word is not a verified concept; model-generated relationships require review. Original text remains authoritative; vectors are derivative search indexes.
-
-Public code and docs contain no personal data or credentials.
+Node-only runtime supervisor, append-only JSONL logs, local model inventory and future model lab: see `docs/MODEL_RUNTIME.md`. Model weights, personal data and runtime logs are excluded from Git. No model is automatically loaded or trained.

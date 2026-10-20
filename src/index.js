@@ -12,3 +12,4 @@ export { VariableLedger, inspectTypedMentions } from "./variable-ledger.js";
 export { MemoryStations, lexicalTerms, cosineSimilarity } from "./memory-stations.js";
 export { OpenAICompatibleProvider, ProviderError } from "./model-provider.js";
 export { indexEmbeddings, queryWithMemory } from "./ai-pipeline.js";
+export { ModelLab } from "./model-lab.js";

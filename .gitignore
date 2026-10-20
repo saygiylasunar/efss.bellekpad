@@ -6,3 +6,14 @@ coverage/
 !.env.example
 *.efsspack
 *.local
+.efss/
+*.jsonl
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.pth
+*.onnx
+local-models/
+training-data/
+checkpoints/
