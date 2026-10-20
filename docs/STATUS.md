@@ -1,9 +1,11 @@
-# P0.2
+# P0.3
 
-Contract: experimental.
+Core: custom EFSS source parser and reversible block/inline AST.
 
-Implemented: stable entity identifiers, explicit directives, alias resolver, scoped context packets, typed reference graph, conversation attribution and deterministic lexical retrieval.
+Added: isolated inline rule registry, range-based text patching, source locations, deterministic diagnostic boundaries. Content serialization retains original body line endings; envelope serialization remains canonical LF.
 
-Safety boundaries: source provenance retained; passive mentions do not activate instructions; archived model turns cannot issue active directives; denied and unresolved references remain diagnostic. No provider calls or model training occur in this package.
+Unified: variable reference extraction delegates to semantic scanner. Document kinds follow central contract. Inert extension blocks do not activate commands or references.
 
-Next: lossless block AST, version migration rules, persistent indices, embeddings adapter, editor projection.
+Checks: Node built-in test runner. No runtime dependencies.
+
+Open: nested CommonMark constructs, complete editorial attributes, typed values, stable AST node IDs, incremental reparse, custom rule persistence, formal grammar migration, UI adapter, durable storage and AI providers.

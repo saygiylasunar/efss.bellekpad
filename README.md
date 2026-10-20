@@ -1,24 +1,25 @@
 # EFSS BellekPad
 
-Dependency-free experimental text and context kernel. Web UI and AI provider integration are separate layers.
+Dependency-free experimental text and context kernel. EFSS Markdown parsing, syntax rules, source locations and semantic context processing are implemented in this repository; no external Markdown parser or editor framework is used.
 
-## Check
+## Verify
 
 ```sh
 npm run check
 npm test
 ```
 
-## Grammar sketch
+## Core surface
 
-- `&Label`: variable reference, passive until resolved.
-- `[[paper:doc_id]]`: typed reference, passive.
-- `::use [[paper:doc_id]]`: explicit context import.
-- `::scope [[project:project_id]]`: restrict document scope.
-- `::mode "Profile Label"`: activate a registered user-defined mode in the context plan.
-- `::goal "Task description"`: declare a task objective.
-- `@Person:User`, `@AI:LocalModel`: conversation speaker boundaries.
+- `parseDocument` and `serializeDocument`: canonical EFSS envelope (`efss_version: "0.1.0"`).
+- `parseMarkdownAst` and `serializeMarkdownAst`: reversible body AST, preserving original line endings.
+- `editMarkdownAst`: source-range edits with AST reparse.
+- `InlineRules`: deterministic inline delimiters, local to an instance.
+- `scanSemantics`, `EntityRegistry`, `buildGraph`, `buildContext`: typed references, explicit context inclusion and inert mentions.
+- `parseConversationBody`: role-attributed turns.
 
-Documents use the existing `efss_version: "0.1.0"` envelope. Semantic features are defined by `EFSS_CONTRACT.grammarVersion`. Resolve and compile to a **data-only context packet**, not executable code or a model instruction with privileged authority. Passive references never import content automatically. Retrieval modes: off, suggest, include. Current retrieval is lexical only.
+## Status
 
-The repository stores implementation assets only; no personal profiles, content archives, API keys or runtime data.
+The AST is a deliberate subset, not a complete CommonMark or word-processing implementation. Custom markers are structure only, not HTML/CSS and never executable input. No UI, model execution, network or persistent storage exists in this package.
+
+The public repository contains no user data, secrets or private working profiles.

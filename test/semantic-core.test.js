@@ -156,3 +156,11 @@ test('only the explicitly active human turn can issue commands', () => {
   assert.deepEqual(active.imports.map(s => s.id), ['paper:a']);
   assert.equal(active.profiles.length, 0);
 });
+
+test('extension blocks remain inert for context imports and graph links', () => {
+  const source = doc(':::efss.data\n::use [[paper:a]]\n&Müzik\n:::\n::use [[paper:b]]');
+  const plan = buildContext({ registry: registry(), document: source });
+  assert.deepEqual(plan.imports.map(entry => entry.id), ['paper:b']);
+  const graph = buildGraph([source], registry());
+  assert.deepEqual(graph.edges.map(edge => edge.to), ['paper:b']);
+});

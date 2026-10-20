@@ -85,23 +85,36 @@ export function scanSemantics(body) {
   const tokens = [];
   const diagnostics = [];
   let fence = null;
+  let extension = false;
   let offset = 0;
-  const lines = body.split("\n");
+  const segments = body.split(/(\r\n|\n|\r)/);
 
-  for (const [lineIndex, line] of lines.entries()) {
+  for (let lineIndex = 0; lineIndex < Math.ceil(segments.length / 2); lineIndex++) {
+    const line = segments[lineIndex * 2];
+    const width = line.length + (segments[lineIndex * 2 + 1]?.length ?? 0);
+    if (extension) {
+      if (/^ {0,3}:::[ \t]*$/.test(line)) extension = false;
+      offset += width;
+      continue;
+    }
+    if (!fence && /^ {0,3}:::efss\.[a-z][a-z0-9_.-]*(?:\s|$)/.test(line)) {
+      extension = true;
+      offset += width;
+      continue;
+    }
     const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
     if (fence) {
       if (marker && marker[1][0] === fence.char && marker[1].length >= fence.size &&
           marker[2].trim() === "") fence = null;
-      offset += line.length + 1;
+      offset += width;
       continue;
     }
     if (marker) {
       fence = { char: marker[1][0], size: marker[1].length };
-      offset += line.length + 1;
+      offset += width;
       continue;
     }
-    if (/^( {4}|\t)/.test(line)) { offset += line.length + 1; continue; }
+    if (/^( {4}|\t)/.test(line)) { offset += width; continue; }
 
     const prefix = /^ {0,3}::([a-z][a-z0-9_-]*)/.exec(line);
     if (prefix) {
@@ -112,10 +125,10 @@ export function scanSemantics(body) {
       } catch (error) {
         diagnostics.push({ code: "BAD_DIRECTIVE", message: error.message, start: offset, line: lineIndex + 1 });
       }
-      offset += line.length + 1;
+      offset += width;
       continue;
     }
-    if (/^ {0,3}\\::/.test(line)) { offset += line.length + 1; continue; }
+    if (/^ {0,3}\\::/.test(line)) { offset += width; continue; }
 
     let i = 0;
     while (i < line.length) {
@@ -160,7 +173,7 @@ export function scanSemantics(body) {
       }
       i++;
     }
-    offset += line.length + 1;
+    offset += width;
   }
   return { tokens, diagnostics };
 }
