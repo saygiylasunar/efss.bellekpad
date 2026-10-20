@@ -5,12 +5,13 @@ import { randomUUID } from "node:crypto";
 const KEYS = new Set(["level", "event", "stage", "state", "action", "kind", "code",
   "message", "exitCode", "elapsedMs", "pid", "output", "bytes", "model"]);
 const LEVELS = new Set(["debug", "info", "warn", "error"]);
-const PRIVATE = /(bearer\s+)[a-z0-9._-]+|(sk-[a-z0-9_-]{8,})|((?:[a-z]:\\|\/home\/|\/users\/)[^\s"']+)/gi;
+const PRIVATE = /(bearer\s+)[a-z0-9._-]+|(sk-[a-z0-9_-]{8,})|((?:[a-z]:[\\/](?:users|documents and settings)[\\/]|\/home\/|\/users\/)[^\s"']+)/gi;
 
 export function redactLogText(value) {
   return String(value ?? "").replace(PRIVATE, (_match, bearer, key) =>
     bearer ? bearer + "[REDACTED]" : key ? "[REDACTED_KEY]" : "[REDACTED_PATH]")
     .replace(/(api[_-]?key|password|token)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
+    .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, "[REDACTED_EMAIL]")
     .slice(0, 1800);
 }
 

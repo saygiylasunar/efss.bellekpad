@@ -51,3 +51,7 @@ npm run runtime -- scan config/model-paths.local.json --components
 ```
 
 Whole-disk scanning is not a supported CLI action. All findings are unverified until loaded and tested in a compatible runtime.
+
+## Public-source sanity check
+
+Before pushing, run `npm run sanity` (working tree) or `npm run sanity:staged` (Git index). The CI also checks for accidentally tracked local configuration, credential-like strings and identifiable paths. Optional private term lists belong in `.efss/private-terms.json`, never in the repository. To enable an optional local pre-commit gate, run `git config core.hooksPath .githooks` **once per local clone**. See `docs/PRIVACY.md`.

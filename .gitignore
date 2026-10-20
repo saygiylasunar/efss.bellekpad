@@ -20,3 +20,21 @@ checkpoints/
 config/model-paths.local.json
 config/*.local.json
 extra_model_paths.yaml
+
+# Keep local personal records, model artifacts and credentials off public branches
+user-data/
+private-data/
+datasets/
+outputs/
+runs/
+wandb/
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db
+*.pem
+*.p12
+*.pfx
+*.key
+*.secret.*

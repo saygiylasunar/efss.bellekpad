@@ -169,3 +169,14 @@ test("model lab tracks base, layers and evaluations without claiming training", 
   assert.equal(lab.setStage("exp1", "candidate").stage, "candidate");
   assert.throws(() => lab.create({ id: "exp1", title: "Other", baseModel: "x" }));
 });
+
+test("runtime logs redact usernames and non-example email addresses", () => {
+  const path = ["C:", "Users", "fictional_account", "models"].join("\\");
+  const scrubbed = redactLogText("Failed to open " + path);
+  assert.ok(scrubbed.includes("[REDACTED_PATH]"));
+  assert.ok(!scrubbed.includes("fictional_account"));
+  const email = ["not-a-user", "@", "private.invalid"].join("");
+  const scrubbedMail = redactLogText("contact: " + email);
+  assert.ok(scrubbedMail.includes("[REDACTED_EMAIL]"));
+  assert.ok(!scrubbedMail.includes(email));
+});

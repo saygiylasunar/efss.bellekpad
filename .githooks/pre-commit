@@ -1,0 +1,4 @@
+#!/bin/sh
+# Optional opt-in local hook. No output from private matches is printed.
+set -e
+npm run sanity:staged
