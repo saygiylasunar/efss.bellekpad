@@ -57,3 +57,25 @@ The API does not automatically approve; a future user-facing review interface wi
 ## Deliberately not included
 
 No model inference, no background scanning, no auto-acceptance of relationships, no public sync, no embedding database, no browser IndexedDB adapter and no UI in this increment.
+
+## Durable variable definitions (P1.4 extension)
+
+A variable definition can be a canonical EFSS Markdown document (kind `variable`, stable id `count`) whose body is a single inert extension:
+
+```text
+:::efss.schema
+{
+  "schemaVersion": 1,
+  "label": "Count",
+  "aliases": ["Quantity"],
+  "value": { "type": "number", "min": 0 },
+  "properties": {}
+}
+:::
+```
+
+When this is stored as `.efss/vault/variable/count.md`, the default knowledge graph loads the type definition at each snapshot. Consequently, a Paper containing `&Count{26, 48}` yields schema-validated candidate values after a restart. The extension is parsed as JSON **data only**, never as JavaScript, instruction text or model output.
+
+Supported value types are limited to the existing built-ins. Malformed documents, unknown types, duplicate aliases and conflicts with explicitly supplied type registries fail closed. Restricted variable documents are excluded from default public views.
+
+Observation candidates are **not** committed facts; the approved, source-revision-aware observation ledger remains a separate milestone.

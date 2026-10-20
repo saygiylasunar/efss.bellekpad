@@ -33,3 +33,9 @@ Added `LocalKnowledgeGraph`: rebuildable Markdown-derived links plus a private a
 Added typed variable-binding candidate extraction with source revisions, **without** treating candidates as committed facts. Document-source nodes and variable definitions share EntityRegistry semantics; no network, model or GPU is invoked. Private journal files live beneath ignored `.efss/knowledge/`.
 
 Next: durable variable schema documents and approved observation ledger; browser IndexedDB adapter; UI; graph traversal ranking/embedding; safe schema migrations.
+
+## P1.4a — Reopenable variable definitions
+
+Added an inert versioned `:::efss.schema` JSON block for `kind: variable` EFSS documents, rebuilding `VariableTypeRegistry` from the local vault. Malformed schema, duplicate definitions and invalid type fields fail closed. Restricted schemas cannot become public graph entities. The graph can now reconstruct typed value candidates from disk without requiring an application-hardcoded schema.
+
+No automatic acceptance of variable values; persistence of approved typed observations still pending.

@@ -79,3 +79,5 @@ EFSS source documents remain canonical. `LocalKnowledgeGraph` rebuilds syntactic
 Typed `&Variable{...}` values are discoverable as source-backed **candidates**, never auto-overwrites. A future ledger-approval layer will persist accepted variable observations and schema definitions.
 
 [Architecture and safeguards](docs/KNOWLEDGE_GRAPH.md)
+
+EFSS variable schemas may also be saved as private `kind: variable` documents containing an explicit inert `:::efss.schema` JSON block. This allows type definitions and typed candidate extraction to survive restarts without hardcoding them. See `docs/KNOWLEDGE_GRAPH.md`.

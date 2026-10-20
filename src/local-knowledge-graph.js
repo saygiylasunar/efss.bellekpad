@@ -7,6 +7,7 @@ import { buildGraph } from "./graph.js";
 import { LocalDocumentVault } from "./local-document-vault.js";
 import { VariableTypeRegistry } from "./typed-variables.js";
 import { inspectVariableBindings } from "./binding-resolver.js";
+import { loadVariableSchemas } from "./variable-schema-documents.js";
 
 const KINDS = new Set(EFSS_CONTRACT.kinds);
 const IDENT = /^[A-Za-z][A-Za-z0-9_-]{0,127}$/;
@@ -261,12 +262,16 @@ export class LocalKnowledgeGraph {
       documents.push({ metadata: doc.metadata, body: doc.body });
       revisions.set(item.kind + ":" + item.id, doc.revision);
     }
-    return { documents, revisions, registry: currentEntities(documents, this.#types, blockedVariables) };
+    const types = await loadVariableSchemas(this.#vault, {
+      baseTypes: this.#types, allowRestricted
+    });
+    return { documents, revisions, types,
+      registry: currentEntities(documents, types, blockedVariables) };
   }
 
   async snapshot({ allowRestricted = false } = {}) {
     if (typeof allowRestricted !== "boolean") throw new TypeError("INVALID_GRAPH_VIEW");
-    const { documents, revisions, registry } = await this.#documentsAndRegistry({ allowRestricted });
+    const { documents, revisions, types, registry } = await this.#documentsAndRegistry({ allowRestricted });
     const derived = buildGraph(documents, registry);
     const nodes = new Set(derived.nodes);
     const edges = derived.edges.map(edge => ({
@@ -280,7 +285,7 @@ export class LocalKnowledgeGraph {
       // Conversations can contain AI-authored text: not an observation source.
       if (doc.metadata.kind === "conversation") continue;
       const sourceId = doc.metadata.kind + ":" + doc.metadata.id;
-      const inspected = inspectVariableBindings(doc.body, this.#types, { sourceId });
+      const inspected = inspectVariableBindings(doc.body, types, { sourceId });
       diagnostics.push(...inspected.diagnostics.map(d => ({ sourceId, ...d })));
       for (const candidate of inspected.candidates) {
         valueCandidates.push({
