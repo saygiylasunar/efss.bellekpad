@@ -76,3 +76,13 @@ ComfyUI itself knows common categories including `checkpoints`, `diffusion_model
 Paths are only search directories. A ComfyUI workflow still needs compatible loader nodes and the proper file structure. BellekPad's existing ComfyUI API client can request explicitly chosen trusted workflows; it does not itself load model weights. Neither this generator nor the path scanner copies or moves weights, and nothing runs on your GPU until you choose to test it.
 
 Private JSON configs, generated YAML under `.efss/`, model files and runtime logs must never be committed. The checked-in example is placeholder-only.
+
+## Explicit discovery vs. ComfyUI availability
+
+The JSON contains both primary and ancillary model folders so ComfyUI can find all of its required workflow parts. **The BellekPad model-search command does not treat every Safetensors file as an independent model.**
+
+```powershell
+npm run runtime -- scan config/model-paths.local.json
+```
+
+This searches only the configured `LLM`, `checkpoints`, `diffusion_models` and `unet` categories for primary models. `loras`, `vae`, `text_encoders`, etc. are skipped in the primary view. Append `--components` to list these in a **separate ancillary section**. The scanner never sweeps the whole PC. Custom categories used by ComfyUI are still included in YAML export, but aren't automatically included in model discovery.

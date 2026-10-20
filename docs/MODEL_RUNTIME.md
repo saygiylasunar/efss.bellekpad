@@ -28,7 +28,7 @@ No model is installed, imported or automatically loaded by this repository.
 Requires Node 20+ and LM Studio CLI `lms` on PATH for model commands; `nvidia-smi` on PATH for GPU status. Scan does not read model weights.
 
 ```powershell
-npm run runtime -- scan "D:\AI\models"
+npm run runtime -- scan config/model-paths.local.json
 npm run runtime -- models
 npm run runtime -- running
 npm run runtime -- gpu
@@ -88,3 +88,19 @@ npm run eval -- examples/eval-suite.example.json <loaded-model-id>
 ```
 
 Private test suites belong outside Git, for example under `.efss/evals/`. Runtime logs include case IDs, statuses, error classifications and timing, not prompts, image bytes or model outputs. Regression acceptance should additionally examine human-rated answers and cited evidence.
+
+## Model discovery policy (D1: approved)
+
+Primary model discovery only scans explicit user-authorized categories and relative folders in `config/model-paths.local.json`. There is **no** unrestricted whole-PC scan in the runtime CLI.
+
+By default, discovery searches `LLM`, `checkpoints`, `diffusion_models` and `unet` directories. LoRA, VAE, CLIP, text encoders and other ancillary categories are **not reported as standalone models**.
+
+```powershell
+npm run runtime -- scan config/model-paths.local.json
+# Opt-in inventory of ancillary assets, separate from primary models:
+npm run runtime -- scan config/model-paths.local.json --components
+```
+
+Even when a LoRA is found inside a checkpoint folder, a LoRA-like filename is classified as an ancillary asset and hidden from primary results. Unknown categories are not scanned by default. This is a *filename and directory policy*, not verification of tensor formats: model metadata and architecture checking is a future milestone. Symlink directory roots are not traversed, and scanning has depth/entry limits.
+
+The same JSON can still export every configured category, including LoRAs, to ComfyUI YAML; the discovery restriction only affects which files are promoted as independently runnable model candidates.

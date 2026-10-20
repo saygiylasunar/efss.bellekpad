@@ -22,7 +22,7 @@ npm run comfy:paths -- --config config/model-paths.local.json
 
 ```powershell
 npm run runtime -- help
-npm run runtime -- scan "D:/AI/models"
+npm run runtime -- scan config/model-paths.local.json
 npm run runtime -- gpu
 npm run runtime -- running
 npm run runtime -- estimate publisher/model 4096
@@ -39,3 +39,15 @@ Model and adapter evaluations:
 ```powershell
 npm run eval -- examples/eval-suite.example.json <loaded-model-id>
 ```
+
+## Explicit model discovery
+
+Only categories and folders declared in the private model-paths JSON are searched.
+Primary model discovery excludes `loras`, `vae`, `text_encoders` and other auxiliary assets.
+To inspect ancillary assets **separately**, explicitly run:
+
+```powershell
+npm run runtime -- scan config/model-paths.local.json --components
+```
+
+Whole-disk scanning is not a supported CLI action. All findings are unverified until loaded and tested in a compatible runtime.

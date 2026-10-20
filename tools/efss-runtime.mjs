@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-import { scanModelDirectory, estimateFit } from "../src/model-catalog.js";
+import { estimateFit } from "../src/model-catalog.js";
+import { readComfyPathManifest } from "../src/comfy-paths-io.js";
+import { discoverConfiguredModels } from "../src/model-discovery.js";
 import { RuntimeLog } from "../src/runtime-log.js";
 import { RuntimeSupervisor } from "../src/runtime-supervisor.js";
 
 const HELP = [
   "EFSS BellekPad local runtime CLI",
   "",
-  "node tools/efss-runtime.mjs scan <folder>",
+  "node tools/efss-runtime.mjs scan [config/model-paths.local.json] [--components]",
   "node tools/efss-runtime.mjs models",
   "node tools/efss-runtime.mjs test",
   "node tools/efss-runtime.mjs running",
@@ -18,6 +20,9 @@ const HELP = [
   "node tools/efss-runtime.mjs server-start",
   "node tools/efss-runtime.mjs server-stop",
   "",
+  "Only declared JSON model folders are scanned; no unrestricted disk scan.",
+  "LoRAs and other ancillary files are excluded from main model discovery.",
+  "Use --components to list those separately.",
   "Logs append locally to .efss/logs/runtime-YYYY-MM-DD.jsonl.",
   "Commands are allowlisted and run without a shell.",
   "Control+C cancels the supervised CLI command, not all LM Studio loaded models.",
@@ -49,15 +54,36 @@ process.on("SIGINT", () => {
 
 try {
   if (action === "scan") {
-    if (!parameter) throw new Error("SCAN_FOLDER_REQUIRED");
-    await log.write({ event: "scan-start", stage: "inventory", action: "scan", state: "running" });
-    const found = await scanModelDirectory(parameter);
-    console.table(found.map(item => ({
-      name: item.name, GiB: item.sizeGiB, format: item.format,
-      role: item.role, route: item.route, budget: estimateFit(item).status
+    const config = parameter && parameter !== "--components"
+      ? parameter : "config/model-paths.local.json";
+    const withComponents = parameter === "--components" || context === "--components";
+    if (context && context !== "--components") throw new Error("INVALID_SCAN_OPTION");
+    const manifest = await readComfyPathManifest(config);
+    await log.write({ event: "scan-start", stage: "inventory",
+      action: "scan", state: "running" });
+    const result = await discoverConfiguredModels(manifest, { includeComponents: withComponents });
+    console.table(result.models.map(item => ({
+      model: item.name, category: item.sourceCategory, root: item.rootId,
+      GiB: item.sizeGiB, role: item.role, budget: estimateFit(item).status
     })));
-    await log.write({ event: "scan-complete", stage: "inventory", action: "scan",
-      state: "completed", bytes: found.length });
+    if (withComponents) {
+      console.log("Ancillary components (NOT standalone models):");
+      console.table(result.components.map(item => ({
+        component: item.name, category: item.sourceCategory, root: item.rootId,
+        GiB: item.sizeGiB
+      })));
+    }
+    if (result.diagnostics.length) {
+      console.warn("Directory warnings:", result.diagnostics);
+      process.exitCode = 2;
+    }
+    console.log("Primary models:", result.models.length,
+      "components:", result.components.length,
+      "configured categories scanned:", result.inspectedCategories);
+    await log.write({ event: "scan-complete", stage: "inventory",
+      action: "scan", state: result.diagnostics.length ? "warning" : "completed",
+      bytes: result.models.length, code: result.diagnostics.length ?
+        "MODEL_DIRECTORIES_INACCESSIBLE" : null });
   } else if (action === "status") {
     const loaded = await supervisor.execute("running");
     const gpu = await supervisor.execute("gpu");
