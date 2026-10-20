@@ -41,6 +41,14 @@ test("absolute Windows backslashes normalize to ComfyUI-friendly forward slashes
     x.path === "D:/My Models/Assets/checkpoints"));
 });
 
+
+test("UNC shared-folder paths keep the double leading separator", () => {
+  const original = sample("\\\\server\\models");
+  const paths = listComfyModelPaths(original);
+  assert.ok(paths.some(entry => entry.path === "//server/models/checkpoints"));
+  assert.ok(generateComfyExtraPathsYaml(original).includes('base_path: "//server/models"'));
+});
+
 test("relative folders and arbitrary ComfyUI extension category names are supported", () => {
   const entry = sample("/media/models");
   entry.roots[0].categories.animatediff_models = ["animatediff_models"];
