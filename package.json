@@ -1,6 +1,6 @@
 {
   "name": "efss-bellekpad",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,6 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --check src/typed-variables.js && node --check src/variable-ledger.js && node --check src/efss-markdown.js && node --check src/inline-rules.js && node --check src/ast.js && node --check src/semantics.js && node --check src/context-engine.js && node --check src/registry.js && node --check src/graph.js && node --check src/conversation.js"
+    "check": "node --check src/index.js && node --check src/typed-variables.js && node --check src/variable-ledger.js && node --check src/efss-markdown.js && node --check src/inline-rules.js && node --check src/ast.js && node --check src/semantics.js && node --check src/context-engine.js && node --check src/registry.js && node --check src/graph.js && node --check src/conversation.js && node --check src/memory-stations.js"
   }
 }

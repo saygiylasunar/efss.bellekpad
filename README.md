@@ -1,20 +1,23 @@
 # EFSS BellekPad
 
-Dependency-free text and context kernel. Own EFSS Markdown parser and AST; no external Markdown or editor package.
+Experimental, dependency-free EFSS Markdown and context kernel. Own parser and AST: no external Markdown/editor framework.
 
 ## Verify
 
-    npm run check
-    npm test
+```sh
+npm run check
+npm test
+```
 
-## Core API
+## Core components
 
-- `parseDocument`, `serializeDocument`: EFSS envelope.
-- `parseMarkdownAst`, `serializeMarkdownAst`, `editMarkdownAst`: source-retaining AST.
-- `InlineRules`: custom inline delimiters.
-- `scanSemantics`, `EntityRegistry`, `buildGraph`, `buildContext`: semantic links and explicit context plans.
-- `VariableTypeRegistry`: independent definitions and field constraints.
-- `VariableLedger`: source-traced, typed observations.
-- `inspectTypedMentions`: resolves variable references without importing values.
+- `parseDocument`, `serializeDocument`: canonical EFSS envelope.
+- `parseMarkdownAst`, `serializeMarkdownAst`, `editMarkdownAst`: source-retaining AST and text edits.
+- `InlineRules`: configurable inline syntax.
+- `VariableTypeRegistry`, `VariableLedger`: typed definitions and source-backed values.
+- `buildGraph`, `buildContext`: explicit references, scoped context import and inert mentions.
+- `MemoryStations`: source-preserving paragraph/block index, lexical recall, optional model-specific embeddings, recurring-term candidates, evidence-backed relation hypotheses, model-neutral context tray.
 
-A variable mention remains inert by default. This is an in-memory core; no web UI, AI calls or durable storage. The public repository contains no user records or credentials.
+No language model, persistence layer, network calls, or UI ships with this core. A repeated word is not a verified concept; model-generated relationships require review. Original text remains authoritative; vectors are derivative search indexes.
+
+Public code and docs contain no personal data or credentials.
