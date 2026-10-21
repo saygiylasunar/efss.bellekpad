@@ -98,3 +98,7 @@ Reference details: [ARTBOARD_LAYOUT_SPEC.md](ARTBOARD_LAYOUT_SPEC.md).
 ## Supporting research
 
 Architecture/reference comparison, native input options (contenteditable vs textarea vs EditContext), Unicode-selection pitfalls, artboard constraint strategy, text shaping API limits and required browser spikes: [EDITOR_RESEARCH_2026-10-21.md](EDITOR_RESEARCH_2026-10-21.md). A research document does not replace running browser tests.
+
+## Host-neutral editor architecture (desktop-first option)
+
+The editor's own logic is **shell-independent**, not necessarily a web-only product. An installable Electron (or Tauri) wrapper can host the same custom HTML/SVG/CSS/JavaScript editor and communicate through a restricted native capability bridge. A packaging framework is a **host**, not an imported editor/data-model library. The choice remains a tested deployment decision. See [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md).

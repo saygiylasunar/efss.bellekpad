@@ -64,3 +64,7 @@ Adobe Illustrator: artboards, selection, alignment, properties, spacing and prec
 Canva: page size presets and page templates.
 
 No proprietary assets, embedded fonts or third-party code are included solely because these products inspired the behaviors.
+
+## Installation strategy
+
+BellekPad may first ship as an installable **desktop editor** with a platform-neutral edit engine and a web-technology presentation surface. Electron is a possible desktop **host only**, not a rich-text editor framework or source format dependency. An optional web build and later mobile shell can reuse the document model without enforcing the same window/menu controls. See [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md).

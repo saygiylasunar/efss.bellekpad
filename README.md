@@ -63,3 +63,7 @@ Export planning includes PDF, scalable objects, user-controlled raster dimension
 ## Independent editor engineering research (2026-10-21)
 
 Before implementing the self-developed editor, the team reviewed transaction/selection models, Unicode/IME input, browser-native contenteditable/EditContext limitations, non-overlapping artboard constraints, typographic shaping, Markdown fidelity, security and storage. Findings, rejected options, objective browser experiments and success gates: [Editor Engineering Research](docs/EDITOR_RESEARCH_2026-10-21.md). Research only: not a functioning visual editor.
+
+## Desktop-first, host-independent architecture
+
+BellekPad is not restricted to a public website or browser tab. A future installable desktop executable can host the custom editor through Electron (candidate) or another suitably isolated native shell. The document, Markdown, layout and transaction systems will remain shell-independent; native operations use narrow adapters. Electron would be a packaging/runtime host, **not** an imported rich-text editor dependency. No desktop binary is implemented yet. See [Platform Architecture](docs/PLATFORM_ARCHITECTURE.md).

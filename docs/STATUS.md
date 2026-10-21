@@ -40,3 +40,7 @@ Specs: [EDITOR_ENGINE.md](EDITOR_ENGINE.md), [ARTBOARD_LAYOUT_SPEC.md](ARTBOARD_
 ## Research gate — editor engine, 2026-10-21
 
 Completed technical research against standards and editor architectures. Recommended first proof: a browser-native active-text-frame input spike with cross-browser IME reconciliation, plus our own pure operation/transaction/selection-mapping core. The detailed trade-offs, measured-vs-unmeasured limits and verification matrix are recorded in [EDITOR_RESEARCH_2026-10-21.md](EDITOR_RESEARCH_2026-10-21.md). Editor implementation and cross-browser manual tests are pending.
+
+## Host-neutral direction — desktop, web and mobile
+
+The application is **not committed to browser-only distribution**. Researching Electron/Discord/Slack shows that a portable web-rendered UI can be packaged as an installable desktop application while keeping the underlying editor logic independent. Electron is a shell candidate; Tauri v2 is an alternative. No shell dependency, desktop binary or file bridge is implemented yet. See [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md).
