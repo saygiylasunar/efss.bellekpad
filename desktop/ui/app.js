@@ -17,6 +17,7 @@ let saving = null;
 let delayedSave = null;
 let blocked = false;
 let navigationBusy = false;
+let composing = false;
 
 function status(label, problem = false) {
   nodes["save-state"].textContent = label;
@@ -47,6 +48,7 @@ function edited(field, value) {
 }
 async function saveCurrent() {
   clearTimeout(delayedSave);
+  if (composing) throw new Error("COMPOSITION_IN_PROGRESS");
   if (blocked) throw new Error("SAVE_BLOCKED");
   if (saving) return saving;
   if (!current || !current.dirty) return;
@@ -115,11 +117,17 @@ function present(record) {
   showView("write");
   nodes["editor"].focus();
 }
+async function saveBeforeLeaving() {
+  if (composing) throw new Error("COMPOSITION_IN_PROGRESS");
+  if (current?.dirty) await saveCurrent();
+  if (current?.dirty) await saveCurrent();
+  if (current?.dirty) throw new Error("UNSAVED_CHANGES");
+}
 async function openNote(kind, id) {
   if (navigationBusy || (current?.id === id && current.kind === kind)) return;
   navigationBusy = true;
   try {
-    if (current?.dirty) await saveCurrent();
+    await saveBeforeLeaving();
     const record = await call("openDocument", kind, id);
     if (!record) throw new Error("DOCUMENT_NOT_FOUND");
     present(record);
@@ -132,7 +140,7 @@ async function newNote() {
   if (navigationBusy) return;
   navigationBusy = true;
   try {
-    if (current?.dirty) await saveCurrent();
+    await saveBeforeLeaving();
     const created = await call("createDocument", "paper", "Adsız sayfa");
     present(created);
     await refreshList();
@@ -195,10 +203,17 @@ nodes["document-title"].addEventListener("input", () => {
   edited("title", nodes["document-title"].value);
   nodes["crumb-title"].textContent = nodes["document-title"].value || "Adsız sayfa";
 });
-nodes["editor"].addEventListener("input", () => {
-  // Native Chromium owns temporary composition DOM; we only read plain text
-  // and never replace active content or reset selection on input.
+nodes["editor"].addEventListener("compositionstart", () => {
+  composing = true;
+  clearTimeout(delayedSave);
+});
+nodes["editor"].addEventListener("compositionend", () => {
+  composing = false;
   edited("body", nodes["editor"].innerText.replace(/\r\n?/g, "\n"));
+});
+nodes["editor"].addEventListener("input", () => {
+  // Never save intermediate IME composition text or replace native selection.
+  if (!composing) edited("body", nodes["editor"].innerText.replace(/\r\n?/g, "\n"));
 });
 nodes["save"].addEventListener("click", () => { void saveCurrent().catch(() => {}); });
 nodes["new-document"].addEventListener("click", () => { void newNote(); });
@@ -212,7 +227,7 @@ window.addEventListener("keydown", event => {
   }
 });
 window.addEventListener("beforeunload", event => {
-  if (current?.dirty || saving) {
+  if (current?.dirty || saving || composing) {
     // Before Electron supports a safe close confirmation, do not promise
     // save-on-close; a pending write must not silently disappear.
     event.preventDefault();
