@@ -42,3 +42,10 @@ The existing \`desktop-smoke\` runs the actual Electron UI on Windows and Linux.
 5. Syntax like \`&Symbol\`, \`[[paper:ID]]\`, user escape sequences and unknown EFSS extensions must never silently be normalized by the formatted view.
 
 **Decision:** keep user-authored Markdown accessible, implement our own source-aware rich-text operations, avoid an external editor dependency.
+
+## CI confirmation (2026-10-22)
+
+- **Node core:** 211/211 tests pass, sanity gate passes.
+- **Electron Linux (Xvfb):** passing real GUI smoke.
+- **Electron Windows:** passing real GUI smoke.
+- Verified commit: `be3bfa0` via `desktop-smoke` and `core-checks` workflows. GUI coverage is a tested vertical slice rather than a general no-bugs guarantee.

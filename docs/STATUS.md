@@ -68,3 +68,5 @@ GitHub Actions `desktop-smoke` passed on Windows and Ubuntu/Xvfb for commit `a16
 ## G0.5 — Kaynak-aralıklı inline biçimlendirme
 
 Own inline run projection + B/I/S commands, source-aware range map and mark toggling implemented in visual Flow via shared TextEditorSession. Existing Electron IPC, sandbox and DevTools policy unchanged. Mixed cross-mark selections, rich multi-line text, proper table/layout and comprehensive IME remain unimplemented. [G0.5](EDITOR_G0_5.md).
+
+**G0.5 verification:** Core Node 211/211; real Electron smoke passed on Windows and Linux including bold mark selection, edit inside a bold run, Undo/Redo and EFSS save/open. Physical keyboard/IME and full visual editing are still not validated.

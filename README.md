@@ -98,3 +98,7 @@ The `desktop-smoke` GitHub Action now launches the **actual pinned Electron bina
 ## G0.5 — Inline biçimlendirme
 
 Görsel Flow metninde B/I/S ile seçili bölüme kalın, italik ve üzeri çizili Markdown işaretleri eklenir; görünür işaretler arayüzden gizlenirken EFSS kaynak ve tek Undo/Redo geçmişi korunur. Desteklenmeyen karmaşık kaynak segmentleri salt okunur biçimde Kaynak'a yönlendirilir. [G0.5 teknik notları](docs/EDITOR_G0_5.md).
+
+### G0.5 test confirmation
+
+The real Electron desktop smoke test now covers selecting and styling heading text, typing inside the formatted run, Undo/Redo, save/open and both editing modes on **Windows and Ubuntu**. Both targets passed on commit `be3bfa0`; 211/211 Node tests passed. Keyboard/IME and complex cross-style selections are still explicit limitations.
