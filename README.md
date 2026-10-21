@@ -90,3 +90,7 @@ The Electron writing surface now routes inserts, deletion, Enter, paste and undo
 ## G0.4 — İlk görsel Flow düzenleyicisi
 
 BellekPad artık tek bir `TextEditorSession` üzerinde **Görsel / Kaynak / Önizleme** modlarını kullanıyor. Basit başlık, paragraf, liste ve alıntı metinleri görsel olarak düzenlenebiliyor; `/callout`, `/uyarı`, `/ipucu` komutları ve açılır blok menüsü gerçek EFSS callout oluşturuyor. Kayıpsız desteklenmeyen kod, bilinmeyen EFSS uzantısı, inline Markdown biçimleri ve karmaşık içerikler **Kaynak** moduna yönlendiren korumalı kart olarak gösteriliyor. Henüz tam WYSIWYG, tablo ve artboard değil. [G0.4 ayrıntıları](docs/EDITOR_G0_4.md). Gerçek Windows/Electron GUI testi bekliyor.
+
+## Desktop renderer smoke — Windows and Linux
+
+The `desktop-smoke` GitHub Action now launches the **actual pinned Electron binary**, exercising the sandboxed window, preload/IPCs, visual `/callout`, native local vault save/open, block insertion, undo/redo, and three view modes on **Windows and Linux**. Both jobs passed on commit `a16a15e`. This verifies a focused set of real UI pathways, **not** comprehensive Windows user input, IME, accessibility or installer behavior. [Desktop smoke workflow](.github/workflows/desktop-smoke.yml).

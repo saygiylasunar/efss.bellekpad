@@ -1,6 +1,6 @@
 # BellekPad G0.4 — İlk Görsel Flow Düzenleme Katmanı
 
-**Durum:** Kaynak moduyla aynı TextEditorSession'ı paylaşan, bağımsız haricî editör kütüphanesi kullanmayan ilk görsel blok düzenleyici uygulandı. Node testleri mevcut; gerçek Electron/Windows imleç, IME, yapıştırma ve sürükleme testleri **henüz yapılmadı**.
+**Durum:** Kaynak moduyla aynı TextEditorSession'ı paylaşan, bağımsız haricî editör kütüphanesi kullanmayan ilk görsel blok düzenleyici uygulandı. Node testleri ve odaklı **Windows + Linux Electron GUI smoke** geçti; fiziksel klavye, IME, kapsamlı yapıştırma, erişilebilirlik ve sürükleme testleri **henüz yapılmadı**.
 
 ## Bütünlük ilkesi
 
@@ -42,3 +42,7 @@ TextEditorSession ──── Markdown Kaynak DOM (source input adapter)
 ## Mimari sonraki adım
 
 Üçüncü taraf editör import etmeden **inline mark/selection mapping, çok satırlı paragraf, gerçek tablo hücreleri** ve ardından **constraint tabanlı artboard/layout**. Frontend DOM, arka planda tek belge modeli ve sürüm kontrollü dosya kayıt sözleşmesine bağlı kalmalı.
+
+## Sonradan tamamlanan masaüstü çalıştırma kontrolü
+
+`desktop-smoke` iş akışında hem `windows-latest` hem Ubuntu/Xvfb üzerinde gerçek Electron süreci açılarak sandboxed renderer, preload bridge, yeni sayfa, `/callout`, callout içeriği, başlık ekleme, Undo/Redo, disk kaydı/okuma ve üç görünüm sınandı. İki ortam da commit `a16a15e` için başarılıydı. Kullanılan `beforeinput` olayları testte oluşturulan kontrollü olaylardır; fiziksel IME/klavye etkileşimlerini otomatik olarak kanıtlamaz.

@@ -60,3 +60,7 @@ Added `src/editor-block-model.js` (lossless source-block projection, session-sta
 ## G0.4 — İlk gerçek görsel Flow modunun kodlanması
 
 Üç görünüm (Görsel/Kaynak/Önizleme) tek metin oturumunu ve EFSS kaynak kaydını kullanıyor. Görsel Flow, basit blokların Markdown işaretlerini gizleyerek doğrudan yazma, Türkçe slash komutları ve tıklayarak callout ekleme sunuyor. Kod/özel EFSS/nested/inline-mark durumlarında *lossless* garantisi için Flow içindeki içerikler salt okunur ve Kaynak moduna yönleniyor. Henüz gerçek GUI testleri veya tam görsel Markdown, layout, tablo, artboard, DPI export yok. [EDITOR_G0_4.md](EDITOR_G0_4.md).
+
+## G0.4 runtime verification
+
+GitHub Actions `desktop-smoke` passed on Windows and Ubuntu/Xvfb for commit `a16a15e`: real Electron startup, trusted local renderer + preload, `/callout`, editable callout body, block insertion, undo/redo, revision-safe save/open and Görsel/Kaynak/Önizleme switching. Core Node tests: 204/204. Limitations: synthetic `beforeinput` is used for deterministic smoke; manual physical keyboard/IME testing and screenreader/performance measurements remain pending. Source: [desktop-smoke workflow](../.github/workflows/desktop-smoke.yml).
