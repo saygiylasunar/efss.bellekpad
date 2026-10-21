@@ -17,5 +17,6 @@
     "sanity": "node scripts/sanity-check.mjs",
     "sanity:staged": "node scripts/sanity-check.mjs --staged",
     "vault": "node tools/efss-vault.mjs"
-  }
+  },
+  "license": "UNLICENSED"
 }

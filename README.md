@@ -1,5 +1,8 @@
 # EFSS BellekPad
 
+> **PROPRIETARY / ALL RIGHTS RESERVED.** Original source code and original design materials are **not open source** and are not granted for third-party use, adaptation, execution, redistribution or commercial deployment without prior written permission, except rights under applicable law and GitHub's Terms of Service. See [LICENSE](LICENSE) and [rights & distribution](docs/RIGHTS_AND_DISTRIBUTION.md). Public visibility is **not** public software licensing.
+
+
 Local-first experimental EFSS Markdown and contextual-memory kernel. Own Markdown parser, AST, source-linked references and offline document vault. **A stored value is not automatically a fact or the current state of a real-world object.**
 
 ## Symbol contract (P1.4 cleanup)
@@ -47,6 +50,12 @@ The public-source sanity check and GitHub Actions help catch private paths or cr
 
 **Not yet a user-facing note editor.** Browser IndexedDB, UI, migration/import tooling and live model testing remain future work.
 
-## Editor product blueprint
+## Genuine self-developed editor — next priority
 
-The actual visual editor/web application is **not yet implemented**. The first editor release must include callouts, editable Markdown tables, emoji/page icons, formatting tools and keyboard-first block insertion, with source round-trip tests. Design scope, priority and competitive reference audit: [Editor Blueprint](docs/EDITOR_BLUEPRINT.md).
+**No editor framework, external rich-text engine or application runtime UI library will be adopted.** Earlier exploratory Tiptap/ProseMirror/CodeMirror/Vite/Vue suggestions are withdrawn. The planned visual editor, native text input adapter, model transactions, page/artboard layout, text frames and contextual Illustrator-like inspector will be developed using our own ES modules and standard browser APIs.
+
+The editor must be practical for writing before advanced export features. It will support slash commands, click-to-insert callouts/tables, emoji/icons, source/visual views, multi-artboard presets, flow + precise spatial layout, non-overlap by default and explicit control over sizing, placement and typography.
+
+**Not yet implemented.** References: [Editor Blueprint](docs/EDITOR_BLUEPRINT.md), [Engine Architecture](docs/EDITOR_ENGINE.md), [Artboard/Layout](docs/ARTBOARD_LAYOUT_SPEC.md).
+
+Export planning includes PDF, scalable objects, user-controlled raster dimensions/DPI and compression, **after** the actual writing and layout engine works.

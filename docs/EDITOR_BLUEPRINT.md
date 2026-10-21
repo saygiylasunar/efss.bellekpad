@@ -1,98 +1,66 @@
-# BellekPad — Editor & Content Specification (Working Blueprint)
+# BellekPad — Editor Blueprint (scope, not yet implemented)
 
-Status: design scope only. Nothing below is an implemented editor. This document is the acceptance baseline for the first real web application.
+## Core intent
 
-## Product boundary
+Build a genuine **self-developed text/document editor**. Users edit objects and text visually: click a style, choose an icon, type `/callout` or `/table`, or choose a block from the insert menu. **No one must author verbose EFSS Markdown syntax to obtain basic formatting.** EFSS Markdown remains the portable source/storage grammar, with planned versioned extensions for artboards and advanced styles.
 
-BellekPad must be a usable **visual document editor**, not merely a textarea with a Markdown preview. The canonical portable content format remains EFSS Markdown; editor selections, rendering and rich controls may use a temporary in-memory tree. No silent loss of existing EFSS text, unknown extension nodes or user metadata is acceptable.
+## Non-negotiable engineering choice
 
-Research influences: Notion (composable blocks, slash commands, callouts, page icons); Microsoft Word (precise typography, table tools, find/replace, document-oriented review); Adobe Illustrator (contextual property panels, reusable styles/symbols, aligned/grouped objects for an optional visual canvas). We borrow interaction patterns, not proprietary artwork or an unrestricted vector graphics application.
+**No third-party editor framework or application UI runtime library.** Previous suggestions to use Tiptap, ProseMirror, CodeMirror, Vite and Vue are explicitly **withdrawn**. The text editor/document model, selection/caret handling, layout constraints and renderer are maintained by BellekPad itself. We may use standard browser platform APIs, CSS, HTML, SVG, Canvas and native JavaScript modules, plus Node built-ins for tests. Any new external library requires a separate discussion and user's express permission.
 
-## Feature inventory / release criteria
+[Architecture decisions and engine boundaries](EDITOR_ENGINE.md)  
+[Artboard and layout behaviors](ARTBOARD_LAYOUT_SPEC.md)
 
-| Group | First usable editor (E0) | Following release (E1) | Optional specialist mode (E2) |
-|---|---|---|---|
-| Editing | Text insertion, selection, undo/redo, keyboard shortcuts, copy/paste, native IME/Turkish text, auto focus, block navigation | Multi-block selection and drag/reorder, document outline, find/replace, history | Review suggestions, comments/annotations |
-| Inline marks | Bold, italic, underline, strike, code, links, text color, highlight | Sub/superscript, alignment/line spacing, reusable text styles | Full print typography and advanced typesetting |
-| Blocks | Paragraph, H1–H6, unordered/ordered/nested lists, checklist, quote, divider, code fence | Toggle/disclosure, collapsible sections, columns, table of contents | Layout sections and printable page controls |
-| Callouts | Info / tip / warning / success / error; title, selectable icon/emoji, background accent; text and nested lists | Nested tables/images/blocks, templates, custom appearance presets | Reusable callout design systems |
-| Tables | GFM-style table, editable cells, header, row/column add/remove, keyboard cell movement | Column resizing, alignment, cell background, drag range selection, merge/split cells, captions | Formulas, sortable/filterable data view (distinct from plain tables) |
-| Emoji and icons | Inline Unicode emoji picker, emoji search, page icon, basic packaged SVG icon palette | Custom uploaded icons, block icons, saved icon presets, page covers | Asset/library syncing and vector symbol editor |
-| Media | Link insertion, safe clipboard paste; media placeholder/display where available | Local image attach/drop/paste, resize, alt-text, captions; file/PDF previews, audio/video embeds via explicit consent | Crop/position/rotate and advanced visual blocks |
-| Navigation | Page list, new/rename/archive, breadcrumb, selected document properties, focus mode | Folders/tags, link backlinks, cross-document search, split view | Views of documents as cards/board/calendar |
-| Authoring | Toolbar + selection bubble menu + slash insert menu + visible add-block control | Drag handles, block duplication/conversion, reusable templates | Free-positioned diagram/board/whiteboard |
-| Export | Source Markdown download and copy; safe HTML preview | Portable EFSS bundle (document + local assets), PDF export | DOCX and print layout |
+## Minimal interaction surfaces (not Microsoft Word toolbar sprawl)
 
-These are **editor capabilities**, not new variable kinds or memory classes. Icons are display assets and emoji text, not automatisch EFSS facts.
+- Document header: page navigation, undo/redo, save state, view toggle.
+- Insert surface: `+` menu and contextual slash commands with predictable results.
+- Selection toolbar: frequently used text formatting.
+- Contextual inspector: collapsible Illustrator-inspired numeric and typographic controls for currently selected text/frame/table/icon/artboard.
+- Page navigator and preset/template picker. Multiple artboards, different sizes, grouped frames, readable order.
+- User-visible **Flow** and **Layout** editing behaviors share one document model. Flow keeps prose readable; Layout adds artboards, row/column/grid frames, precision handles and optional free-position overlay.
 
-## Do not conflate these objects
+## Must-have blocks and affordances
 
-- **Markdown table**: fixed document content and presentation. Not a spreadsheet, relational database, inventory or autonomous status ledger.
-- **Callout**: a styled container with optional inner blocks. Not an instruction to the AI model.
-- **Page icon / block icon**: presentation metadata or explicit inline icon node, not an entity by default.
-- **Emoji**: Unicode content (and an optional UI picker); no network icon fetching by default.
-- **Illustrator-like object operations**: apply first to image/card/diagram blocks, not normal prose text; free canvas is a separate future editor mode.
-- **EFSS variable/reference**: an explicit authored construct, never auto-generated from ordinary numbers or arbitrary notes.
+Text paragraphs, heading levels, bold/italic/underline/strike, code spans and blocks, blockquote, list/checklist, divider, safe link and reference, table with editable cells, callout with type/icon/title and nested content, emoji/inline icons and page icons. All should be insertable by mouse/menu and relevant slash commands.
 
-## Markdown-first serialization policy
+Selected text exposes font family, sizing, weights, line spacing, tracking, available OpenType features and paragraph alignment through the inspector. Selected frames expose sizing, x/y, alignment, padding, constraints, and layout behavior. Toolbar/inspector settings map to the **same transaction** as keyboard commands.
 
-1. The original UTF-8 EFSS Markdown source remains authoritative on disk; the visual tree is a working representation and should not overwrite unknown/unsupported blocks.
-2. Simple tables use familiar GFM pipe-table syntax. Pipe tables cannot represent merged cells or arbitrary nested blocks. E1 rich tables must use a versioned EFSS extension block instead of lossy fake pipe Markdown.
-3. Proposed callout form (design only; not yet parsed or rendered):
+## Content vs. styling
 
-   :::efss.callout type=warning icon="⚠️" title="Önemli"
-   İçeriği ve **Markdown** biçimlendirmesini koru.
-   :::
+- Simple prose and tables remain readable Markdown. Lossy transformations are forbidden.
+- Rich layout, text-frame geometry and advanced styles need **versioned EFSS extension data**; the exact syntax will be determined by a source roundtrip prototype.
+- Unknown extensions are preserved raw, not discarded.
+- Emoji is Unicode; icons are bundled/authorized SVGs or local asset references; embedded or uploaded HTML/SVG is untrusted.
+- Artboards have reusable **presets** (dimensions) and **templates** (layout + styles + optional content), which are distinct constructs.
 
-4. EFSS callout content must be tokenized as nested editable child blocks, **not skipped as opaque code**. The current scanner treats efss extension blocks as opaque and will need a scoped, tested grammar addition.
-5. On any visual → source → visual round-trip, compare semantic AST and preserve unknown constructs verbatim. If some layout cannot be represented, preserve the raw extension or expose a conversion warning; never silently discard it.
-6. Inline emoji is UTF-8 text. Page icon needs stable, safe metadata (emoji literal, bundled icon ID, or local asset reference). Never store base64 assets inside arbitrary Markdown spans by default.
-7. Every pasted HTML/media source is untrusted. Sanitize HTML/URLs, block scripts/event handlers, avoid unsafe SVG execution, and keep personal media local unless explicitly exported.
+## Development order
 
-## UI interaction concept
+1. **Editor engine contract/tests**: immutable transactions, stable block IDs, selection, browser-native input and own renderer.
+2. **Write first**: visible text area, robust caret/IME/undo, inline formatting and source roundtrip. This must feel like an editor, not a raw textarea.
+3. **Artboard/layout**: multi-page sizes, row/column/grid, frames, collision/overflow diagnostics and contextual inspector.
+4. **Structured blocks**: tables, callouts, icon picker, slash-insertion and toolbar actions.
+5. **Browser persistence**: IndexedDB autosave, crash/reload and portable EFSS export/import.
+6. **Advanced typography** and authorized asset libraries.
+7. **Later**: PDF/raster export, DPI and compression options, text outlines, richer media and advanced color management.
 
-- Global header: page title, breadcrumb, search/command palette, saved status and view switcher (Visual / Source / Preview).
-- Left rail: workspace navigation, notes, projects, pinned/recent, create page.
-- Center: spacious page editing surface; hover `+` to insert blocks, `/` commands, selection bubble toolbar, keyboard-first typing.
-- Right inspector (collapsible): contextual controls for the selected table, callout, image or block; document properties when nothing is selected.
-- Top-of-page: page emoji/icon, optional cover, title, optional description. Responsive layout collapses inspectors into drawers.
-- An optional *canvas view* may later support moving and aligning object blocks; it does **not** replace linear document editing.
+No rushed all-at-once UI, silent migration or new independent memory architecture.
 
-## Proposed implementation (to validate in a spike)
+## Acceptance checks
 
-- Vite + Vue 3 for the web shell; Tiptap/ProseMirror for visual block/inline editing, CodeMirror 6 for source mode.
-- Existing EFSS Markdown parser/AST remains the canonical language contract. Add a tested AST ↔ visual node adapter; do **not** replace the EFSS grammar with Tiptap's Markdown parser by fiat.
-- Tiptap table editing offers row/column operations and merge/split, but its Markdown extension is currently marked **beta**; its own docs note limitations with multiple child nodes in table cells. Test interoperability before adopting that extension for persistence.
-- E0 may use one visual editor session and explicit source/preview modes. Never run two concurrent uncoordinated document stores.
-- Storage work is driven by the editor: browser IndexedDB plus asset references, autosave after a debounced edit, safe export and crash/reload validation.
+- Create a page with a Web/Desktop/Mobile/Social/Document preset; insert text and an icon, save/reopen and preserve size/unit/geometry.
+- Arrange two editable text boxes side by side and above/below; alter gap/constraints without collisions or silent clipping.
+- Type multilingual text/emoji, apply styles with selection toolbar and inspector, undo/redo, paste safely and use an IME.
+- Type `/callout`, choose a variant and icon, insert an editable table from `/table` or `+`.
+- Switch to source Markdown voluntarily; save and return to visual mode with content and unknown extensions intact.
+- Adjust exact frame placement and typography; zoom without changing actual page dimensions; change artboard preset only with an explicit resize/reflow intention.
+- Inspect keyboard and screenreader reading order independently from display order.
 
-## Minimum acceptance scenarios (E0)
+## Inspiration (interaction concepts only)
 
-1. Open app → create page → choose emoji/icon → type Turkish heading and paragraph → format bold/underline/highlight → close/reopen; no text, Unicode or metadata lost.
-2. Slash menu → insert a warning callout with icon → nested bullet list; visual/source roundtrip preserves structure and icon.
-3. Insert 3×3 table → type with Tab → add/remove row and column → roundtrip to Markdown → reopen and edit the same cells.
-4. Insert checkbox list, blockquote, divider and code block; source mode retains whitespace, code fences and escaped EFSS references.
-5. Paste untrusted HTML/URL → scripts and active content do not execute; plain text/allowed formatting survive.
-6. Place a reference `[[paper:example]]` or `&Name` and see safe syntax decoration; unregistered names never create automatic memory facts.
-7. Switch between Visual / Source / Preview without silently rewriting unknown legacy EFSS blocks.
-8. Test narrow/mobile viewport, keyboard-only interaction, search, autosave collision and reload after abrupt tab closure.
+Notion: block insert/structure and callouts.
+Microsoft Word: typography, tables, text editing fidelity.
+Adobe Illustrator: artboards, selection, alignment, properties, spacing and precise object transforms.
+Canva: page size presets and page templates.
 
-## Implementation slices
-
-- **E0a Shell:** Vite application, responsive layout, note list, empty editor and visible state; no more standalone memory abstractions.
-- **E0b Editing:** visual paragraphs/headings/marks/lists, toolbar, undo, slash menu, keyboard paths.
-- **E0c Distinctive blocks:** first-class callout + editable table + emoji/icon picker (not deferred to a hypothetical final release).
-- **E0d Persistence:** IndexedDB autosave, markdown/source fidelity tests, export/import, local privacy checks.
-- **E0e Integration:** documented EFSS references, graph-aware navigation, safe preview, optional local models with explicit actions.
-- **E1/E2:** richer media, complex tables, print/docx, page layout, collaborative review, free canvas.
-
-## Reference material
-
-- Notion: https://www.notion.com/help/writing-and-editing-basics
-- Notion callouts: https://www.notion.com/en-gb/help/customize-and-style-your-content
-- Word tables: https://support.microsoft.com/en-us/word/training/insert-a-table
-- Word review: https://support.microsoft.com/en-us/word/give-and-receive-feedback-in-word
-- Illustrator properties: https://helpx.adobe.com/illustrator/desktop/get-started/learn-the-basics/properties-panel-overview.html
-- Illustrator layers: https://helpx.adobe.com/illustrator/desktop/manage-layers/create-and-organize-layers/layers-overview.html
-- Tiptap table: https://tiptap.dev/docs/editor/extensions/nodes/table
-- Tiptap Markdown caveats: https://tiptap.dev/docs/editor/markdown
+No proprietary assets, embedded fonts or third-party code are included solely because these products inspired the behaviors.
