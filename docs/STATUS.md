@@ -44,3 +44,7 @@ Completed technical research against standards and editor architectures. Recomme
 ## Host-neutral direction — desktop, web and mobile
 
 The application is **not committed to browser-only distribution**. Researching Electron/Discord/Slack shows that a portable web-rendered UI can be packaged as an installable desktop application while keeping the underlying editor logic independent. Electron is a shell candidate; Tauri v2 is an alternative. No shell dependency, desktop binary or file bridge is implemented yet. See [PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md).
+
+## G0.1 — Electron desktop bridge implementation
+
+Implemented `desktop/main.js` + sandboxed `desktop/preload.cjs` + whitelisted `bellekpad://app` asset handler, a simple application shell in `desktop/ui/`, and `src/desktop-document-service.js` for restricted CRUD-ish paper/project operations. Node tests verify source persistence, optimistic revision conflict, request validation, static asset boundary and draft save race handling. Electron 44.9.3 is a pinned dev dependency but **native GUI launch has not been tested** in CI. Callout/table/visual formatting/flow artboards and full selection engine are not implemented. See [DESKTOP_SPIKE.md](DESKTOP_SPIKE.md).

@@ -20,9 +20,10 @@ test("npm distribution is disabled and source is explicitly UNLICENSED", () => {
   assert.equal(pkg.license, "UNLICENSED");
 });
 
-test("no external runtime or editor dependency is declared without approval", () => {
+test("Electron is the only approved development host and no editor runtime is imported", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(Object.keys(pkg.dependencies ?? {}).length, 0);
-  assert.equal(Object.keys(pkg.devDependencies ?? {}).length, 0);
+  assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ["electron"]);
+  assert.equal(pkg.devDependencies.electron, "44.9.3");
   assert.equal(Object.keys(pkg.optionalDependencies ?? {}).length, 0);
 });

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="dark">
+  <title>BellekPad — Editor Laboratory</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Belge gezgini">
+      <div class="brand"><span class="brand-mark">◈</span><span>bel<span class="em">lek</span>pad<small>EFSS EDITOR LAB</small></span></div>
+      <div class="side-heading"><span>ÇALIŞMA ALANI</span><span class="side-icon">⌘</span></div>
+      <button class="create" id="new-document" type="button"><span>＋</span> Yeni sayfa</button>
+      <div class="side-heading"><span>BELGELER</span><span id="document-count">0</span></div>
+      <nav id="document-list" aria-label="Yerel belgeler" class="document-list"></nav>
+      <div class="side-bottom"><span class="status-lamp"></span> Yalnızca bu cihazda <small>Bulut bağlantısı kullanılmıyor.</small></div>
+    </aside>
+    <div class="workspace">
+      <header class="header">
+        <div class="breadcrumbs"><span>Çalışma Alanı</span><span class="divider">/</span><strong id="crumb-title">Editör laboratuvarı</strong></div>
+        <div class="header-actions">
+          <span class="chip" title="G0 — Native input ve dosya köprüsü">G0 · PROTOTİP</span>
+          <span class="save-state" id="save-state" role="status" aria-live="polite">Hazır</span>
+          <button id="save" class="button primary" type="button" disabled>Kaydet <kbd>Ctrl S</kbd></button>
+        </div>
+      </header>
+      <main class="main">
+        <div id="editor-screen" class="document-shell" hidden>
+          <div class="page-topline"><span class="page-symbol">◇</span> <span>YEREL BELGE</span><span id="document-id" class="mono"></span></div>
+          <input id="document-title" class="title-input" aria-label="Belge başlığı" placeholder="Adsız sayfa" maxlength="160" spellcheck="true">
+          <p class="document-hint">Bu ilk sürüm metin girişi, kaynak gösterimi ve masaüstü kayıt köprüsünü sınar. Tam görsel blok editörü henüz yapılmadı.</p>
+          <div class="surface-toolbar">
+            <span class="tool-label">METİN ÇALIŞMA ALANI</span>
+            <button class="toolbar-tab active" id="show-write" type="button" aria-pressed="true">Yaz</button>
+            <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
+            <span class="tool-fill"></span>
+            <span id="character-count">0 karakter</span>
+          </div>
+          <section id="write-pane" aria-label="Deneysel metin düzenleyici" class="write-pane">
+            <div id="editor" class="text-surface" contenteditable="plaintext-only" role="textbox" aria-label="Belge metni" aria-multiline="true" spellcheck="true" data-placeholder="Buradan yazmaya başla…"></div>
+          </section>
+          <section id="preview-pane" class="preview-pane" aria-label="Markdown önizleme" hidden></section>
+        </div>
+        <section id="empty-state" class="empty-state">
+          <div class="empty-art">✳</div>
+          <span class="eyebrow">EFSS · BELLEKPAD</span>
+          <h1>Fikirler için<br><em>kendine ait</em> bir alan.</h1>
+          <p>Bir sayfa oluştur. Metnini yaz. BellekPad onu bu cihazda saklasın. Bu ekran ilk masaüstü editör altyapısıdır; artboard ve zengin düzenleme sıradaki aşamalardır.</p>
+          <button id="start-document" type="button" class="button primary large">＋ İlk sayfanı oluştur</button>
+        </section>
+      </main>
+      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · EDITOR SPIKE</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
+    </div>
+  </div>
+</body>
+</html>

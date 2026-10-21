@@ -94,3 +94,7 @@ Touch-mobile UI needs **adapted controls** (inspector drawer, large targets, ons
 - Do not convert the entire project to Electron or Tauri's proprietary/plugin document model.
 - Do not assert mobile is automatically supported because Electron supports desktop.
 - Do not treat the successful Node test suite as proof of native desktop behavior.
+
+## Actual first implementation — G0.1
+
+Chosen desktop host: Electron, pinned to `44.9.3` under `devDependencies`. The first checked-in shell lives under `desktop/` and exposes only the limited document service. A first DOM input surface and AST preview demonstrate connection with the existing EFSS vault. **No bundled Windows installer or real UI smoke-test has been performed.** The Node service remains testable without loading Electron; native operations are behind the guarded preload/IPC boundary. See [DESKTOP_SPIKE.md](DESKTOP_SPIKE.md).

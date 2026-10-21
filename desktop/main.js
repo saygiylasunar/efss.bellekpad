@@ -1,0 +1,118 @@
+import { app, BrowserWindow, ipcMain, protocol, session } from "electron";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createDesktopDocumentService } from "../src/desktop-document-service.js";
+import { LocalDocumentVault } from "../src/local-document-vault.js";
+import {
+  APP_HOME, DESKTOP_CHANNELS, isTrustedEditorFrame, resolveBundledAsset
+} from "./security.js";
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: "bellekpad",
+    privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
+
+app.setName("BellekPad");
+
+let window = null;
+const knownErrors = new Set([
+  "INVALID_DOCUMENT_REQUEST", "INVALID_DOCUMENT_TITLE",
+  "INVALID_DOCUMENT_BODY", "INVALID_DOCUMENT_REVISION",
+  "DOCUMENT_REVISION_REQUIRED", "DOCUMENT_NOT_FOUND",
+  "DOCUMENT_VERSION_CONFLICT", "DOCUMENT_ALREADY_EXISTS",
+  "DOCUMENT_TOO_LARGE", "DOCUMENT_BUSY", "UNSAFE_DOCUMENT_FILE",
+  "UNSAFE_VAULT_DIRECTORY", "INVALID_DOCUMENT_IDENTITY",
+  "CONSTANT_DEFINITION_IMMUTABLE"
+]);
+
+function trustedRequest(event) {
+  return !!window && !window.isDestroyed() &&
+    event.sender === window.webContents &&
+    event.senderFrame === window.webContents.mainFrame &&
+    isTrustedEditorFrame({
+      senderURL: event.senderFrame?.url,
+      isMainFrame: event.senderFrame === window.webContents.mainFrame
+    });
+}
+
+function bindDesktopAPI(service) {
+  const operations = {
+    [DESKTOP_CHANNELS.list]: () => service.list(),
+    [DESKTOP_CHANNELS.open]: payload => service.open(payload),
+    [DESKTOP_CHANNELS.create]: payload => service.create(payload),
+    [DESKTOP_CHANNELS.save]: payload => service.saveDraft(payload)
+  };
+  for (const [channel, run] of Object.entries(operations)) {
+    ipcMain.handle(channel, async (event, payload) => {
+      if (!trustedRequest(event)) return { ok: false, error: "UNTRUSTED_FRAME" };
+      try {
+        const data = await run(payload);
+        return { ok: true, data };
+      } catch (error) {
+        // Never echo OS paths, original source, private notes or stack traces.
+        return { ok: false,
+          error: knownErrors.has(error?.message) ? error.message : "INTERNAL_ERROR" };
+      }
+    });
+  }
+}
+
+function createEditorWindow() {
+  window = new BrowserWindow({
+    title: "BellekPad",
+    width: 1300, height: 850,
+    minWidth: 760, minHeight: 540,
+    backgroundColor: "#11161c",
+    webPreferences: {
+      preload: join(fileURLToPath(new URL(".", import.meta.url)), "preload.cjs"),
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false,
+      devTools: true
+    }
+  });
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-navigate", (event, destination) => {
+    if (destination !== APP_HOME) event.preventDefault();
+  });
+  window.webContents.on("will-attach-webview", event => event.preventDefault());
+  window.on("closed", () => { window = null; });
+  window.loadURL(APP_HOME).catch(() => {
+    // No remote fallback, no user documents included in error reporting.
+    if (window && !window.isDestroyed()) window.close();
+  });
+}
+
+app.whenReady().then(() => {
+  protocol.handle("bellekpad", async request => {
+    const filename = resolveBundledAsset(request.url, request.method);
+    if (!filename) return new Response("Not found", { status: 404 });
+    const mime = filename.endsWith(".js") ? "text/javascript; charset=utf-8" :
+      filename.endsWith(".css") ? "text/css; charset=utf-8" :
+        "text/html; charset=utf-8";
+    try {
+      const bytes = await readFile(filename);
+      return new Response(bytes, {
+        headers: { "Content-Type": mime, "X-Content-Type-Options": "nosniff" }
+      });
+    } catch {
+      return new Response("Not found", { status: 404 });
+    }
+  });
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, answer) => {
+    answer(false);
+  });
+  session.defaultSession.setPermissionCheckHandler(() => false);
+  const vault = new LocalDocumentVault({ root: join(app.getPath("userData"), "vault") });
+  bindDesktopAPI(createDesktopDocumentService({ vault }));
+  createEditorWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createEditorWindow();
+  });
+}).catch(() => app.quit());
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});

@@ -67,3 +67,14 @@ Before implementing the self-developed editor, the team reviewed transaction/sel
 ## Desktop-first, host-independent architecture
 
 BellekPad is not restricted to a public website or browser tab. A future installable desktop executable can host the custom editor through Electron (candidate) or another suitably isolated native shell. The document, Markdown, layout and transaction systems will remain shell-independent; native operations use narrow adapters. Electron would be a packaging/runtime host, **not** an imported rich-text editor dependency. No desktop binary is implemented yet. See [Platform Architecture](docs/PLATFORM_ARCHITECTURE.md).
+
+## G0.1 — Desktop integration prototype (Electron)
+
+The first working **desktop document bridge and text input spike** is in `desktop/`: a local Electron window, strict preload IPC, an EFSS document list/new/open/save workflow with revision checks, a plain text input surface, and AST-based read-only preview. This is **not yet** the intended visual rich-text/layout editor.
+
+```powershell
+npm install
+npm run desktop
+```
+
+The project pins Electron 44.9.3 as the **only approved host package**; no external editor/UI runtime is imported. Node CI verifies the document contract and security allowlists, **not** Electron launch or Windows IME. Data is stored in the operating system user-data vault; existing `.efss/vault` CLI notes are not auto-imported. Read [Desktop Integration and manual test plan](docs/DESKTOP_SPIKE.md).
