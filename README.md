@@ -59,3 +59,7 @@ The editor must be practical for writing before advanced export features. It wil
 **Not yet implemented.** References: [Editor Blueprint](docs/EDITOR_BLUEPRINT.md), [Engine Architecture](docs/EDITOR_ENGINE.md), [Artboard/Layout](docs/ARTBOARD_LAYOUT_SPEC.md).
 
 Export planning includes PDF, scalable objects, user-controlled raster dimensions/DPI and compression, **after** the actual writing and layout engine works.
+
+## Independent editor engineering research (2026-10-21)
+
+Before implementing the self-developed editor, the team reviewed transaction/selection models, Unicode/IME input, browser-native contenteditable/EditContext limitations, non-overlapping artboard constraints, typographic shaping, Markdown fidelity, security and storage. Findings, rejected options, objective browser experiments and success gates: [Editor Engineering Research](docs/EDITOR_RESEARCH_2026-10-21.md). Research only: not a functioning visual editor.

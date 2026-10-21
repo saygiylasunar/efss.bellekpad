@@ -36,3 +36,7 @@ The repository declares **all rights reserved / no public software license** in 
 The editor requirements have superseded the earlier third-party-library experiment. Own ES-module text engine, AST integration, native input composition, transaction/undo, flow and artboard layout frames, precision geometry, text frames, glyph/typographic controls, preset sizes, collision/overflow rules and contextual controls are now the design contract. No external editor packages/runtime UI frameworks. PDF/DPI/optimized exports are deferred behind a working text editor.
 
 Specs: [EDITOR_ENGINE.md](EDITOR_ENGINE.md), [ARTBOARD_LAYOUT_SPEC.md](ARTBOARD_LAYOUT_SPEC.md), [EDITOR_BLUEPRINT.md](EDITOR_BLUEPRINT.md). The app/editor/layout engine itself **has not been implemented yet**.
+
+## Research gate — editor engine, 2026-10-21
+
+Completed technical research against standards and editor architectures. Recommended first proof: a browser-native active-text-frame input spike with cross-browser IME reconciliation, plus our own pure operation/transaction/selection-mapping core. The detailed trade-offs, measured-vs-unmeasured limits and verification matrix are recorded in [EDITOR_RESEARCH_2026-10-21.md](EDITOR_RESEARCH_2026-10-21.md). Editor implementation and cross-browser manual tests are pending.
