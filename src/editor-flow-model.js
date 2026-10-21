@@ -131,8 +131,10 @@ export function insertFlowBlock(doc, {
     MARKERS[kind] + eol;
   // Blank paragraph is an editable placeholder: its newline is the document
   // separator until the user types, not a hidden nonstandard markup token.
-  const separator = before.length && !/(\r\n|\r|\n){2}$/.test(before) ?
-    /(\r\n|\r|\n)$/.test(before) ? eol : eol + eol : "";
+  // Treat CRLF as *one* newline; a regex with \r and \n alternatives can
+  // mistakenly count a single CRLF as two separate separators.
+  const separator = before.length && !before.endsWith(eol + eol) ?
+    before.endsWith(eol) ? eol : eol + eol : "";
   const tail = after.length && !/^(\r\n|\r|\n)/.test(after) ? eol : "";
   const source = before + separator + segment + tail + after;
   return reconcileBlockSource(doc, source, { expectedVersion });

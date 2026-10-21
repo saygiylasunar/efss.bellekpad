@@ -58,8 +58,8 @@ test("UI exposes visible undo and redo commands without importing editor framewo
   const ui = read("desktop/ui/app.js");
   assert.match(html, /id="undo"/);
   assert.match(html, /id="redo"/);
-  assert.match(ui, /editorBinding\?\.undo\(\)/);
-  assert.match(ui, /editorBinding\?\.redo\(\)/);
+  assert.match(ui, /\(flowBinding \?\? editorBinding\)\?\.undo\(\)/);
+  assert.match(ui, /\(flowBinding \?\? editorBinding\)\?\.redo\(\)/);
 });
 
 test("G0.3 source structure outline uses our own EFSS AST and secure DOM creation", () => {
