@@ -33,8 +33,9 @@ async function run() {
 
   await page('(() => { for (const ch of "/callout") {' +
     ' const el = document.querySelector(".flow-editable"); el.focus();' +
-    ' const selection = document.getSelection(); const child = el.firstChild || el;' +
-    ' const n = child.nodeType === 3 ? child.length : 0;' +
+    ' const selection = document.getSelection(); const walk=document.createTreeWalker(el,4);' +
+    ' let leaf=null,part; while((part=walk.nextNode())) leaf=part;' +
+    ' const child=leaf||el; const n=leaf?leaf.length:0;' +
     ' selection.setBaseAndExtent(child,n,child,n);' +
     ' el.dispatchEvent(new InputEvent("beforeinput",{' +
     ' bubbles:true,cancelable:true,inputType:"insertText",data:ch})); } })()');
