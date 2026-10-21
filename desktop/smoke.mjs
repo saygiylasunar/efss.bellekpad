@@ -45,6 +45,21 @@ async function run() {
     'bubbles:true,cancelable:true,inputType:"insertText",data:"Deneme 😀"}));})()');
   await retry("callout text", () =>
     page("document.querySelector('.flow-callout .flow-editable')?.textContent === 'Deneme 😀'"));
+  await page('document.querySelector("#insert-kind").value="heading";' +
+    'document.querySelector("#insert-block").click()');
+  await retry("visual heading inserted", () =>
+    page("!!document.querySelector('.flow-heading .flow-editable')"));
+  await page('(() => { const el=document.querySelector(".flow-heading .flow-editable");' +
+    'el.focus(); el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"Başlık"}));})()');
+  await retry("heading typed", () =>
+    page("document.querySelector('.flow-heading .flow-editable')?.textContent === 'Başlık'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("undo heading text", () =>
+    page("document.querySelector('.flow-heading .flow-editable')?.textContent === ''"));
+  await page("document.querySelector('#redo').click()");
+  await retry("redo heading text", () =>
+    page("document.querySelector('.flow-heading .flow-editable')?.textContent === 'Başlık'"));
   await page("document.querySelector('#save').click()");
   await retry("vault saved", () =>
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
@@ -58,6 +73,7 @@ async function run() {
   assert.equal(opened.ok, true);
   assert.match(opened.data.body, /:::efss.callout/);
   assert.match(opened.data.body, /Deneme 😀/);
+  assert.match(opened.data.body, /# Başlık/);
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("!document.querySelector('#write-pane').hidden"), true);
   assert.equal(await page("document.querySelector('#editor').textContent.includes(':::efss.callout')"), true);

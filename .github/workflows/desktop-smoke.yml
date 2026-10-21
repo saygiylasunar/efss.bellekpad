@@ -34,3 +34,15 @@ jobs:
         env:
           ELECTRON_DISABLE_SECURITY_WARNINGS: 'false'
         run: xvfb-run -a npm run desktop:smoke
+  windows-desktop-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Electron host
+        run: npm install --no-audit --no-fund
+      - name: Smoke test native Windows Electron renderer and vault bridge
+        run: npm run desktop:smoke
