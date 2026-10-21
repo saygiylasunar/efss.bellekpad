@@ -95,3 +95,9 @@ test("visual Flow mode and Source mode share the same text session and secured d
   assert.doesNotMatch(ui, /innerHTML/);
   assert.doesNotMatch(ui, /eval\(/);
 });
+
+test("slash callouts preserve the document's existing newline convention", () => {
+  const flow = read("src/editor-flow-adapter.js");
+  assert.match(flow, /getStructure\(\)\.source\.match\(/);
+  assert.match(flow, /calloutMarkdown/);
+});

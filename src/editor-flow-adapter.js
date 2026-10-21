@@ -214,7 +214,8 @@ export function attachFlowEditor(host, {
       const slash = slashFlowCommand(candidate);
       if (slash && selectedRange(editor, block)) {
         const raw = slash.kind === "callout" ?
-          calloutMarkdown(slash.variant, "\n") :
+          calloutMarkdown(slash.variant,
+            getStructure().source.match(/\r\n|\r|\n/)?.[0] ?? "\n") :
           ({ heading: "# ", list_item: "- ", quote: "> " })[slash.kind];
         const changed = session.dispatch({
           type: "replaceRange", from: block.start,
