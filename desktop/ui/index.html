@@ -32,18 +32,34 @@
         <div id="editor-screen" class="document-shell" hidden>
           <div class="page-topline"><span class="page-symbol">◇</span> <span>YEREL BELGE</span><span id="document-id" class="mono"></span></div>
           <input id="document-title" class="title-input" aria-label="Belge başlığı" placeholder="Adsız sayfa" maxlength="160" spellcheck="true">
-          <p class="document-hint">G0.3: Metin motoru ve kayıpsız EFSS blok yapısı burada birlikte sınanıyor. Özel görsel bloklar ve artboard düzenleme henüz hazır değil.</p>
+          <p class="document-hint">G0.4: Basit metin, başlık, liste, alıntı ve callout düzenleme. Karmaşık biçimler hâlâ Kaynak görünümünden erişilir.</p>
           <div class="surface-toolbar">
             <span class="tool-label">METİN ÇALIŞMA ALANI</span>
             <button class="toolbar-tab history-button" id="undo" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled>↶</button>
             <button class="toolbar-tab history-button" id="redo" type="button" title="İleri al (Ctrl+Y)" aria-label="İleri al" disabled>↷</button>
-            <button class="toolbar-tab active" id="show-write" type="button" aria-pressed="true">Yaz</button>
+            <button class="toolbar-tab active" id="show-flow" type="button" aria-pressed="true">Görsel</button>
+            <button class="toolbar-tab" id="show-write" type="button" aria-pressed="false">Kaynak</button>
             <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
+            <label class="insert-label" for="insert-kind">Blok</label>
+            <select id="insert-kind" class="insert-select" aria-label="Eklenecek blok">
+              <option value="paragraph">Paragraf</option>
+              <option value="heading">Başlık</option>
+              <option value="list_item">Liste</option>
+              <option value="quote">Alıntı</option>
+              <option value="callout:info">ℹ Bilgi kutusu</option>
+              <option value="callout:warning">⚠ Uyarı kutusu</option>
+              <option value="callout:tip">💡 İpucu kutusu</option>
+              <option value="callout:success">✓ Başarı kutusu</option>
+            </select>
+            <button id="insert-block" class="toolbar-tab insert-action" type="button">＋ Ekle</button>
             <span class="tool-fill"></span>
             <span id="block-count" title="Kaynak Markdown blokları">0 blok</span>
             <span id="character-count">0 karakter</span>
           </div>
-          <section id="write-pane" aria-label="Deneysel metin düzenleyici" class="write-pane">
+          <section id="flow-pane" class="flow-pane" aria-label="Görsel blok düzenleyici">
+            <p class="flow-support-note">Metin için bloğa tıkla. /callout, /uyarı veya /h1 komutlarını kullan. Özel biçimler Kaynak görünümünden erişilebilir.</p>
+          </section>
+          <section id="write-pane" aria-label="Markdown kaynak düzenleyici" class="write-pane" hidden>
             <div id="editor" class="text-surface" contenteditable="plaintext-only" role="textbox" aria-label="Belge metni" aria-multiline="true" spellcheck="true" data-placeholder="Buradan yazmaya başla…"></div>
           </section>
           <section id="preview-pane" class="preview-pane" aria-label="Markdown önizleme" hidden></section>
@@ -60,7 +76,7 @@
           <button id="start-document" type="button" class="button primary large">＋ İlk sayfanı oluştur</button>
         </section>
       </main>
-      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · TRANSACTION LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
+      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · FLOW LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
     </div>
   </div>
 </body>

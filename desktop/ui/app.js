@@ -2,6 +2,7 @@ import { parseMarkdownAst } from "../../src/ast.js";
 import { TextEditorSession, collapsedSelection } from "../../src/editor-text-engine.js";
 import { attachTextFrame } from "../../src/editor-input-adapter.js";
 import { createBlockDocument, reconcileBlockSource, blockOutline } from "../../src/editor-block-model.js";
+import { attachFlowEditor } from "../../src/editor-flow-adapter.js";
 import {
   createDraft, editDraft, snapshotDraft, confirmDraftSave
 } from "../../src/editor-draft.js";
@@ -11,7 +12,8 @@ const nodes = Object.fromEntries([
   "document-list", "document-count", "new-document", "start-document",
   "empty-state", "editor-screen", "document-title", "document-id",
   "crumb-title", "save-state", "save", "editor", "write-pane", "preview-pane",
-  "show-write", "show-preview", "character-count", "undo", "redo",
+  "show-flow", "show-write", "show-preview", "flow-pane", "character-count", "undo", "redo",
+  "insert-kind", "insert-block",
   "block-count", "block-outline"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -23,6 +25,9 @@ let blocked = false;
 let navigationBusy = false;
 let composing = false;
 let editorBinding = null;
+let flowBinding = null;
+let sharedTextSession = null;
+let activeMode = "flow";
 let structure = null;
 let outlineFrame = null;
 function scheduleStructureDisplay() {
@@ -66,8 +71,8 @@ function showStructure() {
 }
 
 function updateHistoryButtons() {
-  nodes["undo"].disabled = !editorBinding?.session.canUndo;
-  nodes["redo"].disabled = !editorBinding?.session.canRedo;
+  nodes["undo"].disabled = !sharedTextSession?.canUndo;
+  nodes["redo"].disabled = !sharedTextSession?.canRedo;
 }
 
 function status(label, problem = false) {
@@ -156,7 +161,9 @@ async function refreshList() {
 }
 function present(record) {
   editorBinding?.destroy();
+  flowBinding?.destroy();
   editorBinding = null;
+  flowBinding = null;
   current = createDraft(record);
   structure = createBlockDocument(current.body);
   blocked = false;
@@ -165,29 +172,16 @@ function present(record) {
   nodes["document-title"].value = current.title;
   nodes["document-id"].textContent = current.kind + ":" + current.id.slice(-7);
   nodes["crumb-title"].textContent = current.title || "Adsız sayfa";
-  editorBinding = attachTextFrame(nodes["editor"], {
-    session: new TextEditorSession({
-      text: current.body, selection: collapsedSelection(0)
-    }),
-    onChange(text) {
-      structure = reconcileBlockSource(structure, text);
-      edited("body", text);
-      scheduleStructureDisplay();
-      updateHistoryButtons();
-    },
-    onCompositionChange(active) {
-      composing = active;
-      if (active) clearTimeout(delayedSave);
-      else if (current?.dirty) scheduleSave();
-    }
+  sharedTextSession = new TextEditorSession({
+    text: current.body, selection: collapsedSelection(0)
   });
   nodes["character-count"].textContent = current.body.length + " karakter";
   updateHistoryButtons();
   showStructure();
   nodes["save"].disabled = true;
   status("Kaydedildi");
-  showView("write");
-  editorBinding.focus();
+  showView("flow");
+  flowBinding?.focus();
 }
 async function saveBeforeLeaving() {
   if (composing) throw new Error("COMPOSITION_IN_PROGRESS");
@@ -260,34 +254,84 @@ function renderPreview() {
   }
   if (!preview.firstChild) preview.textContent = "Önizlenecek içerik yok.";
 }
-function showView(view) {
-  const write = view === "write";
-  nodes["write-pane"].hidden = !write;
-  nodes["preview-pane"].hidden = write;
-  nodes["show-write"].classList.toggle("active", write);
-  nodes["show-preview"].classList.toggle("active", !write);
-  nodes["show-write"].setAttribute("aria-pressed", String(write));
-  nodes["show-preview"].setAttribute("aria-pressed", String(!write));
-  if (!write) renderPreview();
+function onTextChanged(text) {
+  structure = reconcileBlockSource(structure, text);
+  edited("body", text);
+  scheduleStructureDisplay();
+  updateHistoryButtons();
 }
-
+function onCompositionChange(active) {
+  composing = active;
+  if (active) clearTimeout(delayedSave);
+  else if (current?.dirty) scheduleSave();
+}
+function showView(view) {
+  if (composing || !current || !["flow", "write", "preview"].includes(view)) return;
+  if (activeMode === view && (editorBinding || flowBinding || view === "preview")) {
+    if (view === "preview") renderPreview();
+    return;
+  }
+  editorBinding?.destroy();
+  flowBinding?.destroy();
+  editorBinding = null;
+  flowBinding = null;
+  activeMode = view;
+  const flow = view === "flow", source = view === "write", preview = view === "preview";
+  nodes["flow-pane"].hidden = !flow;
+  nodes["write-pane"].hidden = !source;
+  nodes["preview-pane"].hidden = !preview;
+  for (const [id, active] of [
+    ["show-flow", flow], ["show-write", source], ["show-preview", preview]
+  ]) {
+    nodes[id].classList.toggle("active", active);
+    nodes[id].setAttribute("aria-pressed", String(active));
+  }
+  if (source) {
+    editorBinding = attachTextFrame(nodes["editor"], {
+      session: sharedTextSession, onChange: onTextChanged,
+      onCompositionChange
+    });
+  } else if (flow) {
+    flowBinding = attachFlowEditor(nodes["flow-pane"], {
+      session: sharedTextSession, getStructure: () => structure,
+      onChange: onTextChanged, onCompositionChange,
+      onNavigateSource(offset) {
+        showView("write");
+        editorBinding?.selectSourceRange(offset);
+      }
+    });
+  } else renderPreview();
+  updateHistoryButtons();
+}
 nodes["document-title"].addEventListener("input", () => {
   edited("title", nodes["document-title"].value);
   nodes["crumb-title"].textContent = nodes["document-title"].value || "Adsız sayfa";
 });
 nodes["undo"].addEventListener("click", () => {
-  editorBinding?.undo();
+  (flowBinding ?? editorBinding)?.undo();
   updateHistoryButtons();
 });
 nodes["redo"].addEventListener("click", () => {
-  editorBinding?.redo();
+  (flowBinding ?? editorBinding)?.redo();
   updateHistoryButtons();
 });
 nodes["save"].addEventListener("click", () => { void saveCurrent().catch(() => {}); });
 nodes["new-document"].addEventListener("click", () => { void newNote(); });
 nodes["start-document"].addEventListener("click", () => { void newNote(); });
+nodes["show-flow"].addEventListener("click", () => showView("flow"));
 nodes["show-write"].addEventListener("click", () => showView("write"));
 nodes["show-preview"].addEventListener("click", () => showView("preview"));
+nodes["insert-block"].addEventListener("click", () => {
+  if (!current || composing) return;
+  showView("flow");
+  const [kind, variant = "info"] = nodes["insert-kind"].value.split(":");
+  try {
+    flowBinding?.insert(kind, variant);
+    updateHistoryButtons();
+  } catch (error) {
+    status("Blok eklenemedi: " + (error?.message ?? "Hata"), true);
+  }
+});
 window.addEventListener("keydown", event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();

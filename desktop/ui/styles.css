@@ -84,3 +84,29 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .outline-entry:hover,.outline-entry:focus-visible{background:#26343c}
 .outline-kind{font-size:11px;color:#95c2bb;flex:0 0 100px}
 .outline-caption{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+
+.flow-pane{border:1px solid #2d3b44;background:#192129;border-radius:0 0 9px 9px;min-height:420px;padding:23px 26px 65px}
+.flow-support-note{color:#6f8993;font-size:11px;line-height:1.6;border-bottom:1px solid #2a3841;padding:0 4px 17px;margin:0 0 18px}
+.flow-block{position:relative;border-radius:8px;margin:2px 0;min-height:42px;padding:4px 9px 4px 42px}
+.flow-block:focus-within{background:#1d2b33}
+.flow-gutter{position:absolute;top:13px;left:13px;color:#476671;font-size:11px;user-select:none}
+.flow-editable{outline:none;min-height:28px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce6eb;font-size:15px;padding:5px 7px;caret-color:#b7e1d5}
+.flow-editable:empty:before{content:attr(data-placeholder);color:#4f6974;pointer-events:none}
+.flow-heading .flow-editable{font-size:27px;font-weight:735;letter-spacing:-.035em;line-height:1.35}
+.flow-quote{border-left:3px solid #6b9998;border-radius:0}
+.flow-quote .flow-editable{color:#b5c7cc;font-style:italic}
+.flow-list_item .flow-gutter{color:#8cbdba}
+.flow-callout{border:1px solid #355569;background:#20343c;padding:14px 18px 17px}
+.flow-callout .flow-gutter{display:none}
+.flow-callout-header{font-size:12px;letter-spacing:.025em;color:#c8e3e8;font-weight:680;margin-bottom:8px}
+.flow-callout[data-variant="warning"]{border-color:#807047;background:#363229}
+.flow-callout[data-variant="warning"] .flow-callout-header{color:#f4d69c}
+.flow-callout[data-variant="tip"]{border-color:#548477;background:#243830}
+.flow-callout[data-variant="success"]{border-color:#618660;background:#23342a}
+.flow-callout[data-variant="error"]{border-color:#945957;background:#382829}
+.flow-readonly{color:#8f9fa8;white-space:pre-wrap;font:12px/1.65 ui-monospace,Consolas,monospace;background:#111b21;padding:12px;border-radius:5px;max-height:180px;overflow:auto}
+.flow-source-action{margin-top:7px;padding:7px 10px;background:#273740;border:1px solid #364d57;border-radius:4px;color:#add0d2;font-size:11px}
+.insert-label{font-size:10px;color:#8196a0;margin-left:10px}
+.insert-select{max-width:152px;background:#223039;color:#c6d8dd;border:1px solid #3c525b;border-radius:5px;padding:6px;font-size:11px}
+.insert-action{border:1px solid #4b6c6a;color:#acd8d2;background:#25403f}
+@media(max-width:1100px){.insert-label{display:none}.insert-select{width:112px}.flow-pane{padding:18px 14px}}

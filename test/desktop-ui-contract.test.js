@@ -74,3 +74,24 @@ test("G0.3 source structure outline uses our own EFSS AST and secure DOM creatio
   assert.match(app, /document\.createElement/);
   assert.doesNotMatch(app, /innerHTML/);
 });
+
+test("visual Flow mode and Source mode share the same text session and secured document IPC", () => {
+  const html = read("desktop/ui/index.html");
+  const ui = read("desktop/ui/app.js");
+  const adapter = read("src/editor-flow-adapter.js");
+  assert.match(html, /id="flow-pane"/);
+  assert.match(html, /id="show-flow"/);
+  assert.match(html, /id="show-write"/);
+  assert.match(html, /id="insert-block"/);
+  assert.match(ui, /attachFlowEditor/);
+  assert.match(ui, /sharedTextSession/);
+  assert.match(ui, /onTextChanged/);
+  assert.match(adapter, /contentEditable = "plaintext-only"/);
+  assert.match(adapter, /beforeinput/);
+  assert.match(adapter, /compositionend/);
+  assert.match(adapter, /calloutMarkdown/);
+  assert.match(adapter, /slashFlowCommand/);
+  assert.doesNotMatch(adapter, /innerHTML/);
+  assert.doesNotMatch(ui, /innerHTML/);
+  assert.doesNotMatch(ui, /eval\(/);
+});

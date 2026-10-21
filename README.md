@@ -86,3 +86,7 @@ The Electron writing surface now routes inserts, deletion, Enter, paste and undo
 ## G0.3 — Stable block projection and hidden Electron developer chrome
 
 `src/editor-block-model.js` now projects source EFSS Markdown to stable **editing-session** block identities with exact raw-source/CRLF/unknown-extension preservation. Electron exposes a collapsible block outline navigable by click; true multi-block visual editing, artboards and callouts remain pending. The default Electron menu, in-window DevTools, debugger/reload shortcuts and Inspect context entries are disabled; editable fields retain a basic safe cut/copy/paste context menu. These application controls are not an absolute anti-debugging/DRM mechanism. [G0.3 engineering notes](docs/EDITOR_G0_3.md).
+
+## G0.4 — İlk görsel Flow düzenleyicisi
+
+BellekPad artık tek bir `TextEditorSession` üzerinde **Görsel / Kaynak / Önizleme** modlarını kullanıyor. Basit başlık, paragraf, liste ve alıntı metinleri görsel olarak düzenlenebiliyor; `/callout`, `/uyarı`, `/ipucu` komutları ve açılır blok menüsü gerçek EFSS callout oluşturuyor. Kayıpsız desteklenmeyen kod, bilinmeyen EFSS uzantısı, inline Markdown biçimleri ve karmaşık içerikler **Kaynak** moduna yönlendiren korumalı kart olarak gösteriliyor. Henüz tam WYSIWYG, tablo ve artboard değil. [G0.4 ayrıntıları](docs/EDITOR_G0_4.md). Gerçek Windows/Electron GUI testi bekliyor.

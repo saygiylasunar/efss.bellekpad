@@ -56,3 +56,7 @@ Implemented `src/editor-text-engine.js` (immutable single TextFrame, UTF-16 type
 ## G0.3 — Structural document foundation and native chrome policy
 
 Added `src/editor-block-model.js` (lossless source-block projection, session-stable IDs, version checks, source-preserving inserts and opaque extension safety) and connected block outline navigation to the Electron G0.2 text session. Electron's application/developer menus and built-in DevTools are disabled, and native right-click offers only basic edit actions. Pure Node tests added; **Windows GUI usability and real keyboard/IME verification remain pending**. See [EDITOR_G0_3.md](EDITOR_G0_3.md).
+
+## G0.4 — İlk gerçek görsel Flow modunun kodlanması
+
+Üç görünüm (Görsel/Kaynak/Önizleme) tek metin oturumunu ve EFSS kaynak kaydını kullanıyor. Görsel Flow, basit blokların Markdown işaretlerini gizleyerek doğrudan yazma, Türkçe slash komutları ve tıklayarak callout ekleme sunuyor. Kod/özel EFSS/nested/inline-mark durumlarında *lossless* garantisi için Flow içindeki içerikler salt okunur ve Kaynak moduna yönleniyor. Henüz gerçek GUI testleri veya tam görsel Markdown, layout, tablo, artboard, DPI export yok. [EDITOR_G0_4.md](EDITOR_G0_4.md).
