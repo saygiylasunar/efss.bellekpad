@@ -228,6 +228,21 @@ export function attachTextFrame(element, {
     destroy() { controller.abort(); },
     undo() { return history("undo"); },
     redo() { return history("redo"); },
+    selectSourceRange(from, to = from) {
+      if (composing) return false;
+      const text = session.snapshot.text;
+      if (![from, to].every(value => Number.isSafeInteger(value) &&
+          value >= 0 && value <= text.length)) return false;
+      session.setSelection({
+        anchor: selectionPoint(TEXT_FRAME_ID,
+          nearestGraphemeBoundary(text, from, "left")),
+        focus: selectionPoint(TEXT_FRAME_ID,
+          nearestGraphemeBoundary(text, to, "right"))
+      });
+      element.focus();
+      paint();
+      return true;
+    },
     focus() { element.focus(); paint(); }
   });
 }

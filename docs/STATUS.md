@@ -52,3 +52,7 @@ Implemented `desktop/main.js` + sandboxed `desktop/preload.cjs` + whitelisted `b
 ## G0.2 — First own editor transactions
 
 Implemented `src/editor-text-engine.js` (immutable single TextFrame, UTF-16 typed offsets, grapheme-boundary edits, undo/redo delta history, typing grouping) and `src/editor-input-adapter.js` (cancelable native input, clipboard plain text, selection, composition reconcile). Connected both to the Electron UI with undo/redo controls. **Not full rich text/paragraph/artboard rendering.** See [EDITOR_G0_2.md](EDITOR_G0_2.md). Real Windows Electron/IME GUI verification pending.
+
+## G0.3 — Structural document foundation and native chrome policy
+
+Added `src/editor-block-model.js` (lossless source-block projection, session-stable IDs, version checks, source-preserving inserts and opaque extension safety) and connected block outline navigation to the Electron G0.2 text session. Electron's application/developer menus and built-in DevTools are disabled, and native right-click offers only basic edit actions. Pure Node tests added; **Windows GUI usability and real keyboard/IME verification remain pending**. See [EDITOR_G0_3.md](EDITOR_G0_3.md).

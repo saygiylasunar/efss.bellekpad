@@ -82,3 +82,7 @@ The project pins Electron 44.9.3 as the **only approved host package**; no exter
 ## G0.2 — Custom text transaction core
 
 The Electron writing surface now routes inserts, deletion, Enter, paste and undo/redo through BellekPad-owned `TextEditorSession` and a native browser input bridge. Grapheme-safe selections, inverse delta history, typing groups and revision-aware saving are covered by Node tests. The source remains EFSS Markdown; this is **still a plain text frame**, not the planned WYSIWYG/page-layout editor. See [G0.2 engineering notes](docs/EDITOR_G0_2.md). Desktop Windows GUI/IME testing remains pending.
+
+## G0.3 — Stable block projection and hidden Electron developer chrome
+
+`src/editor-block-model.js` now projects source EFSS Markdown to stable **editing-session** block identities with exact raw-source/CRLF/unknown-extension preservation. Electron exposes a collapsible block outline navigable by click; true multi-block visual editing, artboards and callouts remain pending. The default Electron menu, in-window DevTools, debugger/reload shortcuts and Inspect context entries are disabled; editable fields retain a basic safe cut/copy/paste context menu. These application controls are not an absolute anti-debugging/DRM mechanism. [G0.3 engineering notes](docs/EDITOR_G0_3.md).

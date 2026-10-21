@@ -1,6 +1,7 @@
 import { parseMarkdownAst } from "../../src/ast.js";
 import { TextEditorSession, collapsedSelection } from "../../src/editor-text-engine.js";
 import { attachTextFrame } from "../../src/editor-input-adapter.js";
+import { createBlockDocument, reconcileBlockSource, blockOutline } from "../../src/editor-block-model.js";
 import {
   createDraft, editDraft, snapshotDraft, confirmDraftSave
 } from "../../src/editor-draft.js";
@@ -10,7 +11,8 @@ const nodes = Object.fromEntries([
   "document-list", "document-count", "new-document", "start-document",
   "empty-state", "editor-screen", "document-title", "document-id",
   "crumb-title", "save-state", "save", "editor", "write-pane", "preview-pane",
-  "show-write", "show-preview", "character-count", "undo", "redo"
+  "show-write", "show-preview", "character-count", "undo", "redo",
+  "block-count", "block-outline"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -21,6 +23,39 @@ let blocked = false;
 let navigationBusy = false;
 let composing = false;
 let editorBinding = null;
+let structure = null;
+
+const BLOCK_NAMES = Object.freeze({
+  heading: "Başlık", paragraph: "Paragraf", blank: "Boşluk",
+  list_item: "Liste", quote: "Alıntı", directive: "EFSS komutu",
+  code_fence: "Kod", indented_code: "Kod", extension_block: "EFSS bloğu",
+  thematic_break: "Ayraç"
+});
+function showStructure() {
+  if (!structure) return;
+  const outline = blockOutline(structure);
+  nodes["block-count"].textContent = outline.length + " blok";
+  nodes["block-outline"].replaceChildren();
+  for (const block of outline) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "outline-entry";
+    const kind = document.createElement("span");
+    kind.className = "outline-kind";
+    kind.textContent = BLOCK_NAMES[block.type] ?? block.type;
+    const label = document.createElement("span");
+    label.className = "outline-caption";
+    label.textContent = block.opaque ? "Salt okunur özel EFSS bloğu" : block.preview || "İçeriksiz blok";
+    button.append(kind, label);
+    button.addEventListener("click", () => {
+      showView("write");
+      editorBinding?.selectSourceRange(block.start, block.start);
+    });
+    item.append(button);
+    nodes["block-outline"].append(item);
+  }
+}
 
 function updateHistoryButtons() {
   nodes["undo"].disabled = !editorBinding?.session.canUndo;
@@ -115,6 +150,7 @@ function present(record) {
   editorBinding?.destroy();
   editorBinding = null;
   current = createDraft(record);
+  structure = createBlockDocument(current.body);
   blocked = false;
   nodes["empty-state"].hidden = true;
   nodes["editor-screen"].hidden = false;
@@ -126,7 +162,9 @@ function present(record) {
       text: current.body, selection: collapsedSelection(0)
     }),
     onChange(text) {
+      structure = reconcileBlockSource(structure, text);
       edited("body", text);
+      showStructure();
       updateHistoryButtons();
     },
     onCompositionChange(active) {
@@ -137,6 +175,7 @@ function present(record) {
   });
   nodes["character-count"].textContent = current.body.length + " karakter";
   updateHistoryButtons();
+  showStructure();
   nodes["save"].disabled = true;
   status("Kaydedildi");
   showView("write");

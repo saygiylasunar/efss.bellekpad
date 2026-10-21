@@ -61,3 +61,16 @@ test("UI exposes visible undo and redo commands without importing editor framewo
   assert.match(ui, /editorBinding\?\.undo\(\)/);
   assert.match(ui, /editorBinding\?\.redo\(\)/);
 });
+
+test("G0.3 source structure outline uses our own EFSS AST and secure DOM creation", () => {
+  const html = read("desktop/ui/index.html");
+  const app = read("desktop/ui/app.js");
+  assert.match(html, /id="block-outline"/);
+  assert.match(html, /id="block-count"/);
+  assert.match(app, /createBlockDocument/);
+  assert.match(app, /reconcileBlockSource/);
+  assert.match(app, /blockOutline/);
+  assert.match(app, /selectSourceRange/);
+  assert.match(app, /document\.createElement/);
+  assert.doesNotMatch(app, /innerHTML/);
+});

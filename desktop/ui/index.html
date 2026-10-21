@@ -32,7 +32,7 @@
         <div id="editor-screen" class="document-shell" hidden>
           <div class="page-topline"><span class="page-symbol">◇</span> <span>YEREL BELGE</span><span id="document-id" class="mono"></span></div>
           <input id="document-title" class="title-input" aria-label="Belge başlığı" placeholder="Adsız sayfa" maxlength="160" spellcheck="true">
-          <p class="document-hint">G0.2: Kendi metin işlem motorumuz, Unicode uyumlu silme, seçim ve geri al/ileri al burada sınanıyor. Görsel blok ve artboard düzenleme henüz hazır değil.</p>
+          <p class="document-hint">G0.3: Metin motoru ve kayıpsız EFSS blok yapısı burada birlikte sınanıyor. Özel görsel bloklar ve artboard düzenleme henüz hazır değil.</p>
           <div class="surface-toolbar">
             <span class="tool-label">METİN ÇALIŞMA ALANI</span>
             <button class="toolbar-tab history-button" id="undo" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled>↶</button>
@@ -40,12 +40,17 @@
             <button class="toolbar-tab active" id="show-write" type="button" aria-pressed="true">Yaz</button>
             <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
             <span class="tool-fill"></span>
+            <span id="block-count" title="Kaynak Markdown blokları">0 blok</span>
             <span id="character-count">0 karakter</span>
           </div>
           <section id="write-pane" aria-label="Deneysel metin düzenleyici" class="write-pane">
             <div id="editor" class="text-surface" contenteditable="plaintext-only" role="textbox" aria-label="Belge metni" aria-multiline="true" spellcheck="true" data-placeholder="Buradan yazmaya başla…"></div>
           </section>
           <section id="preview-pane" class="preview-pane" aria-label="Markdown önizleme" hidden></section>
+          <details class="structure-inspector">
+            <summary>Belge yapısı <span class="inspector-hint">Kaynak bloklar · G0.3</span></summary>
+            <ol id="block-outline" class="block-outline" aria-label="Belgedeki Markdown blokları"></ol>
+          </details>
         </div>
         <section id="empty-state" class="empty-state">
           <div class="empty-art">✳</div>

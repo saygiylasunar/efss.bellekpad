@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, protocol, session } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, protocol, session } from "electron";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { LocalDocumentVault } from "../src/local-document-vault.js";
 import {
   APP_HOME, DESKTOP_CHANNELS, isTrustedEditorFrame, resolveBundledAsset
 } from "./security.js";
+import { shouldBlockWindowShortcut } from "./window-controls.js";
 
 protocol.registerSchemesAsPrivileged([
   { scheme: "bellekpad",
@@ -14,6 +15,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 app.setName("BellekPad");
+// Do not expose Electron’s default File/Edit/View/Developer application menu.
+Menu.setApplicationMenu(null);
 
 let window = null;
 const knownErrors = new Set([
@@ -64,14 +67,31 @@ function createEditorWindow() {
     width: 1300, height: 850,
     minWidth: 760, minHeight: 540,
     backgroundColor: "#11161c",
+    autoHideMenuBar: true,
     webPreferences: {
       preload: join(fileURLToPath(new URL(".", import.meta.url)), "preload.cjs"),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: false,
-      devTools: true
+      devTools: false
     }
+  });
+  // Native title-bar close/minimize/maximize remain usable; Electron chrome
+  // menus and DevTools are not part of BellekPad's end-user UI.
+  window.setMenu(null);
+  window.setMenuBarVisibility(false);
+  window.webContents.on("before-input-event", (event, input) => {
+    if (shouldBlockWindowShortcut(input)) event.preventDefault();
+  });
+  window.webContents.on("devtools-opened", () => {
+    window?.webContents.closeDevTools();
+  });
+  window.webContents.on("context-menu", (_event, params) => {
+    // Preserve familiar editing commands without Chromium's Inspect menu.
+    if (!params.isEditable) return;
+    const actions = ["cut", "copy", "paste", "selectAll"];
+    Menu.buildFromTemplate(actions.map(role => ({ role }))).popup({ window });
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, destination) => {
