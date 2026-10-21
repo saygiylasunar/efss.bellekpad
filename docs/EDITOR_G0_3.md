@@ -11,7 +11,7 @@
 - An explicit insertion API supports simple paragraphs, headings, quotes, list items and dividers. The operation does **not** silently claim callout, tables, complex layout or typography are already editable.
 - Input still uses the G0.2 single model-backed TextFrame. \`desktop/ui/app.js\` keeps a synchronized source-block projection after each text change and exposes a collapsible **Belge yapısı** navigator. Clicking an item navigates to its text location. This is NOT a full multi-contenteditable rich-text renderer.
 - Structural model APIs use optimistic version validation and never write files. The storage path remains the existing restricted Electron IPC → local vault.
-- Known limitations: reparsing a full source and redrawing the outline for every keystroke is not optimized; next step is incremental parser/renderer invalidation and real per-block input/selection mapping. Text insertion commands are not exposed as visual block insertion buttons yet; they need a genuine block renderer rather than revealing Markdown delimiters.
+- Known limitations: the complete source is still reparsed for each text change; outline DOM updates are coalesced via requestAnimationFrame, but incremental parser/renderer invalidation is still needed and real per-block input/selection mapping. Text insertion commands are not exposed as visual block insertion buttons yet; they need a genuine block renderer rather than revealing Markdown delimiters.
 
 ## Desktop controls policy
 

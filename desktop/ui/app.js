@@ -24,6 +24,14 @@ let navigationBusy = false;
 let composing = false;
 let editorBinding = null;
 let structure = null;
+let outlineFrame = null;
+function scheduleStructureDisplay() {
+  if (outlineFrame !== null) return;
+  outlineFrame = window.requestAnimationFrame(() => {
+    outlineFrame = null;
+    showStructure(); // Render the latest projection, not an old keystroke.
+  });
+}
 
 const BLOCK_NAMES = Object.freeze({
   heading: "Başlık", paragraph: "Paragraf", blank: "Boşluk",
@@ -164,7 +172,7 @@ function present(record) {
     onChange(text) {
       structure = reconcileBlockSource(structure, text);
       edited("body", text);
-      showStructure();
+      scheduleStructureDisplay();
       updateHistoryButtons();
     },
     onCompositionChange(active) {

@@ -3,7 +3,6 @@
 // an editing session; they are NOT yet persisted across restart.
 // Browser/Node/Electron independent, using our own EFSS AST only.
 import { parseMarkdownAst } from "./ast.js";
-import { isGraphemeBoundary } from "./editor-text-engine.js";
 
 const MAX_SOURCE_BYTES = 1024 * 1024;
 const encoder = new TextEncoder();
@@ -110,7 +109,9 @@ export function insertBlockAfter(doc, {
   if (kind === "thematic_break" && content) fail("INVALID_BLOCK_CONTENT");
   // Prevent a caller from smuggling a second syntactic block into a paragraph.
   const marker = INSERTABLE[kind];
-  if (kind === "paragraph" && /^ {0,3}(?:#|[-+*] |\d+[.)] |>|::|~~~|\\x60\\x60\\x60)/.test(content))
+  const blockLike = /^ {0,3}(?:#{1,6}(?:\s|$)|[-+*](?:\s|$)|\d{1,9}[.)](?:\s|$)|>|:{2,}|~{3,}|(?:-\s*){3,}|(?:\*\s*){3,})/.test(content) ||
+    content.trimStart().startsWith(String.fromCharCode(96).repeat(3));
+  if (kind === "paragraph" && blockLike)
     fail("AMBIGUOUS_PARAGRAPH_CONTENT");
   const index = afterId === null ? doc.blocks.length - 1 :
     doc.blocks.findIndex(block => block.id === afterId);

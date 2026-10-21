@@ -74,8 +74,11 @@ test("block insert uses existing CRLF convention, blank sources and paragraph va
   const crlf = createBlockDocument("# Başlangıç\r\n");
   const inserted = insertBlockAfter(crlf, { kind: "list_item", content: "İş" });
   assert.equal(inserted.source, "# Başlangıç\r\n\r\n- İş\r\n");
-  assert.throws(() => insertBlockAfter(crlf, { kind: "paragraph", content: "# Başlık" }),
-    /AMBIGUOUS_PARAGRAPH_CONTENT/);
+  for (const unsafe of ["# Başlık", "---", "~~~js", "> Alıntı", "1. Madde",
+    String.fromCharCode(96).repeat(3) + "js"]) {
+    assert.throws(() => insertBlockAfter(crlf, { kind: "paragraph", content: unsafe }),
+      /AMBIGUOUS_PARAGRAPH_CONTENT/, unsafe);
+  }
   assert.throws(() => insertBlockAfter(crlf, { kind: "callout", content: "x" }),
     /UNSUPPORTED_BLOCK_INSERT/);
 });
