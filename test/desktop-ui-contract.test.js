@@ -86,7 +86,7 @@ test("visual Flow mode and Source mode share the same text session and secured d
   assert.match(ui, /attachFlowEditor/);
   assert.match(ui, /sharedTextSession/);
   assert.match(ui, /onTextChanged/);
-  assert.match(adapter, /contentEditable = "plaintext-only"/);
+  assert.match(adapter, /contentEditable = "true"/);
   assert.match(adapter, /beforeinput/);
   assert.match(adapter, /compositionend/);
   assert.match(adapter, /calloutMarkdown/);
@@ -100,4 +100,18 @@ test("slash callouts preserve the document's existing newline convention", () =>
   const flow = read("src/editor-flow-adapter.js");
   assert.match(flow, /getStructure\(\)\.source\.match\(/);
   assert.match(flow, /calloutMarkdown/);
+});
+
+test("G0.5 renders inline marks via safe DOM without importing a rich-text library", () => {
+  const html = read("desktop/ui/index.html");
+  const app = read("desktop/ui/app.js");
+  const flow = read("src/editor-flow-adapter.js");
+  for (const name of ["format-bold", "format-italic", "format-strike"])
+    assert.match(html, new RegExp('id="' + name + '"'));
+  assert.match(app, /flowBinding\.format\(mark\)/);
+  assert.match(flow, /planInlineMark/);
+  assert.match(flow, /createElement\(tag\)/);
+  assert.match(flow, /textContent/);
+  assert.doesNotMatch(flow, /innerHTML/);
+  assert.doesNotMatch(flow, /execCommand/);
 });

@@ -39,7 +39,9 @@ test("complex or unknown EFSS constructs are read-only in flow view, editable in
   const doc = createBlockDocument(source);
   const blocks = projectFlowBlocks(doc);
   assert.equal(blocks.find(b => b.type === "extension_block").editable, false);
-  assert.equal(blocks.find(b => b.text.includes("**kalın**")).editable, false);
+  const marked = blocks.find(b => b.text.includes("kalın"));
+  assert.equal(marked.editable, true);
+  assert.equal(marked.inline.runs.some(run => run.marks.includes("strong")), true);
   assert.equal(blocks.find(b => b.text.includes("&Miktar")).editable, false);
   assert.equal(blocks.some(b => !b.editable && b.raw.includes("satırlı paragraf")), true);
   for (const block of blocks.filter(b => !b.editable))
@@ -60,8 +62,11 @@ test("callout insertion creates real EFSS source but presents an editable visual
   const modified = editFlowText(doc, { id: card.id, text: "Dosyaları **yedekle**." });
   assert.equal(modified.source.includes("Dosyaları **yedekle**."), true);
   const next = projectFlowBlocks(modified);
-  assert.equal(next.find(b => b.type === "callout").text, "Dosyaları **yedekle**.");
-  assert.equal(next.find(b => b.type === "callout").editable, false);
+  assert.equal(next.find(b => b.type === "callout").text, "Dosyaları yedekle.");
+  assert.equal(next.find(b => b.type === "callout").editable, true);
+  assert.throws(() => editFlowText(modified, {
+    id: next.find(b => b.type === "callout").id, text: "silme"
+  }), /FLOW_MARKED_REQUIRES_TRANSACTION/);
   assert.equal(doc.source, raw);
 });
 

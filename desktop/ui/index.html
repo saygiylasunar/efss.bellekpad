@@ -32,7 +32,7 @@
         <div id="editor-screen" class="document-shell" hidden>
           <div class="page-topline"><span class="page-symbol">◇</span> <span>YEREL BELGE</span><span id="document-id" class="mono"></span></div>
           <input id="document-title" class="title-input" aria-label="Belge başlığı" placeholder="Adsız sayfa" maxlength="160" spellcheck="true">
-          <p class="document-hint">G0.4: Basit metin, başlık, liste, alıntı ve callout düzenleme. Karmaşık biçimler hâlâ Kaynak görünümünden erişilir.</p>
+          <p class="document-hint">G0.5: Seçili metni B / I / S ile biçimlendir; Markdown kaynağı korunur. Karmaşık içerikler Kaynak görünümündedir.</p>
           <div class="surface-toolbar">
             <span class="tool-label">METİN ÇALIŞMA ALANI</span>
             <button class="toolbar-tab history-button" id="undo" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled>↶</button>
@@ -40,6 +40,12 @@
             <button class="toolbar-tab active" id="show-flow" type="button" aria-pressed="true">Görsel</button>
             <button class="toolbar-tab" id="show-write" type="button" aria-pressed="false">Kaynak</button>
             <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
+            <span class="format-separator" aria-hidden="true"></span>
+            <div class="inline-tools" role="group" aria-label="Metin biçimlendirme">
+              <button id="format-bold" class="toolbar-tab format-tool" type="button" title="Kalın (Ctrl+B)" aria-label="Seçili metni kalın yap"><strong>B</strong></button>
+              <button id="format-italic" class="toolbar-tab format-tool" type="button" title="İtalik (Ctrl+I)" aria-label="Seçili metni italik yap"><em>I</em></button>
+              <button id="format-strike" class="toolbar-tab format-tool" type="button" title="Üzeri çizili" aria-label="Seçili metnin üzerini çiz"><s>S</s></button>
+            </div>
             <label class="insert-label" for="insert-kind">Blok</label>
             <select id="insert-kind" class="insert-select" aria-label="Eklenecek blok">
               <option value="paragraph">Paragraf</option>
@@ -76,7 +82,7 @@
           <button id="start-document" type="button" class="button primary large">＋ İlk sayfanı oluştur</button>
         </section>
       </main>
-      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · FLOW LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
+      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · INLINE LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
     </div>
   </div>
 </body>

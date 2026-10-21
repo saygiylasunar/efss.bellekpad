@@ -64,3 +64,7 @@ Added `src/editor-block-model.js` (lossless source-block projection, session-sta
 ## G0.4 runtime verification
 
 GitHub Actions `desktop-smoke` passed on Windows and Ubuntu/Xvfb for commit `a16a15e`: real Electron startup, trusted local renderer + preload, `/callout`, editable callout body, block insertion, undo/redo, revision-safe save/open and Görsel/Kaynak/Önizleme switching. Core Node tests: 204/204. Limitations: synthetic `beforeinput` is used for deterministic smoke; manual physical keyboard/IME testing and screenreader/performance measurements remain pending. Source: [desktop-smoke workflow](../.github/workflows/desktop-smoke.yml).
+
+## G0.5 — Kaynak-aralıklı inline biçimlendirme
+
+Own inline run projection + B/I/S commands, source-aware range map and mark toggling implemented in visual Flow via shared TextEditorSession. Existing Electron IPC, sandbox and DevTools policy unchanged. Mixed cross-mark selections, rich multi-line text, proper table/layout and comprehensive IME remain unimplemented. [G0.5](EDITOR_G0_5.md).

@@ -1,6 +1,6 @@
 // G0.4: flow view of the *existing* EFSS source; it is not a second document
 // store. Only losslessly representable blocks are editable in this first pass.
-import { parseInline } from "./ast.js";
+import { projectInline } from "./editor-inline-format.js";
 import { isGraphemeBoundary } from "./editor-text-engine.js";
 import { reconcileBlockSource } from "./editor-block-model.js";
 
@@ -23,8 +23,7 @@ function fail(message) { throw new Error(message); }
 function ending(text) { return text.match(/\r\n|\r|\n/)?.[0] ?? "\n"; }
 function trailingEol(text) { return /(\r\n|\r|\n)$/.exec(text)?.[0] ?? ""; }
 function singleLineContent(text) {
-  return !EOL.test(text) && !parseInline(text).some(x =>
-    x.type !== "text") && !/\[\[paper:|&[\p{L}_][\p{L}\p{N}_]*(?:\{|(?=\b))|::[a-z]/u.test(text);
+  return !EOL.test(text) && projectInline(text).editable;
 }
 function flowCallout(block) {
   if (block.type !== "extension_block") return null;
@@ -41,7 +40,8 @@ function flowCallout(block) {
   const content = remaining.slice(0, close.index);
   return Object.freeze({
     id: block.id, type: "callout", variant: first[1], icon, title,
-    text: content, start: block.start, end: block.end,
+    text: projectInline(content).text, inline: projectInline(content),
+    start: block.start, end: block.end,
     sourceStart: block.start + first[0].length,
     sourceEnd: block.start + first[0].length + content.length,
     editable: !EOL.test(content) && singleLineContent(content),
@@ -78,13 +78,14 @@ export function projectFlowBlocks(doc) {
       id: block.id, type: block.type, raw, text: raw,
       start: block.start, end: block.end, editable: false
     });
-    const text = line.slice(prefix.length);
+    const rawText = line.slice(prefix.length);
+    const inline = projectInline(rawText);
     return Object.freeze({
       id: block.id, type: block.type, level: block.level,
-      raw, text, start: block.start, end: block.end,
+      raw, text: inline.text, inline, start: block.start, end: block.end,
       sourceStart: block.start + prefix.length,
-      sourceEnd: block.start + prefix.length + text.length,
-      editable: singleLineContent(text)
+      sourceEnd: block.start + prefix.length + rawText.length,
+      editable: singleLineContent(rawText)
     });
   });
   return Object.freeze(result);
@@ -99,6 +100,7 @@ export function editFlowText(doc, { id, text, expectedVersion = doc?.version } =
   const block = flowBlockAt(doc, id);
   if (!block) fail("FLOW_BLOCK_NOT_FOUND");
   if (!block.editable) fail("FLOW_BLOCK_READ_ONLY");
+  if (block.inline?.regions.length) fail("FLOW_MARKED_REQUIRES_TRANSACTION");
   if (!isGraphemeBoundary(doc.source, block.sourceStart) ||
       !isGraphemeBoundary(doc.source, block.sourceEnd)) fail("INVALID_FLOW_BOUNDARY");
   const next = doc.source.slice(0, block.sourceStart) + text +

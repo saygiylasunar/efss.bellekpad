@@ -13,7 +13,7 @@ const nodes = Object.fromEntries([
   "empty-state", "editor-screen", "document-title", "document-id",
   "crumb-title", "save-state", "save", "editor", "write-pane", "preview-pane",
   "show-flow", "show-write", "show-preview", "flow-pane", "character-count", "undo", "redo",
-  "insert-kind", "insert-block",
+  "insert-kind", "insert-block", "format-bold", "format-italic", "format-strike",
   "block-count", "block-outline"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -286,6 +286,8 @@ function showView(view) {
     nodes[id].classList.toggle("active", active);
     nodes[id].setAttribute("aria-pressed", String(active));
   }
+  for (const id of ["format-bold", "format-italic", "format-strike"])
+    nodes[id].disabled = !flow;
   if (source) {
     editorBinding = attachTextFrame(nodes["editor"], {
       session: sharedTextSession, onChange: onTextChanged,
@@ -298,7 +300,8 @@ function showView(view) {
       onNavigateSource(offset) {
         showView("write");
         editorBinding?.selectSourceRange(offset);
-      }
+      },
+      onError(message) { status(message, true); }
     });
   } else renderPreview();
   updateHistoryButtons();
@@ -321,6 +324,19 @@ nodes["start-document"].addEventListener("click", () => { void newNote(); });
 nodes["show-flow"].addEventListener("click", () => showView("flow"));
 nodes["show-write"].addEventListener("click", () => showView("write"));
 nodes["show-preview"].addEventListener("click", () => showView("preview"));
+for (const [id, mark] of [
+  ["format-bold", "strong"], ["format-italic", "emphasis"], ["format-strike", "strike"]
+]) {
+  const button = nodes[id];
+  // Toolbar clicks must not discard the user's native DOM selection.
+  button.addEventListener("pointerdown", event => {
+    if (flowBinding) event.preventDefault();
+  });
+  button.addEventListener("click", () => {
+    if (flowBinding) flowBinding.format(mark);
+    updateHistoryButtons();
+  });
+}
 nodes["insert-block"].addEventListener("click", () => {
   if (!current || composing) return;
   showView("flow");

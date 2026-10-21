@@ -94,3 +94,7 @@ BellekPad artık tek bir `TextEditorSession` üzerinde **Görsel / Kaynak / Öni
 ## Desktop renderer smoke — Windows and Linux
 
 The `desktop-smoke` GitHub Action now launches the **actual pinned Electron binary**, exercising the sandboxed window, preload/IPCs, visual `/callout`, native local vault save/open, block insertion, undo/redo, and three view modes on **Windows and Linux**. Both jobs passed on commit `a16a15e`. This verifies a focused set of real UI pathways, **not** comprehensive Windows user input, IME, accessibility or installer behavior. [Desktop smoke workflow](.github/workflows/desktop-smoke.yml).
+
+## G0.5 — Inline biçimlendirme
+
+Görsel Flow metninde B/I/S ile seçili bölüme kalın, italik ve üzeri çizili Markdown işaretleri eklenir; görünür işaretler arayüzden gizlenirken EFSS kaynak ve tek Undo/Redo geçmişi korunur. Desteklenmeyen karmaşık kaynak segmentleri salt okunur biçimde Kaynak'a yönlendirilir. [G0.5 teknik notları](docs/EDITOR_G0_5.md).

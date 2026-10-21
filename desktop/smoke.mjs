@@ -60,6 +60,27 @@ async function run() {
   await page("document.querySelector('#redo').click()");
   await retry("redo heading text", () =>
     page("document.querySelector('.flow-heading .flow-editable')?.textContent === 'Başlık'"));
+  // Format a selection in the *visual* heading without exposing Markdown
+  // markers to its text surface, then verify that the same source persists.
+  await page('(() => { const el=document.querySelector(".flow-heading .flow-editable");' +
+    'el.focus(); const t=el.querySelector(".flow-run").firstChild;' +
+    'document.getSelection().setBaseAndExtent(t,0,t,t.length);' +
+    'document.querySelector("#format-bold").click(); })()');
+  await retry("heading visually bold", () =>
+    page("document.querySelector('.flow-heading .flow-editable strong')?.textContent === 'Başlık'"));
+  await page('(() => { const t=document.querySelector(".flow-heading .flow-editable strong").firstChild;' +
+    'const el=t.parentElement.parentElement; el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"!"}));})()');
+  await retry("type within bold run", () =>
+    page("document.querySelector('.flow-heading .flow-editable strong')?.textContent === 'Başlık!'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("undo bold content edit", () =>
+    page("document.querySelector('.flow-heading .flow-editable strong')?.textContent === 'Başlık'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("redo bold content edit", () =>
+    page("document.querySelector('.flow-heading .flow-editable strong')?.textContent === 'Başlık!'"));
   await page("document.querySelector('#save').click()");
   await retry("vault saved", () =>
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
@@ -73,7 +94,7 @@ async function run() {
   assert.equal(opened.ok, true);
   assert.match(opened.data.body, /:::efss.callout/);
   assert.match(opened.data.body, /Deneme 😀/);
-  assert.match(opened.data.body, /# Başlık/);
+  assert.match(opened.data.body, /# \*\*Başlık!\*\*/);
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("!document.querySelector('#write-pane').hidden"), true);
   assert.equal(await page("document.querySelector('#editor').textContent.includes(':::efss.callout')"), true);
@@ -81,7 +102,7 @@ async function run() {
   assert.equal(await page("!!document.querySelector('.flow-callout')"), true);
   await page("document.querySelector('#show-preview').click()");
   assert.equal(await page("!document.querySelector('#preview-pane').hidden"), true);
-  console.log("DESKTOP GUI SMOKE PASSED — shell, slash callout, save/open, views.");
+  console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }
 run().catch(error => {

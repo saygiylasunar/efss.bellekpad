@@ -20,3 +20,4 @@ export { inspectVariableBindings } from "./binding-resolver.js";
 export { TextEditorSession, TEXT_FRAME_ID, MAX_TEXT_BYTES, textPosition, collapsedSelection, selectionBounds, mapTextOffset, isGraphemeBoundary, nearestGraphemeBoundary } from "./editor-text-engine.js";
 export { createBlockDocument, serializeBlockDocument, reconcileBlockSource, insertBlockAfter, replaceBlockRaw, blockOutline } from "./editor-block-model.js";
 export { projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock, calloutMarkdown, slashFlowCommand } from "./editor-flow-model.js";
+export { INLINE_MARKERS, projectInline, mapInlineVisibleOffset, planInlineMark } from "./editor-inline-format.js";

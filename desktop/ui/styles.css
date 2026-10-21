@@ -110,3 +110,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .insert-select{max-width:152px;background:#223039;color:#c6d8dd;border:1px solid #3c525b;border-radius:5px;padding:6px;font-size:11px}
 .insert-action{border:1px solid #4b6c6a;color:#acd8d2;background:#25403f}
 @media(max-width:1100px){.insert-label{display:none}.insert-select{width:112px}.flow-pane{padding:18px 14px}}
+
+.format-separator{height:22px;width:1px;background:#384952;margin:0 2px}
+.inline-tools{display:flex;align-items:center;gap:2px}
+.format-tool{width:26px;height:29px;text-align:center;font-size:13px;padding:4px 0;color:#a9c8cb}
+.format-tool:hover:not(:disabled){background:#2a4246}
+.flow-run strong{font-weight:740;color:#eef4f4}
+.flow-run em{font-style:italic;color:#d4e8e4}
+.flow-run s{text-decoration:line-through;text-decoration-color:#96afb7}
+@media(max-width:1050px){.tool-label{display:none}.inline-tools{gap:0}.insert-select{max-width:100px}}
