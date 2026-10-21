@@ -48,3 +48,7 @@ The application is **not committed to browser-only distribution**. Researching E
 ## G0.1 — Electron desktop bridge implementation
 
 Implemented `desktop/main.js` + sandboxed `desktop/preload.cjs` + whitelisted `bellekpad://app` asset handler, a simple application shell in `desktop/ui/`, and `src/desktop-document-service.js` for restricted CRUD-ish paper/project operations. Node tests verify source persistence, optimistic revision conflict, request validation, static asset boundary and draft save race handling. Electron 44.9.3 is a pinned dev dependency but **native GUI launch has not been tested** in CI. Callout/table/visual formatting/flow artboards and full selection engine are not implemented. See [DESKTOP_SPIKE.md](DESKTOP_SPIKE.md).
+
+## G0.2 — First own editor transactions
+
+Implemented `src/editor-text-engine.js` (immutable single TextFrame, UTF-16 typed offsets, grapheme-boundary edits, undo/redo delta history, typing grouping) and `src/editor-input-adapter.js` (cancelable native input, clipboard plain text, selection, composition reconcile). Connected both to the Electron UI with undo/redo controls. **Not full rich text/paragraph/artboard rendering.** See [EDITOR_G0_2.md](EDITOR_G0_2.md). Real Windows Electron/IME GUI verification pending.

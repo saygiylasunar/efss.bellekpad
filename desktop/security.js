@@ -9,7 +9,8 @@ export const APP_HOME = APP_ORIGIN + "/index.html";
 // are NOT addressable as URLs.
 export const BUNDLED_PATHS = Object.freeze([
   "/index.html", "/app.js", "/styles.css",
-  "/src/ast.js", "/src/editor-draft.js", "/src/inline-rules.js", "/src/semantics.js",
+  "/src/ast.js", "/src/editor-draft.js",
+  "/src/editor-text-engine.js", "/src/editor-input-adapter.js", "/src/inline-rules.js", "/src/semantics.js",
   "/src/binding-syntax.js", "/src/contract.js"
 ]);
 const ALLOWED = new Set(BUNDLED_PATHS);

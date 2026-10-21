@@ -36,12 +36,28 @@ test("preload exposes four guarded actions without generalized remote execution"
   assert.match(preload, /if \(process\.isMainFrame\)/);
 });
 
-test("the current editor spike keeps IME composition separate from autosave", () => {
-  const source = read("desktop/ui/app.js");
-  assert.match(source, /compositionstart/);
-  assert.match(source, /compositionend/);
-  assert.match(source, /COMPOSITION_IN_PROGRESS/);
-  assert.match(source, /saveBeforeLeaving/);
-  assert.doesNotMatch(source, /innerHTML/);
-  assert.doesNotMatch(source, /eval\(/);
+test("custom editor input adapter owns typing, IME and undo, not the document vault", () => {
+  const ui = read("desktop/ui/app.js");
+  const adapter = read("src/editor-input-adapter.js");
+  assert.match(ui, /attachTextFrame/);
+  assert.match(ui, /TextEditorSession/);
+  assert.match(ui, /COMPOSITION_IN_PROGRESS/);
+  assert.match(ui, /saveBeforeLeaving/);
+  assert.match(adapter, /compositionstart/);
+  assert.match(adapter, /compositionend/);
+  assert.match(adapter, /beforeinput/);
+  assert.match(adapter, /historyUndo/);
+  assert.match(adapter, /historyRedo/);
+  assert.match(adapter, /clipboardData.getData\("text\/plain"\)/);
+  assert.doesNotMatch(adapter, /innerHTML/);
+  assert.doesNotMatch(adapter, /eval\(/);
+});
+
+test("UI exposes visible undo and redo commands without importing editor frameworks", () => {
+  const html = read("desktop/ui/index.html");
+  const ui = read("desktop/ui/app.js");
+  assert.match(html, /id="undo"/);
+  assert.match(html, /id="redo"/);
+  assert.match(ui, /editorBinding\?\.undo\(\)/);
+  assert.match(ui, /editorBinding\?\.redo\(\)/);
 });

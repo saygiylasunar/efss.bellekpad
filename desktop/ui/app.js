@@ -1,4 +1,6 @@
 import { parseMarkdownAst } from "../../src/ast.js";
+import { TextEditorSession, collapsedSelection } from "../../src/editor-text-engine.js";
+import { attachTextFrame } from "../../src/editor-input-adapter.js";
 import {
   createDraft, editDraft, snapshotDraft, confirmDraftSave
 } from "../../src/editor-draft.js";
@@ -8,7 +10,7 @@ const nodes = Object.fromEntries([
   "document-list", "document-count", "new-document", "start-document",
   "empty-state", "editor-screen", "document-title", "document-id",
   "crumb-title", "save-state", "save", "editor", "write-pane", "preview-pane",
-  "show-write", "show-preview", "character-count"
+  "show-write", "show-preview", "character-count", "undo", "redo"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -18,6 +20,12 @@ let delayedSave = null;
 let blocked = false;
 let navigationBusy = false;
 let composing = false;
+let editorBinding = null;
+
+function updateHistoryButtons() {
+  nodes["undo"].disabled = !editorBinding?.session.canUndo;
+  nodes["redo"].disabled = !editorBinding?.session.canRedo;
+}
 
 function status(label, problem = false) {
   nodes["save-state"].textContent = label;
@@ -43,6 +51,7 @@ function edited(field, value) {
   current = editDraft(current, field, value);
   nodes["character-count"].textContent = current.body.length + " karakter";
   nodes["save"].disabled = !current.dirty;
+  updateHistoryButtons();
   status(current.dirty ? "Kaydedilmedi" : "Kaydedildi");
   if (current.dirty) scheduleSave();
 }
@@ -103,6 +112,8 @@ async function refreshList() {
   }
 }
 function present(record) {
+  editorBinding?.destroy();
+  editorBinding = null;
   current = createDraft(record);
   blocked = false;
   nodes["empty-state"].hidden = true;
@@ -110,12 +121,26 @@ function present(record) {
   nodes["document-title"].value = current.title;
   nodes["document-id"].textContent = current.kind + ":" + current.id.slice(-7);
   nodes["crumb-title"].textContent = current.title || "Adsız sayfa";
-  nodes["editor"].textContent = current.body;
+  editorBinding = attachTextFrame(nodes["editor"], {
+    session: new TextEditorSession({
+      text: current.body, selection: collapsedSelection(0)
+    }),
+    onChange(text) {
+      edited("body", text);
+      updateHistoryButtons();
+    },
+    onCompositionChange(active) {
+      composing = active;
+      if (active) clearTimeout(delayedSave);
+      else if (current?.dirty) scheduleSave();
+    }
+  });
   nodes["character-count"].textContent = current.body.length + " karakter";
+  updateHistoryButtons();
   nodes["save"].disabled = true;
   status("Kaydedildi");
   showView("write");
-  nodes["editor"].focus();
+  editorBinding.focus();
 }
 async function saveBeforeLeaving() {
   if (composing) throw new Error("COMPOSITION_IN_PROGRESS");
@@ -203,17 +228,13 @@ nodes["document-title"].addEventListener("input", () => {
   edited("title", nodes["document-title"].value);
   nodes["crumb-title"].textContent = nodes["document-title"].value || "Adsız sayfa";
 });
-nodes["editor"].addEventListener("compositionstart", () => {
-  composing = true;
-  clearTimeout(delayedSave);
+nodes["undo"].addEventListener("click", () => {
+  editorBinding?.undo();
+  updateHistoryButtons();
 });
-nodes["editor"].addEventListener("compositionend", () => {
-  composing = false;
-  edited("body", nodes["editor"].innerText.replace(/\r\n?/g, "\n"));
-});
-nodes["editor"].addEventListener("input", () => {
-  // Never save intermediate IME composition text or replace native selection.
-  if (!composing) edited("body", nodes["editor"].innerText.replace(/\r\n?/g, "\n"));
+nodes["redo"].addEventListener("click", () => {
+  editorBinding?.redo();
+  updateHistoryButtons();
 });
 nodes["save"].addEventListener("click", () => { void saveCurrent().catch(() => {}); });
 nodes["new-document"].addEventListener("click", () => { void newNote(); });

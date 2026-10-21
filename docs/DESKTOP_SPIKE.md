@@ -57,6 +57,6 @@ The package pins Electron \`44.9.3\` as a development dependency. No packaged \`
 - No production lockfile/install build was generated in this integration step. Electron is pinned, but transitive installs should be locked before distribution.
 - A privileged desktop main process exists and needs further security audit before handling untrusted extension packs, icon uploads or remote content.
 
-## Next G0.2 (focus)
+## G0.2 progress
 
-Implement a pure transaction reducer with typed document/node positions, grapheme-safe selection mapping, inverse steps/undo, then replace the temporary plaintext host with a model-backed visual text frame. **Do not** expand shell privileges or import a third-party editor.
+A pure single-TextFrame transaction/session engine with grapheme-safe selection and reversible delta history is now implemented, and the Electron input host delegates edits to it via a native input adapter. A genuine multi-block visual/typography/layout engine remains unimplemented. See [EDITOR_G0_2.md](EDITOR_G0_2.md).

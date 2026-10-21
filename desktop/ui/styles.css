@@ -71,3 +71,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .footer{height:37px;background:#141b22;border-top:1px solid #263039;flex:none;padding:0 30px;display:flex;justify-content:space-between;align-items:center;color:#a3bcbf;font-size:10px;font-weight:700;letter-spacing:.075em}
 .fade{opacity:.46;margin-left:12px;font-weight:500}.bullet{color:#4a6470;padding:0 6px}
 @media(max-width:900px){.sidebar{width:205px}.document-shell{padding:28px 26px}.header{padding:0 21px}.chip{display:none}.tool-label{display:none}}
+
+.history-button{font-size:21px;line-height:1;width:31px;padding:5px 7px;text-align:center;color:#b1c8ce}
+.history-button:disabled{opacity:.28}

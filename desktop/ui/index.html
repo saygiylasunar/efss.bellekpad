@@ -32,9 +32,11 @@
         <div id="editor-screen" class="document-shell" hidden>
           <div class="page-topline"><span class="page-symbol">◇</span> <span>YEREL BELGE</span><span id="document-id" class="mono"></span></div>
           <input id="document-title" class="title-input" aria-label="Belge başlığı" placeholder="Adsız sayfa" maxlength="160" spellcheck="true">
-          <p class="document-hint">Bu ilk sürüm metin girişi, kaynak gösterimi ve masaüstü kayıt köprüsünü sınar. Tam görsel blok editörü henüz yapılmadı.</p>
+          <p class="document-hint">G0.2: Kendi metin işlem motorumuz, Unicode uyumlu silme, seçim ve geri al/ileri al burada sınanıyor. Görsel blok ve artboard düzenleme henüz hazır değil.</p>
           <div class="surface-toolbar">
             <span class="tool-label">METİN ÇALIŞMA ALANI</span>
+            <button class="toolbar-tab history-button" id="undo" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled>↶</button>
+            <button class="toolbar-tab history-button" id="redo" type="button" title="İleri al (Ctrl+Y)" aria-label="İleri al" disabled>↷</button>
             <button class="toolbar-tab active" id="show-write" type="button" aria-pressed="true">Yaz</button>
             <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
             <span class="tool-fill"></span>
@@ -53,7 +55,7 @@
           <button id="start-document" type="button" class="button primary large">＋ İlk sayfanı oluştur</button>
         </section>
       </main>
-      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · EDITOR SPIKE</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
+      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · TRANSACTION LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
     </div>
   </div>
 </body>

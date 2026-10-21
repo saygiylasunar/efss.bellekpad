@@ -78,3 +78,7 @@ npm run desktop
 ```
 
 The project pins Electron 44.9.3 as the **only approved host package**; no external editor/UI runtime is imported. Node CI verifies the document contract and security allowlists, **not** Electron launch or Windows IME. Data is stored in the operating system user-data vault; existing `.efss/vault` CLI notes are not auto-imported. Read [Desktop Integration and manual test plan](docs/DESKTOP_SPIKE.md).
+
+## G0.2 — Custom text transaction core
+
+The Electron writing surface now routes inserts, deletion, Enter, paste and undo/redo through BellekPad-owned `TextEditorSession` and a native browser input bridge. Grapheme-safe selections, inverse delta history, typing groups and revision-aware saving are covered by Node tests. The source remains EFSS Markdown; this is **still a plain text frame**, not the planned WYSIWYG/page-layout editor. See [G0.2 engineering notes](docs/EDITOR_G0_2.md). Desktop Windows GUI/IME testing remains pending.
