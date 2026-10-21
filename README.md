@@ -46,3 +46,7 @@ npm test
 The public-source sanity check and GitHub Actions help catch private paths or credential patterns, but they cannot guarantee that all private information is absent. Local personal data, trained models, private notes, logs, and keys must stay off the public repository. See [privacy policy](docs/PRIVACY.md).
 
 **Not yet a user-facing note editor.** Browser IndexedDB, UI, migration/import tooling and live model testing remain future work.
+
+## Editor product blueprint
+
+The actual visual editor/web application is **not yet implemented**. The first editor release must include callouts, editable Markdown tables, emoji/page icons, formatting tools and keyboard-first block insertion, with source round-trip tests. Design scope, priority and competitive reference audit: [Editor Blueprint](docs/EDITOR_BLUEPRINT.md).

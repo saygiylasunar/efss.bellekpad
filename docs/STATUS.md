@@ -24,3 +24,7 @@ See [SYMBOL_CONTRACT.md](SYMBOL_CONTRACT.md) for normative rules.
 ## Pending
 
 Browser IndexedDB storage and migration tools; portable secure backup/restore; an actual note/editor UI; relation-review interface; local real-hardware model tests; real semantic retrieval evaluated on representative user-approved data. **Working CI tests validate code paths, not product usefulness or model inference quality.**
+
+## UI scope lock — visual editor takes priority
+
+Editor requirements and release slices are captured in [EDITOR_BLUEPRINT.md](EDITOR_BLUEPRINT.md): callouts with icons, editable tables, emoji/page icon picker, rich formatting, slash menu, source/visual/preview modes, and later media/layout features. The user-facing app and these blocks are **not yet implemented**. Next delivery should build E0a/E0b frontend, not introduce more speculative memory subsystems.
