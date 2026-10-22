@@ -270,7 +270,7 @@ export function planInlineMark({ source, block, start, end, mark }) {
     const replacement = marker + raw.slice(left, right) + marker;
     const candidate = projectInline(raw.slice(0, left) + replacement + raw.slice(right));
     if (!candidate.editable || candidate.text !== inline.text ||
-        !preservesOutside(inline, candidate, visibleStart, visibleEnd, 0))
+        !preservesOutside(inline, candidate, visibleStart, visibleEnd, visibleEnd - visibleStart))
       fail("CROSS_MARK_SELECTION_UNSUPPORTED");
     const before = styleTrace(inline, visibleStart, visibleEnd);
     const after = styleTrace(candidate, visibleStart, visibleEnd);
