@@ -435,6 +435,37 @@ async function run() {
     page("document.querySelectorAll('.flow-list_item').length === 2"));
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: unchanged')"),true);
+
+  // G0.6B.4: Enter within a bold list item should split visually instead of
+  // sending ordinary typing back to the Markdown source editor.
+  await page("document.querySelector('#show-write').click()");
+  const richEnterSource = "- **kalın**\n\n:::efss.opaque\nsecret: safe\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(richEnterSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("rich Enter source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('- **kalın**')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("rich Enter line rendered", () =>
+    page("document.querySelector('.flow-list_item strong')?.textContent === 'kalın'"));
+  await page('(() => {const el=document.querySelector(".flow-list_item .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(bold,3,bold,3);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("rich Enter creates two editable list items", () =>
+    page("Array.from(document.querySelectorAll('.flow-list_item strong'))" +
+      ".map(el=>el.textContent).join(',') === 'kal,ın'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("rich Enter undo", () =>
+    page("document.querySelector('.flow-list_item strong')?.textContent === 'kalın'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("rich Enter redo", () =>
+    page("Array.from(document.querySelectorAll('.flow-list_item strong'))" +
+      ".map(el=>el.textContent).join(',') === 'kal,ın'"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('- **kal**\\n- **ın**')"),true);
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: safe')"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

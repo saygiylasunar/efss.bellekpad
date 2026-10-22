@@ -13,6 +13,63 @@ const editable = source => projectFlowBlocks(createBlockDocument(source)).filter
 
 
 
+
+test("G0.6B.4 rich Enter splits visible B/I/S content without touching unrelated source", () => {
+  const cases = [
+    ["**kalın**\n", "kalın", 5, "paragraph", "**kalın**\n\n"],
+    ["A **kalın** B\n", "kalın", 3, "paragraph", "A **kal**\n\n**ın** B\n"],
+    ["- **kalın**\n", "kalın", 3, "list_item", "- **kal**\n- **ın**\n"],
+    ["> *alıntı*\n", "alıntı", 6, "quote", "> *alıntı*\n> \n"],
+    ["# **Başlık**\n", "Başlık", 6, "heading", "# **Başlık**\n\n"],
+    ["**kalın**", "kalın", 0, "paragraph", "\n\n**kalın**"],
+    ["A ~~silinen~~ B", "silinen", 4, "paragraph", "A ~~sili~~\n\n~~nen~~ B"]
+  ];
+  for (const [source, token, charOffset, type, expected] of cases) {
+    const block = editable(source).find(b => b.type === type);
+    assert.ok(block, source);
+    const at = source.indexOf(token) + charOffset;
+    const session = new TextEditorSession({
+      text: source, selection: collapsedSelection(at)
+    });
+    const op = planFlowEnter({ source, block, at });
+    assert.equal(op.operation, "flow-enter-rich");
+    session.dispatch(op);
+    assert.equal(session.snapshot.text, expected, source);
+    assert.equal(session.snapshot.selection.focus.offset, op.selectionAfter.focus.offset);
+    session.undo();
+    assert.equal(session.snapshot.text, source);
+    session.redo();
+    assert.equal(session.snapshot.text, expected);
+  }
+});
+test("G0.6B.4 rich Enter preserves CRLF, Unicode and unknown EFSS bytes", () => {
+  const source = "Üst\r\n\r\n- **kalın 👩‍👧 metin**\r\n\r\n:::efss.future\r\nid: 🧩\r\n:::\r\n";
+  const block = editable(source).find(b => b.type === "list_item");
+  const at = source.indexOf("metin") + 2;
+  const session = new TextEditorSession({
+    text: source, selection: collapsedSelection(at)
+  });
+  const op = planFlowEnter({ source, block, at });
+  session.dispatch(op);
+  assert.equal(session.snapshot.text,
+    "Üst\r\n\r\n- **kalın 👩‍👧 me**\r\n- **tin**\r\n\r\n:::efss.future\r\nid: 🧩\r\n:::\r\n");
+  assert.ok(session.snapshot.text.includes(":::efss.future\r\nid: 🧩\r\n:::\r\n"));
+  session.undo();
+  assert.equal(session.snapshot.text, source);
+  session.redo();
+  assert.ok(session.snapshot.text.includes("- **tin**"));
+});
+test("G0.6B.4 ambiguous nested mark split fails closed", () => {
+  const source = "A **kalın *içte* b**\n";
+  const block = editable(source)[0];
+  const at = source.indexOf("içte") + 2;
+  const state = new TextEditorSession({ text: source });
+  assert.throws(() => planFlowEnter({ source, block, at }),
+    /FLOW_ENTER_RICH_COLLISION/);
+  assert.equal(state.snapshot.text, source);
+  assert.equal(state.historyDepth, 0);
+});
+
 test("G0.6B.3 Tab indents a second bullet to one level and Shift+Tab reverses it", () => {
   for (const [marker,eol] of [["-","\n"],["+","\r\n"],["*","\r"]]) {
     const source = marker + " Ebeveyn" + eol +
@@ -279,12 +336,15 @@ test("G0.6B.1 paragraph and heading Enter create a distinct prose block", () => 
     assert.ok(projectFlowBlocks(createBlockDocument(next)).some(b => b.type === "blank"));
   }
 });
-test("G0.6B.1 rich content, noncollapsed positions and opaque blocks refuse unsafe Enter", () => {
+test("G0.6B.4 rich Enter preserves safe marked list content and guards opaque blocks", () => {
   const src = "- **kalın**\n\n:::efss.secret\nprivate: X\n:::\n";
   const blocks = projectFlowBlocks(createBlockDocument(src));
   const marked = blocks.find(b => b.type === "list_item");
-  assert.throws(() => planFlowEnter({ source: src, block: marked,
-    at: marked.sourceEnd }), /FLOW_ENTER_RICH_UNSUPPORTED/);
+  const at = src.indexOf("kalın") + "kalın".length;
+  const op = planFlowEnter({ source: src, block: marked, at });
+  const next = src.slice(0, op.from) + op.text + src.slice(op.to);
+  assert.equal(next, "- **kalın**\n- \n\n:::efss.secret\nprivate: X\n:::\n");
+  assert.equal(op.operation, "flow-enter-rich");
   assert.throws(() => planFlowEnter({ source: src,
     block: blocks.find(b => b.type === "extension_block"),
     at: src.indexOf("private") }), /INVALID_FLOW_ENTER/);
@@ -292,7 +352,7 @@ test("G0.6B.1 rich content, noncollapsed positions and opaque blocks refuse unsa
   const item = editable(plain)[0];
   assert.throws(() => planFlowEnter({ source: plain, block: item, at: 3 }),
     /INVALID_FLOW_ENTER/);
-  assert.equal(src.includes("private: X"), true);
+  assert.equal(next.slice(next.indexOf(":::efss.secret")), src.slice(src.indexOf(":::efss.secret")));
 });
 
 test("flow projection hides heading, list and quote delimiters without altering EFSS source", () => {

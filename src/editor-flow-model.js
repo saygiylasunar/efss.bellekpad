@@ -1,6 +1,6 @@
 // G0.4: flow view of the *existing* EFSS source; it is not a second document
 // store. Only losslessly representable blocks are editable in this first pass.
-import { projectInline } from "./editor-inline-format.js";
+import { projectInline, mapInlineSourceOffset } from "./editor-inline-format.js";
 import { collapsedSelection, isGraphemeBoundary } from "./editor-text-engine.js";
 import { reconcileBlockSource } from "./editor-block-model.js";
 
@@ -153,6 +153,78 @@ export function insertFlowBlock(doc, {
   return reconcileBlockSource(doc, source, { expectedVersion });
 }
 
+
+/** Normalize inline styles at adjacent run boundaries before split comparison. */
+function flowInlineSignature(runs) {
+  const merged = [];
+  for (const run of runs) {
+    const marks = [...run.marks].sort().join("/");
+    const last = merged.at(-1);
+    if (last && last.marks === marks) last.text += run.text;
+    else merged.push({ marks, text: run.text });
+  }
+  return JSON.stringify(merged);
+}
+
+/**
+ * Split a safe rich single-line block without delegating normal Enter to the
+ * source editor. The candidate must preserve each visible character and its
+ * exact B/I/S mark set. Original source bytes outside this block are untouched.
+ * Ambiguous adjacent delimiters continue to fail closed.
+ */
+function planRichFlowEnter({ source, block, at, eol, continuation }) {
+  if (block.type === "list_item" && block.list?.style === "ordered")
+    fail("FLOW_ENTER_ORDERED_RICH_UNSUPPORTED");
+  const inline = block.inline;
+  const raw = source.slice(block.sourceStart, block.sourceEnd);
+  const visible = mapInlineSourceOffset(inline, at - block.sourceStart);
+  let split = at - block.sourceStart;
+  if (visible === 0) split = 0;
+  else if (visible === inline.text.length) split = raw.length;
+  else {
+    // Native caret positions can fall precisely on an invisible delimiter.
+    // Place the complete opening/closing marker on its own side of the split.
+    for (const region of inline.regions) {
+      if (split >= region.from && split <= region.contentStart)
+        split = region.from;
+      else if (split >= region.contentEnd && split <= region.to)
+        split = region.to;
+    }
+  }
+  const active = [...inline.regions].filter(r =>
+    r.contentStart < split && split < r.contentEnd)
+    .sort((a, b) => a.from - b.from || b.to - a.to);
+  const close = [...active].reverse().map(r =>
+    r.mark === "strong" ? "**" : r.mark === "emphasis" ? "*" : "~~").join("");
+  const open = [...active].map(r =>
+    r.mark === "strong" ? "**" : r.mark === "emphasis" ? "*" : "~~").join("");
+  const left = raw.slice(0, split) + close;
+  const right = open + raw.slice(split);
+  const leftInline = projectInline(left), rightInline = projectInline(right);
+  const original = flowInlineSignature(inline.runs);
+  const combined = flowInlineSignature([...leftInline.runs, ...rightInline.runs]);
+  if (!leftInline.editable || !rightInline.editable || combined !== original ||
+      leftInline.text + rightInline.text !== inline.text)
+    fail("FLOW_ENTER_RICH_COLLISION");
+
+  const hasFollowingEol = split === raw.length &&
+    !!trailingEol(block.raw);
+  const prose = ["paragraph", "heading"].includes(block.type);
+  const separator = prose ? (hasFollowingEol ? eol : eol + eol) :
+    eol + continuation;
+  // An empty new paragraph occupies the interval between two newlines, not
+  // EOF where no editable Flow block's sourceStart can accept the caret.
+  const caretGap = prose && !hasFollowingEol && !rightInline.text.length ?
+    eol.length : separator.length;
+  const replacement = left + separator + right;
+  return Object.freeze({
+    type: "replaceRange", from: block.sourceStart, to: block.sourceEnd,
+    text: replacement,
+    selectionAfter: collapsedSelection(block.sourceStart + left.length + caretGap),
+    operation: "flow-enter-rich"
+  });
+}
+
 /**
  * G0.6B.1: natural Enter in source-authoritative, single-line Flow blocks.
  * Only collapsed, grapheme-safe source positions are accepted. A marked run
@@ -168,10 +240,12 @@ export function planFlowEnter({ source, block, at } = {}) {
     fail("INVALID_FLOW_ENTER");
   if (source.slice(block.start, block.end) !== block.raw)
     fail("FLOW_ENTER_STALE_BLOCK");
-  if (block.inline && (!block.inline.editable || block.inline.regions.length))
+  if (block.inline && !block.inline.editable)
     fail("FLOW_ENTER_RICH_UNSUPPORTED");
-  if (block.type !== "blank" &&
-      source.slice(block.sourceStart, block.sourceEnd) !== block.text)
+  if (block.type !== "blank" && (!block.inline ||
+      block.inline.text !== block.text ||
+      (!block.inline.regions.length &&
+        source.slice(block.sourceStart, block.sourceEnd) !== block.text)))
     fail("FLOW_ENTER_SOURCE_MISMATCH");
   const eol = ending(source);
   const prefix = source.slice(block.start, block.sourceStart);
@@ -190,6 +264,14 @@ export function planFlowEnter({ source, block, at } = {}) {
     });
   }
   const localEol = trailingEol(block.raw) || eol;
+  if (block.inline?.regions.length) {
+    const indent = block.type === "list_item" ?
+      (/^ {0,3}/.exec(prefix)?.[0] ?? "") : "";
+    const continuation = block.type === "quote" ? prefix :
+      block.type === "list_item" && block.list?.style === "bullet" ?
+        indent + block.list.token + " " : "";
+    return planRichFlowEnter({ source, block, at, eol: localEol, continuation });
+  }
   let continuation = "", to = at, tail = "", operation = "flow-enter";
   if (block.type === "list_item") {
     const indent = /^ {0,3}/.exec(prefix)?.[0] ?? "";
