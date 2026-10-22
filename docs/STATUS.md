@@ -2,7 +2,7 @@
 
 > **22 Ekim 2026 güncel devir ve ileri roadmap:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active stage: P1.4 contract cleanup (schema version 2)**
+**Active editor delivery: G0.6A.2 / v0.2.8 (22.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -87,3 +87,7 @@ Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI
 Tam seçilen Markdown işaretlerini ve düz metni bir işlemde değiştirme/silme, Undo/Redo ve kısıtlı karma strike eklendi. 230/230 Node ve Windows/Linux Electron smoke başarılı (commit 2c31b07). Kısmen seçilmiş stilleri kesme ve genel B/I henüz güvenle desteklenmiyor. [Teknik kayıt](EDITOR_G0_6A_2.md).
 
 **G0.6A.2 ek doğrulama:** Tek seviyeli partial mark split/reopen tamamlandı; kalan stil korunuyor. Nested partial marklar korunarak reddediliyor. 232/232 Node, Windows/Linux Electron smoke başarılı (`7ecb9e7`). [Ayrıntı](EDITOR_G0_6A_2.md).
+
+## G0.6A.2 — verified bounded nested partial editing
+
+Commit `6f27e29` expands partial text replacement from single-level Markdown marks to a verified subset of nested wrappers (strike plus strong), preserving all unselected mark traces and opaque source bytes. Unsupported ambiguous nested B/I delimiters still reject without changing source. 235/235 Node checks and Windows/Linux Electron smoke succeeded; physical keyboard, IME and generalized mixed formatting remain open. [Implementation detail](EDITOR_G0_6A_2.md).

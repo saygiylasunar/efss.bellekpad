@@ -2,7 +2,7 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6A.2 (ilk doğrulanmış kesit) / v0.2.8**, commit **2c31b07280fbda48ffcf06f72d24374f621cda61**. [G0.6A.2 teknik kayıt](EDITOR_G0_6A_2.md).
+> Doğrulanan son uygulama durumu: **G0.6A.2 (sınırlı nested partial kesiti) / v0.2.8**, kod commit **6f27e29182b11e03e602e4cbbf737eea514f8629**. **235/235 Node + Windows/Linux Electron smoke başarılı.** [G0.6A.2 teknik kayıt](EDITOR_G0_6A_2.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
 
 > **G0.6A.1 güncellemesi / ana dal doğrulaması:** `dfac015` kaynak + GUI köprü düzeltmeleri, `219/219` Node testi ve gerçek Windows/Linux Electron smoke **başarılı**. Rich span içindeki imleç artık kendi kaynak run'ını seçiyor; görünmeyen Markdown işaretlerini tüketecek karışık seçimler reddediliyor. Bu **tam rich selection editing değildir**; sıradaki kesit **G0.6A.2 run split/merge**, sonra G0.6B. Detay: [EDITOR_G0_6A.md](EDITOR_G0_6A.md). Önceki G0.5 durum paragrafı aşağıda tarihsel referans niteliğindedir.
@@ -12,6 +12,8 @@
 > **G0.6A.2 güncellemesi:** Tam seçilmiş Markdown stilleri ve yanındaki düz metni birlikte değiştirme/silme, marker korumalı balanced splice ile desteklenir. Güvenli karma strike, 230/230 Node ve Windows/Linux Electron smoke doğrulandı. Kısmi kesilen stiller ve genelleştirilmiş karma B/I henüz eksik. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 > **G0.6A.2 takip iyileştirmesi:** İlk complete-run balanced splice üzerine **tek seviyeli kısmi Markdown biçim seçimi** de güvenli close/reopen algoritmasıyla eklendi. `A **kalın** B` üzerinde kısmi rich→plain/ plain→rich edit geri alınabilir ve kalan biçimi korur. 232/232 Node + Windows/Linux Electron smoke geçti (`7ecb9e7`). **Nested partial mark ve genel karma B/I/S hâlâ eksik.** [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
+
+> **G0.6A.2 nested takip doğrulaması:** `6f27e29` ile kısmi iç içe strike/strong kaynak aralıkları, kapanış/açılış sırası + parser/stil invariants ile güvenli düzenlenebilir oldu. Ters DOM selection, Undo/Redo, save/open, CRLF ve opaque EFSS regresyonları eklendi; **235/235 Node, Windows ve Linux smoke yeşil**. B/I yıldız marker çakışmaları hâlâ fail-closed ve genel mixed B/I/S hâlâ eksik. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 ## 0. Ürünü bir paragrafta devret
 
@@ -133,7 +135,7 @@ PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-o
 
 ## 5. Yeni sohbetin ilk somut uygulama görevi
 
-**Görev: G0.6A.2 devamı — iç içe/kesişen biçimler için güvenli mark dönüşümü ve genel karma B/I biçimlendirme.** Tam seçilen mark span splice ve karma strike hazır; yeniden sıfırdan yazma. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
+**Görev: G0.6A.2 devamı — iç içe B/I yıldız-işareti çakışmaları, genel karma B/I/S biçimleme ve seçim geri yükleme.** Complete-mark splice, tek seviyeli partial split ve sınırlı nested strike/strong split doğrulandı; yeniden yazma. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 1. GitHub'da **main HEAD** ve **core-checks + desktop-smoke** sonuçlarını güncel oku; bu dosyayı ve \`docs/EDITOR_G0_5.md\`'yi yeniden gözden geçir.
 2. \`src/editor-inline-format.js\`, \`src/editor-flow-adapter.js\`, \`src/editor-text-engine.js\`, \`src/editor-flow-model.js\` ve \`desktop/smoke.mjs\` kodunu canlı repodan oku.
