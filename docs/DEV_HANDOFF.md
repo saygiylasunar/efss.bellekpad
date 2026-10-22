@@ -2,12 +2,14 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6A.1 / v0.2.6**, commit **dfac01555f4b256887fb89c93a6a7db86a1bb3a8**. [Kod + test devri](EDITOR_G0_6A.md).
+> Doğrulanan son uygulama durumu: **G0.6A.2 (ilk doğrulanmış kesit) / v0.2.8**, commit **2c31b07280fbda48ffcf06f72d24374f621cda61**. [G0.6A.2 teknik kayıt](EDITOR_G0_6A_2.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
 
 > **G0.6A.1 güncellemesi / ana dal doğrulaması:** `dfac015` kaynak + GUI köprü düzeltmeleri, `219/219` Node testi ve gerçek Windows/Linux Electron smoke **başarılı**. Rich span içindeki imleç artık kendi kaynak run'ını seçiyor; görünmeyen Markdown işaretlerini tüketecek karışık seçimler reddediliyor. Bu **tam rich selection editing değildir**; sıradaki kesit **G0.6A.2 run split/merge**, sonra G0.6B. Detay: [EDITOR_G0_6A.md](EDITOR_G0_6A.md). Önceki G0.5 durum paragrafı aşağıda tarihsel referans niteliğindedir.
 
 > **UI asset güncellemesi (v0.2.7):** All Round Gothic / Noka / Exo yerel ve fallback font tokenları, özgün SVG icon registry, toolbar/sidebar/callout iconları. Verilen Adobe Fonts Web Project `aww8lcp` **yalnız web örneğine** eklendi; Electron CSP/offline ilkesi gevşetilmedi, üçüncü taraf font dosyası paketlenmedi. Adobe lisansı kullanıcıların kendi belge metninde bu web fontlarını seçebileceği tasarım editörü için yeterli değil; ilgili font menüsünde kullanmadan ayrı izin denetimi gerekir. [docs/TYPOGRAPHY_ICONOGRAPHY.md](TYPOGRAPHY_ICONOGRAPHY.md). **G0.6A.2 hâlâ sıradaki metin motoru görevi; bu yalnızca paralel UI asset kesitidir.** **UI kit doğrulama:** 223/223 Node test ve gerçek Windows/Linux Electron smoke başarılı; test sıra bağımlılığı düzeltildi (`5893692`).
+
+> **G0.6A.2 güncellemesi:** Tam seçilmiş Markdown stilleri ve yanındaki düz metni birlikte değiştirme/silme, marker korumalı balanced splice ile desteklenir. Güvenli karma strike, 230/230 Node ve Windows/Linux Electron smoke doğrulandı. Kısmi kesilen stiller ve genelleştirilmiş karma B/I henüz eksik. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 ## 0. Ürünü bir paragrafta devret
 
@@ -129,7 +131,7 @@ PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-o
 
 ## 5. Yeni sohbetin ilk somut uygulama görevi
 
-**Görev: G0.6A.2 — karma biçimli seçimlerde kayıpsız split/merge ve güvenli kaynak transaction.** İlk G0.6A.1 caret/guard regresyonu tamamlandı; aynı işi yeniden sıfırdan yazma.
+**Görev: G0.6A.2 devamı — kısmen kesilen Markdown markları için güvenli kapanış/açılış; karma B/I biçimlendirme.** Tam seçilen mark span splice ve karma strike hazır; yeniden sıfırdan yazma. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 1. GitHub'da **main HEAD** ve **core-checks + desktop-smoke** sonuçlarını güncel oku; bu dosyayı ve \`docs/EDITOR_G0_5.md\`'yi yeniden gözden geçir.
 2. \`src/editor-inline-format.js\`, \`src/editor-flow-adapter.js\`, \`src/editor-text-engine.js\`, \`src/editor-flow-model.js\` ve \`desktop/smoke.mjs\` kodunu canlı repodan oku.
@@ -197,6 +199,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette aynen verilebilecek tek satırlık talimat
 
-> **“BellekPad'e docs/DEV_HANDOFF.md ve docs/EDITOR_G0_6A.md üzerinden devam et. saygiylasunar/efss.bellekpad main HEAD ve CI'yi kontrol et. G0.6A.1 caret/source guard tamamlandı; G0.6A.2 karma rich run split/merge için regresyon testlerini, güvenli kodu ve Windows/Linux Electron smoke'u geliştir, commit et. Electron + özgün editör + EFSS Markdown kararlarına bağlı kal; üçüncü taraf editör getirme.”**
+> **“BellekPad'e docs/DEV_HANDOFF.md ve docs/EDITOR_G0_6A.md üzerinden devam et. saygiylasunar/efss.bellekpad main HEAD ve CI'yi kontrol et. G0.6A.1 + G0.6A.2 complete-run splice/strike tamamlandı; G0.6A.2 partial run split/merge için regresyon testlerini, güvenli kodu ve Windows/Linux Electron smoke'u geliştir, commit et. Electron + özgün editör + EFSS Markdown kararlarına bağlı kal; üçüncü taraf editör getirme.”**
 
 **Amaç:** Bir dosya, bir ürün mantığı, katmanlar arasında net köprüler, veri kaybı olmadan öngörülebilir ve hassas bir gerçek metin editörü.

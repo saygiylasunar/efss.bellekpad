@@ -81,3 +81,7 @@ Own inline run projection + B/I/S commands, source-aware range map and mark togg
 ## UI Tipografi ve Özgün SVG İkonları (v0.2.7)
 
 Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI), Noka (görüntüleme/başlık), Exo (teknik/metin), Türkçe harfler için sistem fallback'leri. Lisanslı font dosyası repoda yoktur; ailelerin makinede bulunması gerekir, web kit içeriği ayrıca doğrulanmalıdır. Electron UI'de yerel SVG ikon sözlüğü (src/ui-icons.js) ile araç çubuğu, belge gezgini ve callout başlıkları değiştirildi. Adobe Fonts web-project URL `https://use.typekit.net/aww8lcp.css` yalnız **web-only** örneğinde yer alır; CSP ve `connect-src 'none'` ile desktop'ta harici ağ fontu yüklenmez. `src/editor-text-engine.js` ve not verisi değiştirilmedi. [Ayrıntılı tipografi/lisans/ikon notları](docs/TYPOGRAPHY_ICONOGRAPHY.md).
+
+## G0.6A.2 — Karma mark seçimi
+
+Tam seçilen Markdown işaretlerini ve düz metni bir işlemde değiştirme/silme, Undo/Redo ve kısıtlı karma strike eklendi. 230/230 Node ve Windows/Linux Electron smoke başarılı (commit 2c31b07). Kısmen seçilmiş stilleri kesme ve genel B/I henüz güvenle desteklenmiyor. [Teknik kayıt](EDITOR_G0_6A_2.md).

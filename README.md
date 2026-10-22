@@ -113,3 +113,7 @@ Biçimli metin içindeki native caret, görünür karakter offset'i yerine ilgil
 ## UI Tipografi ve Özgün SVG İkonları (v0.2.7)
 
 Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI), Noka (görüntüleme/başlık), Exo (teknik/metin), Türkçe harfler için sistem fallback'leri. Lisanslı font dosyası repoda yoktur; ailelerin makinede bulunması gerekir, web kit içeriği ayrıca doğrulanmalıdır. Electron UI'de yerel SVG ikon sözlüğü (src/ui-icons.js) ile araç çubuğu, belge gezgini ve callout başlıkları değiştirildi. Adobe Fonts web-project URL `https://use.typekit.net/aww8lcp.css` yalnız **web-only** örneğinde yer alır; CSP ve `connect-src 'none'` ile desktop'ta harici ağ fontu yüklenmez. `src/editor-text-engine.js` ve not verisi değiştirilmedi. [Ayrıntılı tipografi/lisans/ikon notları](docs/TYPOGRAPHY_ICONOGRAPHY.md).
+
+## G0.6A.2 — Karma rich seçimler
+
+Tam seçilen Markdown stilleriyle düz metin aynı işlemde değiştirilebilir/silinebilir. Doğrulanmış karma strike, kaynak bütünlüğü ve Undo/Redo korunur. Kısmi mark kesişimleri hâlâ fail-closed; bu iş devam edecek. [G0.6A.2 teknik kayıt](docs/EDITOR_G0_6A_2.md).
