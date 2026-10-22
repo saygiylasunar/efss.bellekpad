@@ -160,6 +160,23 @@ async function run() {
   await retry("redo mixed mark", () => page(
     "document.querySelector('.flow-heading .flow-editable s strong')?.textContent === 'Başlık!'"
   ));
+  // A partially bold mixed selection must fail closed. It must not
+  // accidentally delete or absorb hidden ** delimiters.
+  await page(`(() => {
+    const el = document.querySelector(".flow-heading .flow-editable");
+    const strong = el.querySelector("strong").firstChild;
+    const last = el.querySelectorAll(".flow-run");
+    const tail = last[last.length - 1].querySelector("s").firstChild;
+    el.focus();
+    document.getSelection().setBaseAndExtent(strong, 0, tail, tail.length);
+    document.querySelector("#format-bold").click();
+  })()`);
+  assert.equal(await page(
+    "document.querySelector('.flow-heading .flow-editable')?.textContent"),
+    "Önce Başlık! son");
+  assert.equal(await page(
+    "document.querySelector('.flow-heading .flow-editable s strong')?.textContent"),
+    "Başlık!");
   await page("document.querySelector('#save').click()");
   await retry("mixed mark saved", () =>
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
