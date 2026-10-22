@@ -199,9 +199,25 @@ export function attachFlowEditor(host, {
     return range;
   }
 
-  function finish(result, { focusAt = null, preferredId = null } = {}) {
+  function finish(result, {
+    focusAt = null, preferredId = null, preserveSelection = false
+  } = {}) {
     if (!result.changed) return;
     notify();
+    if (preserveSelection) {
+      // History retains anchor/focus in source coordinates. Restore native
+      // direction only when both ends belong to one supported Flow block.
+      const { anchor, focus } = session.snapshot.selection;
+      const block = projectFlowBlocks(getStructure()).find(item =>
+        item.editable && item.sourceStart <= anchor.offset &&
+        anchor.offset <= item.sourceEnd &&
+        item.sourceStart <= focus.offset && focus.offset <= item.sourceEnd);
+      if (block) {
+        render({ focusAt: anchor.offset, selectionEnd: focus.offset,
+          preferredId: block.id });
+        return;
+      }
+    }
     render({ focusAt: focusAt ?? session.snapshot.selection.focus.offset,
       preferredId });
   }
@@ -253,7 +269,7 @@ export function attachFlowEditor(host, {
   function history(type) {
     if (composing) return;
     const result = type === "undo" ? session.undo() : session.redo();
-    finish(result);
+    finish(result, { preserveSelection: true });
   }
   function reconcileNative(editor, block) {
     if (composing) return;
