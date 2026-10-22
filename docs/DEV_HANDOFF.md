@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6B.3 (ilk iç içe liste seviyesi Tab/Shift+Tab ve blok başında Backspace) / v0.2.8**. Son doğrulanan kaynak commit'i **cd661ad2b2aeee2e81c7d699815986924a1f0dc1**. **265/265 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
+> Doğrulanan son uygulama durumu: **G0.6B.4 (güvenli zengin metin Enter + Enter sonrası terminal paragrafta yazma) / v0.2.8**. Son doğrulanan kaynak commit'i **91fa27ddc804a2333bdac1c9e7817b247aa04e25**. **269/269 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **G0.6B.4 görsel yazma düzeltmesi — 22.10.2026:** Görsel Flow'da normal paragraf sonu Enter ve ardından yazma, terminal boş bloğa yanlış source offsetinden yazdığı için iki kaynak satırı tek çok satırlı, read-only paragrafa birleştiriyordu; kullanıcıyı "Kaynağı düzenle" yoluna gönderiyordu. Son terminal boş satırda offset artık EOL sonuna bağlanır, Enter caret'i de bu sınırla hizalanır. Güvenli B/I/S işaretli tek satırlı paragraf, liste, başlık ve alıntıda Enter için parser/stil oracle doğrulamalı split de eklendi; riskli iç içe yıldız çakışmaları hâlâ kayıpsız reddedilir. `91fa27d` **269/269 Node + Windows/Linux gerçek Electron smoke yeşil**. **İçteki boş satırlar, çok satırlı birleşik paragraf, fiziksel IME ve karma çapraz blok senaryoları tamamlanmadı.**
 
 > **G0.6B.3 doğrulama — 22.10.2026:** Tek seviyeli (`0 → 2 boşluk`) madde işaretli listede `Tab` ve `Shift+Tab` tek kaynağa bağlı replaceRange transaction olarak eklendi. Önceki uyumlu ebeveyn yoksa, ikinci derinlik istenirse, varsa alt öğeler yeniden ebeveynlenecekse veya sıralı listeyi etkileyecekse işlem fail-closed. Liste/başlık/alıntıda görünür metin başlangıcındaki `Backspace`, marker'ı tek Undo adımında kaldırır; iç içe listede önce outdent yapar. Veri ve unknown EFSS korunur. `cd661ad` **265/265 test**, Core + Windows/Linux smoke başarılı. G0.6B devam eder: keyfi nested tree, cross-block merge, rich split/IME, gerçek Inspector yok.
 

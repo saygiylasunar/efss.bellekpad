@@ -180,3 +180,13 @@ G0.6B devam ediyor: görsel blok şemalarının Inspector üzerinden gerçek dü
 - **Backspace @ başlangıç:** Üst düzey bullet / quote / heading kaynak prefix'ini çıkararak normal paragrafa döner. Nested bullet önce bir üst düzeye çıkar. Sıralı liste marker'ının silinmesi (yanlış renumber tehlikesi) ve cursor başlangıcından farklı konumlar bu planner'da fail-closed'dur.
 - **Görsel:** `data-list-depth=1` gerçek kaynak girintisinden türetilir. Derinlik farkı margin, gutter tonu ve ince dikey vurgu ile gösterilir. Klavye odak noktası kaynak offsetine geri bağlanır; DOM ayrı belge sahibi değildir.
 - **Sonraki iş (G0.6B devamı):** gerçek çok seviyeli AST nesting, Tab ile çoklu seçim/dal taşınması, Backspace/Delete çapraz blok birleşimi, paragraflarda soft break ve zengin metin Enter; ardından Inspector'ın gerçek blok attribute işlemleri. Bunlar bu turda bitmedi.
+
+## G0.6B.4 — Visual Flow Enter and terminal prose typing, verified
+
+**Bug root cause:** For a terminal ordinary paragraph, Enter created a trailing blank source line but the next character was inserted *before* that blank's EOL. Adjacent lines then became one multiline Markdown AST paragraph and Flow showed a read-only 'Kaynağı düzenle' action. The **terminal blank** now uses the source position *after* its trailing EOL as its editable caret, and Enter targets that exact offset. The next typed character is a second, independently editable paragraph. Blank lines inside a document still need a more general multi-block solution.
+
+**Rich Enter:** Safe single-line strong/emphasis/strike edits can now split a mark into balanced fragments before inserting the new paragraph/list/quote, checked against identical visible text and per-character style signatures. Example: `- **kalın**` with caret after `kal` becomes two editable items `- **kal**` and `- **ın**`. Full boundary Enter is supported, including CRLF, and unknown EFSS extensions remain unchanged. Ambiguous nested asterisk interactions still fail-closed; ordered-list rich continuation is explicitly deferred.
+
+**Verified code:** `91fa27ddc804a2333bdac1c9e7817b247aa04e25`; **269/269 Node**, sanity, Windows Electron and Linux/Xvfb Electron smoke all pass. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39834712654) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39834711885). Earlier code `c0c8cc` passed too; it did not include the terminal blank focus/typing fix.
+
+**Open:** Internal blank lines surrounded by blocks, multiline paragraph editing, selected text + Enter, physical IME, rich numbered list reindex, and cross-block Backspace/Delete. The product must not claim all visual editing issues are resolved.
