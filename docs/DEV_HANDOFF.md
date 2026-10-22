@@ -2,7 +2,7 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6A.2 (kayıpsız mixed partial mark + atomik selection history) / v0.2.8**. Kod commit'leri: **a41c246** ve **9e534eb**. **241/241 Node, sanity/check ve Windows/Linux Electron smoke başarılı.** [G0.6A.2 teknik kayıt](EDITOR_G0_6A_2.md).
+> Doğrulanan son uygulama durumu: **G0.6B.2 (numaralı listelerde atomik Enter/yeniden numaralama + H1–H6 görsel hiyerarşisi) / v0.2.8**. Son kaynak commit'i: **c045a1a6b692d3dd36fb8e419cd8a96fdbc8361d**. **259/259 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
 
 > **G0.6A.1 güncellemesi / ana dal doğrulaması:** `dfac015` kaynak + GUI köprü düzeltmeleri, `219/219` Node testi ve gerçek Windows/Linux Electron smoke **başarılı**. Rich span içindeki imleç artık kendi kaynak run'ını seçiyor; görünmeyen Markdown işaretlerini tüketecek karışık seçimler reddediliyor. Bu **tam rich selection editing değildir**; sıradaki kesit **G0.6A.2 run split/merge**, sonra G0.6B. Detay: [EDITOR_G0_6A.md](EDITOR_G0_6A.md). Önceki G0.5 durum paragrafı aşağıda tarihsel referans niteliğindedir.
@@ -23,7 +23,7 @@
 
 > **G0.6B.1 uygulama kesiti (CI doğrulaması gerekli):** [BLOCK_BEHAVIOR_SPEC.md](BLOCK_BEHAVIOR_SPEC.md) içinde blokların anlam, görsel nitelik, Enter/Backspace/Tab, inspector ve kaynak sözleşmesi tanımlandı. İlk saf Enter davranışı: liste devamı, boş öğede çıkış, paragraph/heading split, basit quote devamı; numaralı kardeş yeniden numaralama/rich Enter henüz fail-closed. Bunların kabulü yeni commit Core ve Windows/Linux Electron smoke sonuçlarına bağlıdır.
 
-> **G0.6B.2 uygulama (CI bekleniyor):** Ardışık numaralı kardeşlerin Enter ile atomik yeniden numaralanması; `001.`, `7)`, girinti, CRLF ve opaque EFSS veri bütünlüğü. Başlık H1–H6 görünümü semantik seviyeye bağlı. Electron smoke önce PASSED bastıktan sonra `app.quit()` ile kapanamayıp CI timeout oluyordu; smoke başarı yolunda `app.exit(0)` kullanılıyor. [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). Yeni HEAD üzerinde Core ve Windows/Linux Electron kabulü doğrulanmalı.
+> **G0.6B.2 doğrulandı (259/259, Windows/Linux):** Ardışık numaralı kardeşlerin Enter ile atomik yeniden numaralanması; `001.`, `7)`, girinti, CRLF ve opaque EFSS veri bütünlüğü. Başlık H1–H6 görünümü semantik seviyeye bağlı. Electron smoke önce PASSED bastıktan sonra `app.quit()` ile kapanamayıp CI timeout oluyordu; smoke başarı yolunda `app.exit(0)` kullanılıyor. [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). Yeni HEAD üzerinde Core ve Windows/Linux Electron kabulü doğrulanmalı.
 
 ## 0. Ürünü bir paragrafta devret
 

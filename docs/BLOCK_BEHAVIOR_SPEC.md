@@ -164,3 +164,9 @@ Headings H1–H6 now have six distinct typography tiers via the semantic data-he
 **CI correction:** Previous Windows/Linux Electron smoke runs emitted `DESKTOP GUI SMOKE PASSED` and then stayed alive until the job timed out. The smoke success path now exits via `app.exit(0)`, while failed assertions still call `app.exit(1)`. This modifies the CI test runner, not the production application lifecycle.
 
 **Not yet supported:** Nested ordered trees, arbitrary Tab/Shift+Tab reparenting, discontinuous/manual numbered lists, normalizing an entire list, rich inline Enter, selected-range Enter, cross-block Backspace/Delete and soft breaks.
+
+### G0.6B.2 kabul kaydı — 22 Ekim 2026
+
+Kaynak commit `c045a1a`: 259/259 Node testi, sanity/check, Windows Electron ve Ubuntu/Xvfb Electron smoke **başarılı**. [Core workflow](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39812554275) · [Desktop workflow](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39812554366). Daha önce başarısız olan iki regresyon (CRLF içeren replaceRange ve eski numaralı-liste-ret beklentisi) düzeltilmiş ve bu SHA'da yeniden doğrulanmıştır.
+
+G0.6B devam ediyor: görsel blok şemalarının Inspector üzerinden gerçek düzenlenmesi, Tab/Shift+Tab iç içe liste, Backspace/Delete blok birleşimi ve karma zengin metin Enter henüz yapılmadı.

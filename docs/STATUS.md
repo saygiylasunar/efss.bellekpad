@@ -95,3 +95,7 @@ Commit `6f27e29` expands partial text replacement from single-level Markdown mar
 ## G0.6A.2 — safe mixed-partial marks and reverse formatting Undo/Redo
 
 `a41c246` adds parser-validated balanced B/I/S marking over supported partial strong/plain and strike/plain selections without rewriting outside source. `9e534eb` persists format operation selection anchor/focus in the same undo entry, so reverse selection survives undo and redo. `***` collisions remain fail-closed. Latest code: **241/241 Node + sanity/check, Windows and Linux real Electron smoke passed.** G0.6A is not fully accepted; continue the remaining B/I collision gate in [DEV_HANDOFF.md](DEV_HANDOFF.md).
+
+## G0.6B.2 — verified atomic ordered-list Enter and heading tiers (22.10.2026)
+
+Commit `c045a1a` passes 259 Node tests, sanity gate and real Electron Windows/Linux smoke. A numbered list Enter increments contiguous valid siblings as one source transaction with Undo/Redo, including CRLF, leading zeros and ordered delimiter variants, without rewriting unknown EFSS blocks. Six heading levels receive separate semantic CSS tiers. Electron smoke CI now terminates cleanly after success. Remaining list hierarchy, cross-block edits, rich split and Inspector are not accepted.
