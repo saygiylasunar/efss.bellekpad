@@ -170,3 +170,13 @@ Headings H1–H6 now have six distinct typography tiers via the semantic data-he
 Kaynak commit `c045a1a`: 259/259 Node testi, sanity/check, Windows Electron ve Ubuntu/Xvfb Electron smoke **başarılı**. [Core workflow](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39812554275) · [Desktop workflow](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39812554366). Daha önce başarısız olan iki regresyon (CRLF içeren replaceRange ve eski numaralı-liste-ret beklentisi) düzeltilmiş ve bu SHA'da yeniden doğrulanmıştır.
 
 G0.6B devam ediyor: görsel blok şemalarının Inspector üzerinden gerçek düzenlenmesi, Tab/Shift+Tab iç içe liste, Backspace/Delete blok birleşimi ve karma zengin metin Enter henüz yapılmadı.
+
+## G0.6B.3 — verified one-level Tab/Shift+Tab and structural Backspace
+
+**Durum:** Uygulandı ve doğrulandı; kapsam **tek liste seviyesi** ile sınırlı. Kaynak commit: `cd661ad2b2aeee2e81c7d699815986924a1f0dc1`. 265/265 Node + sanity/check; Windows ve Linux gerçek Electron smoke başarılı. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39817449098) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39817449258).
+
+- **Tab:** `- Ebeveyn` ardından `- Çocuk` → `  - Çocuk` (iki boşluk). Yerel EFSS AST en fazla üç başlangıç boşluğunu liste olarak kabul ettiği için ikinci nested depth **bilerek desteklenmez**. İki listenin marker türü eşleşmeli ve madde hemen önceki ebeveynle bitişik olmalı. Alt öğelerin geride kalacağı tehlikeli yeniden ebeveynleme reddedilir.
+- **Shift+Tab:** İki boşluk girintili `-`, `+` veya `*` listesini orijinal düzeye indirir; metne ait Markdown kaynak byte'ları değiştirilmez. Kaynak offseti (+2/-2) ve Undo/Redo history aynı transaction içindedir. CRLF, tekil CR, Türkçe metin ve Unicode grapheme koruma testlidir.
+- **Backspace @ başlangıç:** Üst düzey bullet / quote / heading kaynak prefix'ini çıkararak normal paragrafa döner. Nested bullet önce bir üst düzeye çıkar. Sıralı liste marker'ının silinmesi (yanlış renumber tehlikesi) ve cursor başlangıcından farklı konumlar bu planner'da fail-closed'dur.
+- **Görsel:** `data-list-depth=1` gerçek kaynak girintisinden türetilir. Derinlik farkı margin, gutter tonu ve ince dikey vurgu ile gösterilir. Klavye odak noktası kaynak offsetine geri bağlanır; DOM ayrı belge sahibi değildir.
+- **Sonraki iş (G0.6B devamı):** gerçek çok seviyeli AST nesting, Tab ile çoklu seçim/dal taşınması, Backspace/Delete çapraz blok birleşimi, paragraflarda soft break ve zengin metin Enter; ardından Inspector'ın gerçek blok attribute işlemleri. Bunlar bu turda bitmedi.

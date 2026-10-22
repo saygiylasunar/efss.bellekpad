@@ -99,3 +99,7 @@ Commit `6f27e29` expands partial text replacement from single-level Markdown mar
 ## G0.6B.2 — verified atomic ordered-list Enter and heading tiers (22.10.2026)
 
 Commit `c045a1a` passes 259 Node tests, sanity gate and real Electron Windows/Linux smoke. A numbered list Enter increments contiguous valid siblings as one source transaction with Undo/Redo, including CRLF, leading zeros and ordered delimiter variants, without rewriting unknown EFSS blocks. Six heading levels receive separate semantic CSS tiers. Electron smoke CI now terminates cleanly after success. Remaining list hierarchy, cross-block edits, rich split and Inspector are not accepted.
+
+## G0.6B.3 — one-level bullet hierarchy and marker unwrap (22.10.2026)
+
+Code `4297d04`, smoke syntax fix `cd661ad`: **265/265 Node tests**, source sanity and real Windows/Linux Electron smoke passed. Supported bullet list `Tab`/`Shift+Tab` moves one two-space depth with correct caret + atomic Undo/Redo; Backspace at the visible start of a bullet/quote/heading unwraps its markup, first outdenting nested bullets. UI shows list depth and preserves opaque EFSS. Higher nesting, ordered list outdent, arbitrary block merges and Inspector controls remain unimplemented. [Detailed contract](BLOCK_BEHAVIOR_SPEC.md).

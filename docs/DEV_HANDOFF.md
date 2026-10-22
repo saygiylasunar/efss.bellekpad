@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6B.2 (numaralı listelerde atomik Enter/yeniden numaralama + H1–H6 görsel hiyerarşisi) / v0.2.8**. Son kaynak commit'i: **c045a1a6b692d3dd36fb8e419cd8a96fdbc8361d**. **259/259 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
+> Doğrulanan son uygulama durumu: **G0.6B.3 (ilk iç içe liste seviyesi Tab/Shift+Tab ve blok başında Backspace) / v0.2.8**. Son doğrulanan kaynak commit'i **cd661ad2b2aeee2e81c7d699815986924a1f0dc1**. **265/265 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **G0.6B.3 doğrulama — 22.10.2026:** Tek seviyeli (`0 → 2 boşluk`) madde işaretli listede `Tab` ve `Shift+Tab` tek kaynağa bağlı replaceRange transaction olarak eklendi. Önceki uyumlu ebeveyn yoksa, ikinci derinlik istenirse, varsa alt öğeler yeniden ebeveynlenecekse veya sıralı listeyi etkileyecekse işlem fail-closed. Liste/başlık/alıntıda görünür metin başlangıcındaki `Backspace`, marker'ı tek Undo adımında kaldırır; iç içe listede önce outdent yapar. Veri ve unknown EFSS korunur. `cd661ad` **265/265 test**, Core + Windows/Linux smoke başarılı. G0.6B devam eder: keyfi nested tree, cross-block merge, rich split/IME, gerçek Inspector yok.
 
 > **G0.6A.1 güncellemesi / ana dal doğrulaması:** `dfac015` kaynak + GUI köprü düzeltmeleri, `219/219` Node testi ve gerçek Windows/Linux Electron smoke **başarılı**. Rich span içindeki imleç artık kendi kaynak run'ını seçiyor; görünmeyen Markdown işaretlerini tüketecek karışık seçimler reddediliyor. Bu **tam rich selection editing değildir**; sıradaki kesit **G0.6A.2 run split/merge**, sonra G0.6B. Detay: [EDITOR_G0_6A.md](EDITOR_G0_6A.md). Önceki G0.5 durum paragrafı aşağıda tarihsel referans niteliğindedir.
 
