@@ -115,3 +115,16 @@ test("G0.5 renders inline marks via safe DOM without importing a rich-text libra
   assert.doesNotMatch(flow, /innerHTML/);
   assert.doesNotMatch(flow, /execCommand/);
 });
+
+test("G0.6A maps native rich spans to exact Markdown source positions", () => {
+  const adapter = read("src/editor-flow-adapter.js");
+  const format = read("src/editor-inline-format.js");
+  assert.match(adapter, /data-inline-run/);
+  assert.match(adapter, /domSourcePoint/);
+  assert.match(adapter, /sourceDOMPoint/);
+  assert.match(adapter, /planInlineTextEdit/);
+  assert.match(adapter, /clipboardData\?\.setData\("text\/plain"/);
+  assert.match(format, /HIDDEN_MARKER_SELECTION/);
+  assert.match(format, /INLINE_EDIT_CHANGES_MARKUP/);
+  assert.doesNotMatch(adapter, /innerHTML/);
+});

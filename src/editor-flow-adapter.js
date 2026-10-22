@@ -5,7 +5,10 @@ import {
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand
 } from "./editor-flow-model.js";
-import { mapInlineVisibleOffset, planInlineMark } from "./editor-inline-format.js";
+import {
+  mapInlineVisibleOffset, mapInlineSourceOffset,
+  planInlineMark, planInlineTextEdit
+} from "./editor-inline-format.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -18,34 +21,48 @@ function domCaret(element, node, offset) {
     return range.toString().length;
   } catch { return null; }
 }
+// A DOM point inside a styled run provides its own source affinity.
+// Visible offsets alone cannot distinguish "**bold**plain" at the boundary:
+// the caret at the end of bold and the caret at the start of plain have the
+// same visible offset but must produce different Markdown source edits.
+function domSourcePoint(element, block, node, offset, fallbackBias) {
+  const visible = domCaret(element, node, offset);
+  if (visible === null) return null;
+  const span = (node?.nodeType === 1 ? node : node?.parentElement)?.closest?.("[data-inline-run]");
+  if (span && element.contains(span) && block.inline) {
+    const index = Number(span.dataset.inlineRun);
+    const run = block.inline.runs[index];
+    if (run) {
+      const local = domCaret(span, node, offset);
+      if (local !== null && local <= run.text.length) {
+        const safe = nearestGraphemeBoundary(run.text, local, "nearest");
+        return block.sourceStart + run.from + safe;
+      }
+    }
+  }
+  const safe = nearestGraphemeBoundary(block.text,
+    Math.max(0, Math.min(block.text.length, visible)), "nearest");
+  return block.sourceStart + (block.inline ?
+    mapInlineVisibleOffset(block.inline, safe, fallbackBias) : safe);
+}
 function readRange(element, block) {
   const selected = element.ownerDocument.getSelection();
   if (!selected) return null;
   const a = domCaret(element, selected.anchorNode, selected.anchorOffset);
   const b = domCaret(element, selected.focusNode, selected.focusOffset);
   if (a === null || b === null) return null;
-  const position = (x, bias) => {
-    const visible = nearestGraphemeBoundary(
-      block.text, Math.min(block.text.length, Math.max(0, x)), "nearest"
-    );
-    return block.sourceStart + (block.inline ?
-      mapInlineVisibleOffset(block.inline, visible, bias) : visible);
-  };
   const collapsed = a === b;
-  return {
-    anchor: textPosition(position(a, collapsed || a < b ? "right" : "left")),
-    focus: textPosition(position(b, collapsed || a > b ? "right" : "left"))
-  };
+  const anchor = domSourcePoint(element, block, selected.anchorNode,
+    selected.anchorOffset, collapsed || a < b ? "right" : "left");
+  const focus = domSourcePoint(element, block, selected.focusNode,
+    selected.focusOffset, collapsed || a > b ? "right" : "left");
+  if (anchor === null || focus === null) return null;
+  return { anchor: textPosition(anchor), focus: textPosition(focus) };
 }
 function visibleFromSource(block, rawOffset) {
-  if (!block.inline) return Math.max(0, rawOffset);
-  let at = 0;
-  for (const run of block.inline.runs) {
-    if (rawOffset < run.from) return at;
-    if (rawOffset <= run.to) return at + rawOffset - run.from;
-    at += run.text.length;
-  }
-  return at;
+  return block.inline ?
+    mapInlineSourceOffset(block.inline, Math.max(0, rawOffset)) :
+    Math.max(0, rawOffset);
 }
 function textDOMPoint(element, visible) {
   const doc = element.ownerDocument;
@@ -59,15 +76,29 @@ function textDOMPoint(element, visible) {
   if (!element.firstChild) element.append(empty);
   return [empty, 0];
 }
+function sourceDOMPoint(element, block, rawOffset) {
+  const inline = block.inline;
+  if (inline) {
+    const i = inline.runs.findIndex(run =>
+      rawOffset >= run.from && rawOffset <= run.to);
+    if (i >= 0) {
+      const span = [...element.querySelectorAll("[data-inline-run]")]
+        .find(node => Number(node.dataset.inlineRun) === i);
+      const leaf = span && element.ownerDocument.createTreeWalker(span, 4).nextNode();
+      if (leaf) return [leaf, Math.max(0, Math.min(leaf.length,
+        rawOffset - inline.runs[i].from))];
+    }
+  }
+  return textDOMPoint(element, visibleFromSource(block, rawOffset));
+}
 function focusOffset(element, sourceOffset, block, selectionEnd = null) {
   element.focus();
   const selected = element.ownerDocument.getSelection();
   if (!selected) return;
-  const visible = visibleFromSource(block, sourceOffset);
-  const [node, at] = textDOMPoint(element, visible);
+  const [node, at] = sourceDOMPoint(element, block, sourceOffset);
   if (selectionEnd === null) selected.setBaseAndExtent(node, at, node, at);
   else {
-    const [endNode, endOffset] = textDOMPoint(element, visibleFromSource(block, selectionEnd));
+    const [endNode, endOffset] = sourceDOMPoint(element, block, selectionEnd);
     selected.setBaseAndExtent(node, at, endNode, endOffset);
   }
 }
@@ -76,7 +107,7 @@ function renderInlineRuns(doc, editor, block) {
     editor.textContent = block.text;
     return;
   }
-  for (const run of block.inline.runs) {
+  for (const [index, run] of block.inline.runs.entries()) {
     let leaf = doc.createTextNode(run.text);
     for (const mark of [...run.marks].reverse()) {
       const tag = { strong: "strong", emphasis: "em", strike: "s" }[mark];
@@ -87,6 +118,7 @@ function renderInlineRuns(doc, editor, block) {
     }
     const span = doc.createElement("span");
     span.className = "flow-run";
+    span.dataset.inlineRun = String(index);
     span.append(leaf);
     editor.append(span);
   }
@@ -246,7 +278,22 @@ export function attachFlowEditor(host, {
       }
     }
     if (command.type === "insertText" && command.text === "") return;
-    const result = session.dispatch(command);
+    // All ordinary visual edits pass this pure source-preservation gate.
+    // Explicit slash and toolbar mark transactions are handled separately.
+    let planned;
+    try {
+      const from = command.type === "replaceRange" ? command.from : sel.start;
+      const to = command.type === "replaceRange" ? command.to : sel.end;
+      const text = command.type === "deleteBackward" ||
+        command.type === "deleteForward" ? "" : command.text ?? "";
+      planned = planInlineTextEdit({
+        source: session.snapshot.text, block, from, to, text
+      });
+    } catch (error) {
+      onError("Kaynak korunuyor: " + (error?.message ?? "UNSAFE_EDIT"));
+      return;
+    }
+    const result = session.dispatch(planned);
     finish(result, { preferredId: block.id });
   }
 
@@ -279,7 +326,17 @@ export function attachFlowEditor(host, {
       render({ focusAt: from, preferredId: block.id });
       return;
     }
-    const result = session.dispatch({ type: "replaceRange", from, to, text: replacement });
+    let planned;
+    try {
+      planned = planInlineTextEdit({
+        source: session.snapshot.text, block, from, to, text: replacement
+      });
+    } catch (error) {
+      onError("Girdi kaynağı koruyamadı: " + (error?.message ?? "UNSAFE_EDIT"));
+      render({ focusAt: from, preferredId: block.id });
+      return;
+    }
+    const result = session.dispatch(planned);
     const sourceCaret = nearestGraphemeBoundary(session.snapshot.text,
       Math.min(session.snapshot.text.length, from + replacement.length), "right");
     session.setSelection(collapsedSelection(sourceCaret));
@@ -347,6 +404,19 @@ export function attachFlowEditor(host, {
     onCompositionChange(false);
   }, { signal });
 
+  host.addEventListener("cut", event => {
+    const editor = event.target.closest?.("[data-flow-block]");
+    if (!editor || composing) return;
+    const block = projectFlowBlocks(getStructure()).find(b =>
+      b.id === editor.dataset.flowBlock);
+    if (!block?.editable || !selectedRange(editor, block)) return;
+    const selected = doc.getSelection()?.toString() ?? "";
+    if (!selected) return;
+    event.preventDefault();
+    event.clipboardData?.setData("text/plain", selected);
+    dispatch(editor, block, { type: "replaceSelection", text: "" });
+  }, { signal });
+
   host.addEventListener("paste", event => {
     const editor = event.target.closest?.("[data-flow-block]");
     if (!editor || composing || !event.clipboardData) return;
@@ -393,8 +463,14 @@ export function attachFlowEditor(host, {
     if (!block?.editable) { onError("Biçimlendirmek için düzenlenebilir metin seç."); return false; }
     const editor = [...host.querySelectorAll("[data-flow-block]")].find(el =>
       el.dataset.flowBlock === block.id);
-    if (editor && doc.getSelection()?.anchorNode &&
-        editor.contains(doc.getSelection().anchorNode)) selectedRange(editor, block);
+    const native = doc.getSelection();
+    if (!editor || !native?.anchorNode || !native?.focusNode ||
+        !(native.anchorNode === editor || editor.contains(native.anchorNode)) ||
+        !(native.focusNode === editor || editor.contains(native.focusNode)) ||
+        !selectedRange(editor, block)) {
+      onError("Biçimlendirilecek metni görsel blok içinde seç.");
+      return false;
+    }
     const { start, end } = selectionBounds(session.snapshot.selection);
     let operation;
     try {

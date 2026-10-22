@@ -103,6 +103,65 @@ async function run() {
   assert.equal(await page("!!document.querySelector('.flow-callout')"), true);
   await page("document.querySelector('#show-preview').click()");
   assert.equal(await page("!document.querySelector('#preview-pane').hidden"), true);
+  // G0.6A regression: reversed selection across styled and plain runs must
+  // NEVER consume hidden Markdown delimiters or create an undo entry.
+  const priorId = await page("document.querySelector('#document-id').textContent");
+  await page("document.querySelector('#new-document').click()");
+  await retry("new regression note", () =>
+    page("!document.querySelector('#editor-screen').hidden && " +
+      "document.querySelector('#document-id').textContent !== " + JSON.stringify(priorId)));
+  await page("document.querySelector('#show-write').click()");
+  const rawRegressionNote = "A **kalın** B\n\n:::efss.unknown\nsecret: x\n:::\n";
+  await page('(() => { const e=document.querySelector("#editor"); e.focus();' +
+    'e.textContent=' + JSON.stringify(rawRegressionNote) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"})); })()');
+  await retry("source ready", () =>
+    page("document.querySelector('#editor').textContent.includes('**kalın**')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("rich paragraph", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
+  await page('(() => { const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;' +
+    'const spans=el.querySelectorAll("[data-inline-run]");' +
+    'const last=spans[spans.length-1].firstChild;' +
+    'el.focus();document.getSelection().setBaseAndExtent(last,last.length,bold,0);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
+  assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"),
+    "A kalın B");
+  // Focus at the *start of the strong DOM leaf*: source offset must be after
+  // the opening **, not at the previous plain run's end.
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const t=el.querySelector("strong").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,0,t,0);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"ğ"}));})()');
+  await retry("strong-run prefix insertion", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'ğkalın'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const t=el.querySelector("strong").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"👩‍👧"}));})()');
+  await retry("strong-run emoji suffix", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'ğkalın👩‍👧'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("emoji undo", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'ğkalın'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("emoji redo", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'ğkalın👩‍👧'"));
+  await page("document.querySelector('#save').click()");
+  await retry("rich note saved", () =>
+    page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
+  const richNotes = await page("window.bellekpadDesktop.listDocuments()");
+  assert.equal(richNotes.ok, true);
+  const lastNote = richNotes.data.at(-1);
+  const readRich = await page("window.bellekpadDesktop.openDocument(" +
+    JSON.stringify(lastNote.kind) + "," + JSON.stringify(lastNote.id) + ")");
+  assert.equal(readRich.ok, true);
+  assert.match(readRich.data.body, /A \*\*ğkalın👩‍👧\*\* B/);
+  assert.match(readRich.data.body, /:::efss.unknown/);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }
