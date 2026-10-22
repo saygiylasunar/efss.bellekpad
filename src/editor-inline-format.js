@@ -158,7 +158,7 @@ export function planInlineVisibleMark({ source, block, start, end, mark }) {
     fail("INVALID_MARK_SELECTION");
 
   const selected = inline.text.slice(start, end);
-  if (!selected.trim() || /^\\s|\\s$/.test(selected))
+  if (!selected.trim() || /^\s|\s$/.test(selected))
     fail("MARK_WHITESPACE_EDGE");
 
   const from = mapInlineVisibleOffset(inline, start, "right");
