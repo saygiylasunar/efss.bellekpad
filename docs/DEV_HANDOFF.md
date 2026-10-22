@@ -100,7 +100,7 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 ## 4. Roadmap — önce metin doğruluğu, sonra tablo, sonra artboard
 
-### G0.6 — HEMEN SIRADAKİ İŞ: doğal yazı akışı ve zengin seçim
+### G0.6 — AKTİF: G0.6B doğal blok akışı; G0.6A karma işaret kenarları açık
 
 **G0.6A · Selection / Inline doğruluğu (ilk sprint)**
 - Çok parçalı formatted text (plain + strong + em + strike), ileri/ters selection, clipboard, mouse, Ctrl+B/I/S ve kaynak marker sınırlarında **Unicode güvenli kaynak↔görünür offset eşleme**.
@@ -145,21 +145,18 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Yeni sohbetin ilk somut uygulama görevi
+## 5. Sıradaki gerçek geliştirme görevi (G0.6B devamı)
 
-**Görev: G0.6A.2 devamı — iç içe B/I `***` çakışmalarının kaynak korunarak kanonikleştirilmesi ve kalan karma toggle vakaları.** Complete-mark splice, tek seviyeli/nested partial edit, kısmi strike ile güvenli B/I ekleme ve atomik ters selection Undo/Redo doğrulandı; bunları yeniden yazma. Fiziksel klavye/IME ve geniş model sınırlarını G0.6C kabul kapısında ayrıca denetle. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
+**Görev:** Mevcut kaynak güdümlü basit Enter, atomik numaralı kardeş yeniden numaralama, bir seviyelik bullet Tab/Shift+Tab ve marker Backspace doğrulandı. Şimdi **Backspace/Delete blok sınırında güvenli birleştirme** ile görsel paragraf düzenleme kabiliyetini ilerlet. Tam çok seviyeli nesting ya da fiziksel IME testi yapılmış gibi davranma. Kullanıcının blok nitelikleri/görsel Inspector talebi, [BLOCK_BEHAVIOR_SPEC.md](BLOCK_BEHAVIOR_SPEC.md) ile bağlayıcı UX hedefidir; karmaşık metadata'ya onaysız EFSS syntax icat etme.
 
-1. GitHub'da **main HEAD** ve **core-checks + desktop-smoke** sonuçlarını güncel oku; bu dosyayı ve \`docs/EDITOR_G0_5.md\`'yi yeniden gözden geçir.
-2. \`src/editor-inline-format.js\`, \`src/editor-flow-adapter.js\`, \`src/editor-text-engine.js\`, \`src/editor-flow-model.js\` ve \`desktop/smoke.mjs\` kodunu canlı repodan oku.
-3. **Önce test:** G0.6A.1 içinde zaten doğrulanan run başı/sonu Unicode ve ters karma seçim üzerine; bu kez gerçekten seçili **karma run metnini değiştirme/biçim değiştirme** planının güvenli split/merge regresyonları. Undo/Redo, CRLF ve EFSS extension byte korumasını sürdür. Kaynak metin harf veya marker kaybediyorsa tek bir adımı bile başarı ilan etme.
-4. Own range mapping/transaction düzenleyicisini geliştir; sadece doğrulanan küçük bir dikey dilim tamamla. Yeni editör paketi, ikinci kaydetme formatı ve onaysız migration yok.
-5. Windows ve Linux **gerçek Electron** workflow smoke testlerini güncelle, kırmızı CI'ı düzelt; commit SHA, test sonucu, açık risk ve sonraki net işi bildir.
-6. Daha sonraki G0.6B işine ancak bu ilk gate stabil olduğunda geç. “Amerika'yı yeniden keşfetme” araştırma iznidir, kütüphane import izni değildir.
+1. Önce güncel **main HEAD** ve **core-checks + desktop-smoke** durumunu teyit et. Son doğrulanmış kod SHA'sı `cd661ad`, docs-only güncel HEAD bundan ileridedir.
+2. `src/editor-flow-model.js`, `src/editor-flow-adapter.js`, `src/editor-block-model.js`, `src/editor-text-engine.js` ve `desktop/smoke.mjs` üzerinden mevcut source/DOM/undo sınırlarını oku.
+3. İlk hedef: imleç başta/sonda iken **güvenli iki basit düz paragraf** için Backspace/Delete; kaynakta CRLF ve blok ayracı doğru işlenmeli, gerekirse fail-closed. Başlık/list/quote dönüşümü ayrı politika gerektirir. Rich mark veya unknown EFSS'yi asla ham metne indirgeme.
+4. G0.6B.3 için `Tab` yalnız iki boşluklu **ilk bullet nesting** düzeyini destekler. Derinliği artırmak için önce AST/list hierarchy + kayıpsız grammar tasarlanmalı; yalnız CSS girintisi/ön ek eklemek yeterli değil.
+5. Her yeni davranışa saf planner testi + gerçek Win/Linux Electron renderer smoke + Undo/Redo + opaque extension + Unicode/CRLF senaryosu ekle. Yeşil CI olmadan kabul ilan etme.
+6. Dev handoff, STATUS ve BLOCK_BEHAVIOR_SPEC'i gerçek sonuçlarla düzelt; doğru repoda **main** üzerinden ilerle, yeni branch veya üçüncü taraf editor kütüphanesi açma.
 
-**İlk 3 regresyon örneği:**
-- Kaynak: \`A **kalın** B\`. Görselde \`kalın B\` seçimi ve biçim düğmesi, görünmeyen marker'ları silmemeli. Destek yoksa aynı kaynak korunup net uyarı çıkmalı.
-- Kaynak: \`**İçerik**\`. Baş/sona \`ğ\` ve \`👩‍👧\` ekle, sil, undo/redo, kaynak↔görsel arasında dön; sözdizimi bozulmamalı.
-- CRLF + bilinmeyen \`:::efss.*\` bloğu + biçimlendirilmiş metni kaydet/kapat/aç; **özgün bilinmeyen source byte'ları** korunmalı.
+**Kısa kabul örnekleri:** `Birinci\n\nİkinci` içinde ikinci paragraf başında Backspace; ilk paragraf sonunda Delete; bunların Undo/Redo'su. `- Liste\n\n:::efss.secret\n...\n:::` için ise sınır yanlışlıkla kaynağı veya uzantıyı tüketmemeli. Gerçek görsel DOM imleç konumu kaynağa eşlenmiş olmalı.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -204,7 +201,7 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 ## 8. Önemli teknik borç / riskler
 
 - Source ve görünen metnin offset'leri farklı; nested \`<strong>/<em>\` DOM text node'ları ve ters selection hassas.
-- G0.5 formatting sadece **tek biçimsiz run** veya **tam mark toggle** için testli; karma stilli selection fail-closed. Çok bloklu bir Word alternatifi gibi tanıtma.
+- G0.6A karma B/I/S işlemleri parser-oracle ile sınırlı; bazı `***` komşu marker vakaları fail-closed. Tam çok bloklu Word alternatifi gibi tanıtma.
 - Flow her değişimde yeniden projekte/render ediliyor; caret ve uzun belge performansına dikkat.
 - Blok kimlikleri oturum içinde stabil; **dosya aç-kapat sonrası kalıcı node ID henüz yok**.
 - IME/noncancelable input ve fiziksel klavye, sentetik GUI smoke ile doğrulanmış sayılmaz.
@@ -213,8 +210,8 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 - DevTools gizliliği DRM değildir. Original rights notice bir telif bildirimi; mutlak teknik engelleme değildir.
 - **Henüz yok:** tam görsel tablolar, çok satırlı/nested callout, çoklu artboard, inspector, vector text outlines, PDF/DPI/compression, imzalı installer.
 
-## 9. Yeni sohbette aynen verilebilecek tek satırlık talimat
+## 9. Yeni sohbette kullanılacak görev cümlesi
 
-> **“BellekPad'e docs/DEV_HANDOFF.md ve docs/EDITOR_G0_6A.md üzerinden devam et. saygiylasunar/efss.bellekpad main HEAD ve CI'yi kontrol et. G0.6A.1 + G0.6A.2 complete-run splice/strike tamamlandı; G0.6A.2 partial run split/merge için regresyon testlerini, güvenli kodu ve Windows/Linux Electron smoke'u geliştir, commit et. Electron + özgün editör + EFSS Markdown kararlarına bağlı kal; üçüncü taraf editör getirme.”**
+> **“BellekPad'e `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md` üzerinden devam et. `saygiylasunar/efss.bellekpad` main HEAD ve CI'yi denetle. G0.6B.3 Tab/Shift+Tab tek derinlikli bullet, marker Backspace ve atomik ordered Enter çalışıyor; G0.6B'nin güvenli paragraph Backspace/Delete split/merge işini kod, Node testi ve Windows/Linux Electron smoke ile sürdür. İkinci belge kaynağı yaratma, opaque EFSS byte'larını koru, aynı main'den ilerle.”**
 
-**Amaç:** Bir dosya, bir ürün mantığı, katmanlar arasında net köprüler, veri kaybı olmadan öngörülebilir ve hassas bir gerçek metin editörü.
+**Amaç:** Bir belge kaynağı, öngörülebilir klavye etkileşimleri, güvenli Undo/Redo ve giderek zenginleşen özgün blok UI. Önceden yapılmış kesitleri sırf eski plan paragrafı öyle dedi diye tekrar yazma.
