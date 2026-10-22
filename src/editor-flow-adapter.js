@@ -4,7 +4,7 @@ import {
 } from "./editor-text-engine.js";
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter,
-  planFlowListIndent, planFlowBackspaceAtStart
+  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -383,6 +383,34 @@ export function attachFlowEditor(host, {
     const command = editPayload(event);
     if (!command) return;
     event.preventDefault();
+    // A paragraph boundary cannot be edited as a single inline run. Before
+    // the ordinary character deletion path, attempt a source-verified join.
+    // Refusals are no-ops: never erase a separator, opaque extension or mark
+    // through native contentEditable's implicit DOM mutation.
+    if (block.type === "paragraph" &&
+        (command.type === "deleteBackward" || command.type === "deleteForward")) {
+      if (!selectedRange(editor, block)) return;
+      const sel = selectionBounds(session.snapshot.selection);
+      const boundary = command.type === "deleteBackward" ?
+        block.sourceStart : block.sourceEnd;
+      if (sel.start === sel.end && sel.start === boundary) {
+        try {
+          const planned = planFlowParagraphJoin({
+            source: session.snapshot.text, document: getStructure(),
+            block, at: sel.start,
+            direction: command.type === "deleteBackward" ? "backward" : "forward"
+          });
+          const result = session.dispatch(planned);
+          finish(result, { focusAt: planned.selectionAfter.focus.offset });
+        } catch (error) {
+          // At the beginning/end of a document there may simply be no
+          // adjoining paragraph; this is a deliberate harmless no-op.
+          if (error?.message !== "FLOW_PARAGRAPH_JOIN_UNSUPPORTED")
+            onError("Paragraf sınırı korunuyor: " + (error?.message ?? "UNSAFE_JOIN"));
+        }
+        return;
+      }
+    }
     if (command.type === "deleteBackward" &&
         ["list_item", "heading", "quote"].includes(block.type)) {
       if (!selectedRange(editor, block)) return;

@@ -513,6 +513,42 @@ async function run() {
   assert.equal(await page("getComputedStyle(document.querySelector('.flow-syntax-separator')).display"), "none");
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent"), spacingSource);
+
+  // G0.6B.5: native Backspace at second paragraph joins plain paragraphs.
+  // The implicit Markdown blank row is invisible, but deletion stays a
+  // single reversible source transaction with the correct DOM focus.
+  await page("document.querySelector('#show-write').click()");
+  const joinSource = "Birinci\n\nİkinci\n\n:::efss.opaque\nsecret: intact\n:::\n";
+  await page('(() => {const el=document.querySelector("#editor");el.focus();' +
+    'el.textContent=' + JSON.stringify(joinSource) + ';' +
+    'el.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("join source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('Birinci\\n\\nİkinci')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("two prose paragraphs in Flow", () =>
+    page("document.querySelectorAll('.flow-paragraph .flow-editable').length === 2"));
+  await page('(() => {const el=document.querySelectorAll(".flow-paragraph .flow-editable")[1];' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,0,t,0);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
+  await retry("Backspace joined plain paragraphs", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinciİkinci'"));
+  assert.equal(await page("document.querySelector('.flow-readonly')?.textContent.includes('secret: intact')"),true);
+  await page("document.querySelector('#undo').click()");
+  await retry("paragraph join undo restores both paragraphs", () =>
+    page("document.querySelectorAll('.flow-paragraph .flow-editable').length === 2"));
+  // Native Delete at the end of the first paragraph is the inverse entry.
+  await page('(() => {const el=document.querySelectorAll(".flow-paragraph .flow-editable")[0];' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"deleteContentForward"}));})()');
+  await retry("Delete joined plain paragraphs", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinciİkinci'"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinciİkinci')"),true);
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: intact')"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

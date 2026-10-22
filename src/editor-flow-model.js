@@ -426,6 +426,60 @@ export function planFlowBackspaceAtStart({ source, block, at } = {}) {
   });
 }
 
+
+/**
+ * G0.6B.5: join TWO consecutive, plain paragraph blocks across exactly one
+ * Markdown blank separator. This removes the two line endings in one source
+ * transaction (as Word-like Backspace/Delete joins two paragraphs). It never
+ * consumes a heading, list item, quote, rich-text mark, or opaque EFSS block.
+ * Reparse the candidate to ensure that it remains one *editable* paragraph.
+ */
+export function planFlowParagraphJoin({ source, document, block, at, direction } = {}) {
+  if (typeof source !== "string" || document?.source !== source ||
+      !Array.isArray(document.blocks) || block?.type !== "paragraph" ||
+      !block.editable || !["backward", "forward"].includes(direction) ||
+      !Number.isSafeInteger(at) || !isGraphemeBoundary(source, at))
+    fail("INVALID_FLOW_PARAGRAPH_JOIN");
+  const boundary = direction === "backward" ? block.sourceStart : block.sourceEnd;
+  if (at !== boundary || source.slice(block.start, block.end) !== block.raw)
+    fail("FLOW_JOIN_NOT_AT_BOUNDARY");
+  const blocks = projectFlowBlocks(document);
+  const index = blocks.findIndex(b => b.id === block.id);
+  if (index < 0) fail("FLOW_JOIN_STALE_BLOCK");
+  const left = direction === "backward" ? blocks[index - 2] : blocks[index];
+  const blank = direction === "backward" ? blocks[index - 1] : blocks[index + 1];
+  const right = direction === "backward" ? blocks[index] : blocks[index + 2];
+  if (!left || !right || !blank?.separator || !left.editable || !right.editable ||
+      left.type !== "paragraph" || right.type !== "paragraph" ||
+      left.end !== blank.start || blank.end !== right.start ||
+      left.sourceStart !== left.start || right.sourceStart !== right.start ||
+      left.inline?.regions.length || right.inline?.regions.length ||
+      source.slice(left.sourceStart, left.sourceEnd) !== left.text ||
+      source.slice(right.sourceStart, right.sourceEnd) !== right.text)
+    fail("FLOW_PARAGRAPH_JOIN_UNSUPPORTED");
+
+  const from = left.sourceEnd, to = right.sourceStart;
+  const gap = source.slice(from, to);
+  if (!/^(\r\n|\r|\n){2}$/.test(gap))
+    fail("FLOW_PARAGRAPH_JOIN_UNSUPPORTED");
+  const merged = left.text + right.text;
+  const candidate = source.slice(0, from) + source.slice(to);
+  // Do not rely on string concatenation alone. The parser could reinterpret
+  // the new line as Markdown syntax or merge a different AST structure.
+  const next = projectFlowBlocks(reconcileBlockSource(document, candidate));
+  const joined = next.find(b => b.start === left.start && b.type === "paragraph");
+  if (!joined?.editable || joined.text !== merged ||
+      joined.sourceStart !== left.sourceStart ||
+      joined.sourceEnd !== from + right.text.length)
+    fail("FLOW_PARAGRAPH_JOIN_REPARSE_FAILED");
+  return Object.freeze({
+    type: "replaceRange", from, to, text: "",
+    selectionAfter: collapsedSelection(from),
+    operation: direction === "backward" ?
+      "flow-paragraph-backspace-join" : "flow-paragraph-delete-join"
+  });
+}
+
 export function slashFlowCommand(text) {
   if (typeof text !== "string") return null;
   const commands = {

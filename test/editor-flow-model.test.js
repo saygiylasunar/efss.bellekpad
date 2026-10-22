@@ -6,7 +6,7 @@ import { planInlineTextEdit } from "../src/editor-inline-format.js";
 import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
   calloutMarkdown, slashFlowCommand, planFlowEnter,
-  planFlowListIndent, planFlowBackspaceAtStart
+  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
@@ -33,6 +33,83 @@ test("Flow hides only the implicit prose separator, not intentional blank lines"
     assert.equal(blanks[0]?.raw, blankRaw, source);
     assert.equal(createBlockDocument(source).source, source);
   }
+});
+
+
+test("G0.6B.5 Backspace/Delete join adjacent plain paragraphs without extra line endings", () => {
+  for (const eol of ["\n", "\r\n", "\r"]) {
+    for (const direction of ["backward", "forward"]) {
+      const source = "Birinci" + eol + eol + "İkinci 🧩" + eol;
+      const document = createBlockDocument(source);
+      const paragraphs = projectFlowBlocks(document).filter(b => b.type === "paragraph");
+      assert.equal(paragraphs.length, 2);
+      const block = direction === "backward" ? paragraphs[1] : paragraphs[0];
+      const at = direction === "backward" ? block.sourceStart : block.sourceEnd;
+      const session = new TextEditorSession({text:source,
+        selection:collapsedSelection(at)});
+      const plan = planFlowParagraphJoin({source,document,block,at,direction});
+      assert.equal(plan.type,"replaceRange");
+      assert.equal(plan.text,"");
+      assert.equal(plan.to - plan.from, 2 * eol.length);
+      session.dispatch(plan);
+      assert.equal(session.snapshot.text, "Birinciİkinci 🧩" + eol);
+      assert.equal(session.snapshot.selection.focus.offset, "Birinci".length);
+      const next = projectFlowBlocks(createBlockDocument(session.snapshot.text));
+      assert.equal(next.filter(b => b.type === "paragraph").length, 1);
+      assert.equal(next[0].text, "Birinciİkinci 🧩");
+      session.undo();
+      assert.equal(session.snapshot.text, source);
+      assert.equal(session.snapshot.selection.focus.offset, at);
+      session.redo();
+      assert.equal(session.snapshot.text, "Birinciİkinci 🧩" + eol);
+    }
+  }
+});
+test("G0.6B.5 joins middle paragraphs but does not consume external EFSS bytes", () => {
+  const source = "# Önce\n\nİlk\n\nİkinci\n\n:::efss.opaque\nprivate: 👩‍👧\n:::\n";
+  const doc = createBlockDocument(source);
+  const paragraphs = projectFlowBlocks(doc).filter(b => b.type === "paragraph");
+  const op = planFlowParagraphJoin({source,document:doc,block:paragraphs[1],
+    at:paragraphs[1].sourceStart,direction:"backward"});
+  const after = source.slice(0,op.from) + op.text + source.slice(op.to);
+  assert.equal(after,"# Önce\n\nİlkİkinci\n\n:::efss.opaque\nprivate: 👩‍👧\n:::\n");
+  assert.equal(after.split(":::efss.opaque")[1],
+    source.split(":::efss.opaque")[1]);
+});
+test("G0.6B.5 refuses joins through headings, lists, extra blanks, rich marks or extensions", () => {
+  const samples = [
+    ["# Başlık\n\nMetin", "backward"],
+    ["- Madde\n\nMetin", "backward"],
+    ["Metin\n\n> Alıntı", "forward"],
+    ["Birinci\n\n\nİkinci", "backward"],
+    ["**Kalın**\n\nNormal", "backward"],
+    ["Normal\n\n*İtalik*", "forward"],
+    ["Birinci\n\n:::efss.opaque\nsecret: 1\n:::\n", "forward"],
+    ["Yalnız", "backward"]
+  ];
+  for (const [source,direction] of samples) {
+    const document = createBlockDocument(source);
+    const paragraphs = projectFlowBlocks(document).filter(b => b.type === "paragraph");
+    const block = direction === "backward" ? paragraphs.at(-1) : paragraphs[0];
+    const at = direction === "backward" ? block.sourceStart : block.sourceEnd;
+    const session = new TextEditorSession({text:source});
+    assert.throws(() => planFlowParagraphJoin({source,document,block,at,direction}),
+      /FLOW_PARAGRAPH_JOIN_UNSUPPORTED/,source);
+    assert.equal(session.snapshot.text,source);
+    assert.equal(session.historyDepth,0);
+  }
+});
+test("G0.6B.5 rejects a stale doc or a caret that is not at the boundary", () => {
+  const source = "Birinci\n\nİkinci";
+  const document = createBlockDocument(source);
+  const second = projectFlowBlocks(document).filter(b => b.type === "paragraph")[1];
+  assert.throws(()=>planFlowParagraphJoin({
+    source,document,block:second,at:second.sourceStart + 1,direction:"backward"
+  }),/FLOW_JOIN_NOT_AT_BOUNDARY/);
+  assert.throws(()=>planFlowParagraphJoin({
+    source,document:createBlockDocument("Changed\n\nİkinci"),block:second,
+    at:second.sourceStart,direction:"backward"
+  }),/INVALID_FLOW_PARAGRAPH_JOIN/);
 });
 
 test("G0.6B.4 terminal Enter then typing stays in editable Flow, never merges two paragraphs", () => {
