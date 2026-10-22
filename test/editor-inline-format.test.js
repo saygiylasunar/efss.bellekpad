@@ -197,3 +197,11 @@ test("G0.6A: single unmarked run keeps previous format/unformat semantics", () =
   });
   assert.equal(reverse.operation, "remove");
 });
+
+test("G0.6A: stale projection with identical visible text never edits changed markup", () => {
+  const block = paragraph("A **kalın** B");
+  // Visible text matches; the source/marks emphatically do not.
+  assert.throws(() => planInlineVisibleMark({
+    source: "A *kalın* B", block, start: 0, end: block.text.length, mark: "strike"
+  }), /INVALID_MARK_SELECTION/);
+});
