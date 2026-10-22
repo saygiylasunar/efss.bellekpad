@@ -19,6 +19,8 @@
 
 > **G0.6A.2 kaynak güvenliği ek kesiti:** düz-run mark ekleme ve tam mark kaldırma da tek `verifyMarkCandidate` parser/stil doğrulamasından geçer. Bitişik `*` / `**` işaretlerinde görünür metni değiştirebilecek sonuçlar `MARK_SOURCE_COLLISION` olarak fail-closed reddedilir. Kaynağı, migration veya bağımlılık olmadan korumayı hedefler. CI yeni commit üzerinden doğrulanmalıdır.
 
+> **CI geri dönüş düzeltmesi:** `e8be393` commit'i CI'da başarısız oldu (5 Node ReferenceError + Windows/Linux mixed-strike smoke); mixed format branch'inde tanımsız `candidate` erişimi, zaten hesaplanmış `validated` kaynak ofsetleriyle değiştirildi ve regresyon testi eklendi. Bu düzeltmeyi içerdiği commit'in CI durumunu ayrıca denetle; eski yeşil sonucu taşımamalısın.
+
 ## 0. Ürünü bir paragrafta devret
 
 **BellekPad**, EFSS Markdown'ı taşınabilir **kalıcı kaynak dili** olarak kullanan, ama kullanıcıyı Markdown yazmaya zorlamayan; Word kadar güçlü metin düzenlemeyi, Notion benzeri blok/komut eklemeyi ve Illustrator benzeri hassas konum/ölçü/typography denetimini **minimal, öngörülebilir arayüzle** sunmayı hedefleyen **yerel-öncelikli Electron masaüstü editörü**. Kendi belge modeli, transaction/undo motoru, görsel metin işleme ve artboard/layout algoritması geliştirilecek. Başka editörlerin fikirleri/algoritmaları araştırılabilir, ancak **başka editör kütüphanesi ya da veri formatı projeye ithal edilmeyecek**. Mevcut sürüm tam ürün değil; çalışan **erken G0.5 görsel Flow prototipi**.

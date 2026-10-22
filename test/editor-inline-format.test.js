@@ -191,6 +191,30 @@ test("G0.6A.2 mixed partial formatting respects grapheme and EFSS/CRLF boundarie
 });
 
 
+
+test("G0.6A.2 mixed mark planner returns concrete post-edit source selection positions", () => {
+  const cases = [
+    ["A **kalın** B", "kalın", " B", "strike"],
+    ["A **kalın** B", "lın", " B", "strike"],
+    ["A ~~sil~~ B", "sil", " B", "emphasis"]
+  ];
+  for (const [src, first, last, mark] of cases) {
+    const start = src.indexOf(first), end = src.indexOf(last, start) + last.length;
+    const op = planInlineMark({ source: src, block: paragraph(src), start, end, mark });
+    const next = src.slice(0, op.from) + op.text + src.slice(op.to);
+    assert.equal(projectInline(next).text, projectInline(src).text);
+    assert.ok(Number.isSafeInteger(op.selectionStart) &&
+      Number.isSafeInteger(op.selectionEnd) && op.selectionStart < op.selectionEnd);
+    const state = new TextEditorSession({ text: src });
+    state.dispatch({ ...op, selectionAfter: {
+      anchor: textPosition(op.selectionEnd), focus: textPosition(op.selectionStart)
+    } });
+    assert.equal(state.snapshot.selection.anchor.offset, op.selectionEnd);
+    state.undo(); assert.equal(state.snapshot.text, src);
+    state.redo(); assert.equal(state.snapshot.text, next);
+    assert.equal(state.snapshot.selection.anchor.offset, op.selectionEnd);
+  }
+});
 test("G0.6A.2 plain-run marks refuse asterisk collisions without mutation", () => {
   const cases = [
     ["A *x*y", "y", "strong"],

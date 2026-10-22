@@ -62,3 +62,8 @@ Remain within **G0.6A.2**: extend the verified single-level close/reopen split t
 The former plain-run mark-add and whole-mark remove paths could change how adjacent asterisk delimiters parse without verifying output. For instance, applying strong to the trailing plain `y` in `A *x*y` yielded `A *x***y**`, changing the visible text. This path now rejects such candidates as `MARK_SOURCE_COLLISION` without modifying the source.
 
 All mark add/remove operations now use a shared `verifyMarkCandidate()`: identical visible text, exact styles outside selection, expected per-character style delta inside selection, and re-mapped post-edit caret offsets. No grammar/migration or external editor runtime was introduced. Model tests cover collision refusal, supported formatting/Unicode, nested unformat and Undo/Redo; desktop smoke covers the refused toolbar action. **CI result must be validated against the new commit before calling this accepted.**
+
+
+### Hotfix: mixed-mark selection offset regression (22.10.2026)
+
+Source commit `e8be393` **did not pass CI**: 5 Node tests raised `ReferenceError: candidate is not defined` in `planInlineMark` after the shared verifier refactor, and Windows/Linux renderer smokes timed out at mixed strike. These are implementation regressions, not confirmed parser failures. The fix reads `selectionStart`/`selectionEnd` from the already-validated `verifyMarkCandidate` result, removes the dangling `candidate` variable, and adds a direct mixed-mark/Undo-Redo offset regression. Re-run core and both desktop jobs on the new commit; do not credit green status from the previous commit.

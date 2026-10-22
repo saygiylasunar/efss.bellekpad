@@ -420,10 +420,8 @@ export function planInlineMark({ source, block, start, end, mark }) {
       // Map logical visible endpoints back to actual post-edit source runs,
       // never to synthetic wrapper bytes; this also restores reverse DOM
       // selections when the host retains anchor/focus direction.
-      selectionStart: block.sourceStart +
-        mapInlineVisibleOffset(candidate, visibleStart, "right"),
-      selectionEnd: block.sourceStart +
-        mapInlineVisibleOffset(candidate, visibleEnd, "left"),
+      selectionStart: absolute(validated.selectionStart),
+      selectionEnd: absolute(validated.selectionEnd),
       operation: "add-mixed"
     });
   }
