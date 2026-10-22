@@ -16,6 +16,25 @@ const editable = source => projectFlowBlocks(createBlockDocument(source)).filter
 
 
 
+test("Flow hides only the implicit prose separator, not intentional blank lines", () => {
+  const cases = [
+    ["Birinci\n\nİkinci", [true], "\n"],
+    ["Birinci\r\n\r\nİkinci", [true], "\r\n"],
+    ["# Başlık\n\nMetin", [true], "\n"],
+    ["Birinci\n\n\nİkinci", [false], "\n\n"],
+    ["Birinci\n\n", [false], "\n"],
+    ["- Liste\n\nMetin", [false], "\n"],
+    ["Birinci\n\n:::efss.unknown\nx: private\n:::\n", [false], "\n"]
+  ];
+  for (const [source, expected, blankRaw] of cases) {
+    const blocks = projectFlowBlocks(createBlockDocument(source));
+    const blanks = blocks.filter(b => b.type === "blank");
+    assert.deepEqual(blanks.map(b => !!b.separator), expected, source);
+    assert.equal(blanks[0]?.raw, blankRaw, source);
+    assert.equal(createBlockDocument(source).source, source);
+  }
+});
+
 test("G0.6B.4 terminal Enter then typing stays in editable Flow, never merges two paragraphs", () => {
   for (const source of [
     "Birinci", "Birinci\n", "Birinci\r\n", "# Başlık\n",

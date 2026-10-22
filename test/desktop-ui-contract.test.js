@@ -116,6 +116,15 @@ test("G0.5 renders inline marks via safe DOM without importing a rich-text libra
   assert.doesNotMatch(flow, /execCommand/);
 });
 
+test("visual prose Enter uses one line of spacing, not an extra rendered row", () => {
+  const adapter = read("src/editor-flow-adapter.js");
+  const css = read("desktop/ui/styles.css");
+  const model = read("src/editor-flow-model.js");
+  assert.match(model, /separator: true/);
+  assert.match(adapter, /flow-syntax-separator/);
+  assert.match(css, /\.flow-block\.flow-syntax-separator\{display:none\}/);
+});
+
 test("G0.6B.3 single-depth bullet keyboard actions stay local and source-aware", () => {
   const flow = read("src/editor-flow-model.js");
   const adapter = read("src/editor-flow-adapter.js");

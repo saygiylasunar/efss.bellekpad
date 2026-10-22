@@ -67,9 +67,18 @@ export function projectFlowBlocks(doc) {
       // a multiline AST paragraph, making Flow read-only.
       const caret = index === doc.blocks.length - 1 &&
         block.end === doc.source.length ? block.end : block.start;
+      // Markdown needs one *blank separator line* between independent prose
+      // paragraphs. Do not render that syntax as another 42px empty editor
+      // row: one Enter should feel like one Enter. Extra deliberate blank
+      // lines, and the terminal editable blank, remain visible.
+      const prose = new Set(["paragraph", "heading"]);
+      const separator = /^(?:\r\n|\r|\n)$/.test(raw) &&
+        prose.has(doc.blocks[index - 1]?.type) &&
+        prose.has(doc.blocks[index + 1]?.type);
       return Object.freeze({
         id: block.id, type: "blank", text: "", raw, start: block.start,
         end: block.end, sourceStart: caret, sourceEnd: caret,
+        ...(separator ? { separator: true } : {}),
         editable: true
       });
     }

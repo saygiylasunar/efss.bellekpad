@@ -496,6 +496,23 @@ async function run() {
   assert.equal(await page("document.querySelector('.flow-readonly') === null"), true);
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinci\\n\\nİkinci')"),true);
+
+  // A single Enter between prose blocks retains Markdown's correct \n\n
+  // source separator without displaying an additional 42px empty Flow row.
+  await page("document.querySelector('#show-write').click()");
+  const spacingSource = "Birinci\n\nİkinci";
+  await page('(() => {const el=document.querySelector("#editor");el.focus();' +
+    'el.textContent=' + JSON.stringify(spacingSource) + ';' +
+    'el.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("spacing test loaded", () =>
+    page("document.querySelector('#editor').textContent === 'Birinci\\n\\nİkinci'"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("prose spacing rendered", () =>
+    page("document.querySelectorAll('.flow-paragraph .flow-editable').length === 2"));
+  assert.equal(await page("document.querySelectorAll('.flow-syntax-separator').length"), 1);
+  assert.equal(await page("getComputedStyle(document.querySelector('.flow-syntax-separator')).display"), "none");
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent"), spacingSource);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

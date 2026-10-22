@@ -131,6 +131,10 @@ function noteElement(doc, block, kind) {
   card.className = "flow-block flow-" + block.type;
   card.dataset.blockId = block.id;
   if (block.variant) card.dataset.variant = block.variant;
+  if (block.separator) {
+    card.classList.add("flow-syntax-separator");
+    card.setAttribute("aria-hidden", "true");
+  }
   if (block.type === "heading" && Number.isInteger(block.level) &&
       block.level >= 1 && block.level <= 6)
     card.dataset.headingLevel = String(block.level);
