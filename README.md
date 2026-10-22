@@ -50,7 +50,7 @@ npm test
 
 The public-source sanity check and GitHub Actions help catch private paths or credential patterns, but they cannot guarantee that all private information is absent. Local personal data, trained models, private notes, logs, and keys must stay off the public repository. See [privacy policy](docs/PRIVACY.md).
 
-**Editor status:** G0.6A.2 / v0.2.8 — desktop Electron Flow editor, source-safe mixed-selection edits, including a verified subset of nested strike/strong partial editing. It is **not yet a production-ready rich note editor**. Full rich multi-block editing, tables, artboards, installer, crash recovery, browser IndexedDB and complete import/export remain future work. See the [current development handoff](docs/DEV_HANDOFF.md).
+**Editor status:** G0.6A.2 / v0.2.8 — desktop Electron Flow editor, parser-validated nested partial edits and supported mixed B/I/S formatting; forward/reverse rich selections survive Undo/Redo. Ambiguous asterisk collisions, physical-keyboard IME, and multi-block editing remain incomplete. It is **not yet a production-ready rich note editor**. Full rich multi-block editing, tables, artboards, installer, crash recovery, browser IndexedDB and complete import/export remain future work. See the [current development handoff](docs/DEV_HANDOFF.md).
 
 ## Genuine self-developed editor — next priority
 

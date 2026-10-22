@@ -91,3 +91,7 @@ Tam seçilen Markdown işaretlerini ve düz metni bir işlemde değiştirme/silm
 ## G0.6A.2 — verified bounded nested partial editing
 
 Commit `6f27e29` expands partial text replacement from single-level Markdown marks to a verified subset of nested wrappers (strike plus strong), preserving all unselected mark traces and opaque source bytes. Unsupported ambiguous nested B/I delimiters still reject without changing source. 235/235 Node checks and Windows/Linux Electron smoke succeeded; physical keyboard, IME and generalized mixed formatting remain open. [Implementation detail](EDITOR_G0_6A_2.md).
+
+## G0.6A.2 — safe mixed-partial marks and reverse formatting Undo/Redo
+
+`a41c246` adds parser-validated balanced B/I/S marking over supported partial strong/plain and strike/plain selections without rewriting outside source. `9e534eb` persists format operation selection anchor/focus in the same undo entry, so reverse selection survives undo and redo. `***` collisions remain fail-closed. Latest code: **241/241 Node + sanity/check, Windows and Linux real Electron smoke passed.** G0.6A is not fully accepted; continue the remaining B/I collision gate in [DEV_HANDOFF.md](DEV_HANDOFF.md).
