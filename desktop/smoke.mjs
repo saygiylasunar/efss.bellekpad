@@ -298,7 +298,7 @@ async function run() {
     'const leaf=el.querySelectorAll("[data-inline-run]");' +
     'const last=leaf[leaf.length-1].firstChild;el.focus();' +
     'document.getSelection().setBaseAndExtent(last,0,last,last.length);' +
-    'document.querySelector("#format-strong").click();})()');
+    'document.querySelector("#format-bold").click();})()');
   assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"), "A xy");
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('A *x*y')"), true);
