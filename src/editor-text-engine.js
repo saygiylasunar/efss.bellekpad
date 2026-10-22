@@ -185,7 +185,13 @@ export class TextEditorSession {
       default: fail("UNSUPPORTED_TEXT_COMMAND");
     }
     if (from === to && inserted === "") return { changed: false, state: before };
-    const applied = applyStep(before, { from, to, inserted });
+    // A source-aware rich-text operation may supply an exact post-edit
+    // anchor/focus. Validate it atomically and record it in the same history
+    // step, so redo never collapses a reverse selection or points at syntax.
+    if (command.selectionAfter !== undefined && command.type !== "replaceRange")
+      fail("INVALID_TEXT_COMMAND");
+    const applied = applyStep(before, { from, to, inserted },
+      command.selectionAfter ?? null);
     if (applied.state.text === before.text) return { changed: false, state: before };
     const now = Number.isFinite(at) ? at : Date.now();
     const previous = this.#undo.at(-1);

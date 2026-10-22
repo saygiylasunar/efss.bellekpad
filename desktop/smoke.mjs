@@ -271,6 +271,9 @@ async function run() {
   await page("document.querySelector('#redo').click()");
   await retry("partial mixed mark redo", () =>
     page("document.querySelector('.flow-paragraph s strong')?.textContent === 'lın'"));
+  // Redo must reproduce the formatted reverse selection as well as its text.
+  assert.equal(await page('(() => {const s=document.getSelection();' +
+    'return s.anchorNode?.textContent === " B" && s.focusNode?.textContent === "lın";})()'), true);
   await page("document.querySelector('#save').click()");
   await retry("partial mixed note saved", () =>
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));

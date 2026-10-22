@@ -494,16 +494,21 @@ export function attachFlowEditor(host, {
       return false;
     }
     const { type, from, to, text, selectionStart, selectionEnd } = operation;
-    const result = session.dispatch({ type, from, to, text });
     const anchor = reversed ? selectionEnd : selectionStart;
     const focus = reversed ? selectionStart : selectionEnd;
-    session.setSelection({
-      anchor: textPosition(anchor),
-      focus: textPosition(focus)
-    });
+    let result;
+    try {
+      result = session.dispatch({ type, from, to, text, selectionAfter: {
+        anchor: textPosition(anchor), focus: textPosition(focus)
+      } });
+    } catch (error) {
+      onError("Biçimlendirme kaydedilemedi: " + (error?.message ?? "Hata"));
+      return false;
+    }
+    if (!result.changed) return false;
     notify();
     render({ focusAt: anchor, selectionEnd: focus });
-    return result.changed;
+    return true;
   }
 
   function insert(kind, variant = "info") {

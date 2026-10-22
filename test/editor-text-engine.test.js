@@ -36,6 +36,41 @@ test("immutable text-frame state, typed locations, and selection direction", () 
   }), /INVALID_TEXT_POSITION/);
 });
 
+
+test("rich replaceRange persists typed reverse selection in the same undo/redo transaction", () => {
+  const original = "kalın";
+  const s = new TextEditorSession({ text: original, selection: select(5, 0) });
+  const result = s.dispatch({
+    type: "replaceRange", from: 0, to: 5, text: "**kalın**",
+    selectionAfter: select(7, 2)
+  });
+  assert.equal(result.changed, true);
+  assert.equal(s.snapshot.text, "**kalın**");
+  assert.deepEqual(s.snapshot.selection, select(7, 2));
+  assert.equal(s.historyDepth, 1);
+  s.undo();
+  assert.equal(s.snapshot.text, original);
+  assert.deepEqual(s.snapshot.selection, select(5, 0));
+  s.redo();
+  assert.equal(s.snapshot.text, "**kalın**");
+  assert.deepEqual(s.snapshot.selection, select(7, 2));
+});
+test("invalid post-transaction selection cannot mutate source or history", () => {
+  const s = editor("👩‍👧a", 0);
+  const before = s.snapshot;
+  assert.throws(() => s.dispatch({
+    type: "replaceRange", from: 0, to: 0, text: "Z",
+    selectionAfter: select(2, 2)
+  }), /INVALID_TEXT_POSITION/);
+  assert.equal(s.snapshot, before);
+  assert.equal(s.historyDepth, 0);
+  assert.throws(() => s.dispatch({
+    type: "insertText", text: "Z", selectionAfter: select(0, 0)
+  }), /INVALID_TEXT_COMMAND/);
+  assert.equal(s.snapshot, before);
+  assert.equal(s.historyDepth, 0);
+});
+
 test("undo restores original content and reverse selection; redo replays exactly", () => {
   const s = editor("abc def");
   s.setSelection(select(7, 4));
