@@ -404,6 +404,9 @@ export function attachFlowEditor(host, {
     }
     const start = Math.min(a, b), end = Math.max(a, b);
     const backwards = a > b;
+    // Capture the source-aware, directional *before* selection in the shared
+    // TextEditorSession so Undo can restore it as one atomic transaction.
+    if (!selectedRange(editor, block)) return false;
     let operation;
     try {
       operation = planInlineVisibleMark({
