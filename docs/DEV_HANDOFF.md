@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6B.4 (güvenli zengin metin Enter + Enter sonrası terminal paragrafta yazma) / v0.2.8**. Son doğrulanan kaynak commit'i **91fa27ddc804a2333bdac1c9e7817b247aa04e25**. **269/269 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
+> Doğrulanan son uygulama durumu: **G0.6B.5 (görsel editörde güvenli düz paragraf Backspace/Delete birleştirmesi) / v0.2.8**. Son doğrulanan kaynak commit'i **6482537c151c732d8f081a91fd4989c01fbae0b9**. **275/275 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **G0.6B.5 paragraf birleşimi — 22.10.2026:** Görsel Flow'da ikinci düz paragrafın başında Backspace ya da ilkinin sonunda Delete, aradaki tam iki kaynak satır sonunu **tek replaceRange transaction** ile kaldırır. Örnek: `Birinci\n\nİkinci` → `Birinciİkinci`. Candidate EFSS parser ile yeniden açılıp tek **editable** paragraf kaldığı doğrulanır. Başlık/liste/alıntı, kalın-italik-karışık kaynak, fazladan blank ve bilinmeyen EFSS üzerinden birleşim **reddedilir**, byte kaybı yaratılmaz. `6482537` kodu **275/275 Node ve Windows/Linux Electron smoke başarılı**. **Model entegrasyonu hâlâ Electron IPC'ye bağlı değil; G0.6B/C doğal editör kabulü bitmeden hazır gibi sunulmayacak.**
 
 > **G0.6B.4 görsel yazma düzeltmesi — 22.10.2026:** Görsel Flow'da normal paragraf sonu Enter ve ardından yazma, terminal boş bloğa yanlış source offsetinden yazdığı için iki kaynak satırı tek çok satırlı, read-only paragrafa birleştiriyordu; kullanıcıyı "Kaynağı düzenle" yoluna gönderiyordu. Son terminal boş satırda offset artık EOL sonuna bağlanır, Enter caret'i de bu sınırla hizalanır. Güvenli B/I/S işaretli tek satırlı paragraf, liste, başlık ve alıntıda Enter için parser/stil oracle doğrulamalı split de eklendi; riskli iç içe yıldız çakışmaları hâlâ kayıpsız reddedilir. `91fa27d` **269/269 Node + Windows/Linux gerçek Electron smoke yeşil**. **İçteki boş satırlar, çok satırlı birleşik paragraf, fiziksel IME ve karma çapraz blok senaryoları tamamlanmadı.**
 
@@ -147,18 +149,18 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sıradaki gerçek geliştirme görevi (G0.6B devamı)
+## 5. Sıradaki gerçek geliştirme görevi (G0.6B.6 → G0.6C)
 
-**Görev:** Mevcut kaynak güdümlü basit Enter, atomik numaralı kardeş yeniden numaralama, bir seviyelik bullet Tab/Shift+Tab ve marker Backspace doğrulandı. Şimdi **Backspace/Delete blok sınırında güvenli birleştirme** ile görsel paragraf düzenleme kabiliyetini ilerlet. Tam çok seviyeli nesting ya da fiziksel IME testi yapılmış gibi davranma. Kullanıcının blok nitelikleri/görsel Inspector talebi, [BLOCK_BEHAVIOR_SPEC.md](BLOCK_BEHAVIOR_SPEC.md) ile bağlayıcı UX hedefidir; karmaşık metadata'ya onaysız EFSS syntax icat etme.
+**Aktif hedef:** B.5'te iki düz paragrafın sınırındaki Backspace/Delete artık kaynak güvenli. Sıradaki sorun **çok satırlı/Shift+Enter metin akışı ve paragraf içi boş satırlar**. Bunlar tek satırlı EFSS AST projeksiyonunda hâlâ read-only hale gelebilir. Önce multiline projection ile kaynak↔DOM offsets; sonra editor Ctrl/Shift/Enter davranışını kayıpsız bağla.
 
-1. Önce güncel **main HEAD** ve **core-checks + desktop-smoke** durumunu teyit et. Son doğrulanmış kod SHA'sı `cd661ad`, docs-only güncel HEAD bundan ileridedir.
-2. `src/editor-flow-model.js`, `src/editor-flow-adapter.js`, `src/editor-block-model.js`, `src/editor-text-engine.js` ve `desktop/smoke.mjs` üzerinden mevcut source/DOM/undo sınırlarını oku.
-3. İlk hedef: imleç başta/sonda iken **güvenli iki basit düz paragraf** için Backspace/Delete; kaynakta CRLF ve blok ayracı doğru işlenmeli, gerekirse fail-closed. Başlık/list/quote dönüşümü ayrı politika gerektirir. Rich mark veya unknown EFSS'yi asla ham metne indirgeme.
-4. G0.6B.3 için `Tab` yalnız iki boşluklu **ilk bullet nesting** düzeyini destekler. Derinliği artırmak için önce AST/list hierarchy + kayıpsız grammar tasarlanmalı; yalnız CSS girintisi/ön ek eklemek yeterli değil.
-5. Her yeni davranışa saf planner testi + gerçek Win/Linux Electron renderer smoke + Undo/Redo + opaque extension + Unicode/CRLF senaryosu ekle. Yeşil CI olmadan kabul ilan etme.
-6. Dev handoff, STATUS ve BLOCK_BEHAVIOR_SPEC'i gerçek sonuçlarla düzelt; doğru repoda **main** üzerinden ilerle, yeni branch veya üçüncü taraf editor kütüphanesi açma.
+1. `main` HEAD, Core ve gerçek Windows/Linux Electron smoke'u doğrula; **G0.6B.5 kabul edilmiş kod: `6482537c151c732d8f081a91fd4989c01fbae0b9`**.
+2. `src/ast.js` paragraph grouping, `src/editor-flow-model.js` flow projection, `src/editor-flow-adapter.js` DOM selection, `src/editor-inline-format.js` parser style oracle sınırlarını birlikte incele. Shift+Enter için kaynak formatını tahmin etme.
+3. İlk hedef çok satırlı paragrafın iki kaynak satırını **tek Flow metin gövdesinde** görünür tutmak, caret konumlarını kayıpsız map etmek ve native input/Undo/Redo testi yapmak. Eksik grammar için fail-closed; özel EFSS/escaped code biçimlerini zorla işleme.
+4. Sonrasında Shift+Enter, paragraf içindeki nonterminal blank, normal Enter + Backspace/Delete ve çizim teması üzerine kabul testleri. Türkçe Unicode/ZWJ, CRLF, source roundtrip, kaydet-yeniden aç.
+5. G0.6C fiziksel klavye/IME kabulü ve tam editör sağlamlığı. Bundan sonra paralel AI runtime Electron köprüsünü (yerel LM Studio `/v1`) gerçek kullanıcı seçimine bağlı olarak aç; provider/ComfyUI parçaları hazır olsa da **desktop bağları henüz yok**.
+6. Kapsam: doğru repo `saygiylasunar/efss.bellekpad`, **main**, yeni branch yok, ayrı DOM belge otoritesi yok, yeniden paketlenen harici editor yok. Gerçek CI geçmeden milestone kabulü ilan etme.
 
-**Kısa kabul örnekleri:** `Birinci\n\nİkinci` içinde ikinci paragraf başında Backspace; ilk paragraf sonunda Delete; bunların Undo/Redo'su. `- Liste\n\n:::efss.secret\n...\n:::` için ise sınır yanlışlıkla kaynağı veya uzantıyı tüketmemeli. Gerçek görsel DOM imleç konumu kaynağa eşlenmiş olmalı.
+**Açık eksikler:** zengin metin içi çok bloklu seçim, birden fazla list nesting seviyesi, IME kompozisyonu, rich paragraph join, Inspector gerçek blok özellikleri. B.5 yalnızca `paragraph + tek blank + paragraph` senaryosunu açtı.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -214,6 +216,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette kullanılacak görev cümlesi
 
-> **“BellekPad'e `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md` üzerinden devam et. `saygiylasunar/efss.bellekpad` main HEAD ve CI'yi denetle. G0.6B.3 Tab/Shift+Tab tek derinlikli bullet, marker Backspace ve atomik ordered Enter çalışıyor; G0.6B'nin güvenli paragraph Backspace/Delete split/merge işini kod, Node testi ve Windows/Linux Electron smoke ile sürdür. İkinci belge kaynağı yaratma, opaque EFSS byte'larını koru, aynı main'den ilerle.”**
+> **“BellekPad'e `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md` üzerinden devam et. `saygiylasunar/efss.bellekpad` main HEAD ve CI'yi denetle. G0.6B.5 düz paragraf Backspace/Delete atomik birleşimi (code `6482537`, 275/275 + Win/Linux smoke) çalışıyor. Sırada multiline/Shift+Enter ve kaynak↔DOM seçim doğruluğu var; bunu Node regresyonları + gerçek masaüstü testleriyle uygula. EFSS kaynağını tek belge otoritesi tut, opaque byte'ları koru, doğru repo main'den ilerle.”**
 
-**Amaç:** Bir belge kaynağı, öngörülebilir klavye etkileşimleri, güvenli Undo/Redo ve giderek zenginleşen özgün blok UI. Önceden yapılmış kesitleri sırf eski plan paragrafı öyle dedi diye tekrar yazma.
+**Prensip:** Kullanıcı görsel editörden temel yazım için kaynak sekmesine gönderilmeyecek; ancak kayıp riski olan karmaşık durumlar sessizce değiştirilmez.

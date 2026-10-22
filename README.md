@@ -50,7 +50,7 @@ npm test
 
 The public-source sanity check and GitHub Actions help catch private paths or credential patterns, but they cannot guarantee that all private information is absent. Local personal data, trained models, private notes, logs, and keys must stay off the public repository. See [privacy policy](docs/PRIVACY.md).
 
-**Editor status:** G0.6B.4 / v0.2.8 — local Electron Flow editor with source-safe B/I/S edits, supported styled single-line Enter, terminal paragraph Enter→typing repair, ordered-list renumbering, one-level bullet indent, marker Backspace and H1–H6 visual hierarchy. Internal blank-line flows, general multi-level lists, selected/complex rich Enter, full multiline editing, physical-keyboard IME and Inspector remain incomplete. It is **not yet a production-ready rich note editor**. Full rich multi-block editing, tables, artboards, installer, crash recovery, browser IndexedDB and complete import/export remain future work. See the [current development handoff](docs/DEV_HANDOFF.md).
+**Editor status:** G0.6B.5 / v0.2.8 — local Electron Flow editor with source-safe B/I/S edits, supported styled single-line Enter, one-paragraph blank separator visual spacing, **safe plain paragraph Backspace/Delete joining**, ordered-list renumbering, one-level bullet indent, marker Backspace and H1–H6 visual hierarchy. Rich paragraph merging, internal blank-line flows, general multiline editing, physical-keyboard IME and Inspector remain incomplete. It is **not yet a production-ready rich note editor**. Full rich multi-block editing, tables, artboards, installer, crash recovery, browser IndexedDB and complete import/export remain future work. See the [current development handoff](docs/DEV_HANDOFF.md).
 
 ## Genuine self-developed editor — next priority
 

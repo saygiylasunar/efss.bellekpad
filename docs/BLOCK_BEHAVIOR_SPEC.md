@@ -190,3 +190,14 @@ G0.6B devam ediyor: görsel blok şemalarının Inspector üzerinden gerçek dü
 **Verified code:** `91fa27ddc804a2333bdac1c9e7817b247aa04e25`; **269/269 Node**, sanity, Windows Electron and Linux/Xvfb Electron smoke all pass. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39834712654) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39834711885). Earlier code `c0c8cc` passed too; it did not include the terminal blank focus/typing fix.
 
 **Open:** Internal blank lines surrounded by blocks, multiline paragraph editing, selected text + Enter, physical IME, rich numbered list reindex, and cross-block Backspace/Delete. The product must not claim all visual editing issues are resolved.
+
+## G0.6B.5 — Plain paragraph Backspace/Delete joining (verified)
+
+**Scope:** On a collapsed caret at the start of the **second ordinary unmarked paragraph**, Backspace joins it with the first; Delete at the end of the **first paragraph** does the exact same thing. Example `Birinci\\n\\nİkinci` → `Birinciİkinci` (the notation here shows two actual Markdown source line endings). The pure planner `planFlowParagraphJoin` rejects stale documents, modified source spans, unsupported neighbors, rich B/I/S marks and anything other than **exactly one implicit blank separator**. Candidate source is reparsed with the EFSS block model and must resolve to **one editable paragraph** before mutation is allowed.
+
+One `replaceRange` command owns both the separator deletion and the new caret; Undo/Redo restores the precise prior source and selection. LF, CRLF, lone-CR, Unicode, opaque EFSS neighbors and real desktop input events are covered. Deliberately added extra blank lines are not consumed.
+
+**Accepted code:** `6482537c151c732d8f081a91fd4989c01fbae0b9`: **275/275 Node**, sanity gate, native Windows Electron and Ubuntu/Xvfb Electron smoke passed. [Core CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39844095282) · [Desktop CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39844095301).
+
+**Not covered:** rich/mixed-style paragraph joining, heading-to-paragraph conversion, other block boundaries, multiple deliberate blank lines, Shift+Enter and general multiline paragraph DOM↔source selection mapping.
+

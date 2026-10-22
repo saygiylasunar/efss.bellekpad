@@ -2,7 +2,7 @@
 
 > **22 Ekim 2026 güncel devir ve ileri roadmap:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active editor delivery: G0.6B.4 / v0.2.8 (22.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active editor delivery: G0.6B.5 / v0.2.8 (22.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -107,3 +107,8 @@ Code `4297d04`, smoke syntax fix `cd661ad`: **265/265 Node tests**, source sanit
 ## G0.6B.4 — real visual Enter after styled content, terminal typing recovery
 
 Code `c0c8cc` adds parser-verified rich B/I/S one-line split on Enter; code `91fa27d` fixes terminal blank caret position so typing after paragraph/heading Enter stays visually editable instead of merging into an AST multiline read-only paragraph. **269/269 Node, sanity + Windows/Linux Electron smoke passed**. Mixed nesting collisions, nonterminal blank paragraphs and full multi-block/IME edit flows still require work. [Block details](BLOCK_BEHAVIOR_SPEC.md).
+
+## G0.6B.5 — verified source-safe plain paragraph joining (22.10.2026)
+
+Commit `6482537` adds **Backspace at beginning of next paragraph** and **Delete at end of previous paragraph** over exactly one Markdown blank separator; parser verification enforces a single editable paragraph after joining. Source corruption, opaque EFSS, extra blanks and mixed-rich markers fail closed. **275/275 Node**, source sanity and real Windows/Linux Electron smoke passed. Next: multiline/Shift+Enter, selection across paragraphs, physical IME. [Block contract](BLOCK_BEHAVIOR_SPEC.md).
+
