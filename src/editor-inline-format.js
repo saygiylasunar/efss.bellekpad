@@ -275,6 +275,45 @@ export function planInlineTextEdit({
 }
 
 /**
+ * G0.6A.2: construct one reversible source splice for mixed selections.
+ * Move endpoints over fully selected invisible wrappers; for a partially
+ * intersected wrapper, close it before the requested mark and reopen it
+ * inside that mark (or the inverse on the right). Wrappers containing both
+ * endpoints stay untouched. The caller reparses every candidate and checks
+ * complete per-character styles before authorizing any mutation.
+ */
+function wrapMixedMarkedSelection(inline, raw, a, b, mark) {
+  let left = a, right = b, moved;
+  do {
+    moved = false;
+    for (const region of inline.regions) {
+      if (region.contentStart === left && region.contentEnd <= b &&
+          region.from < left) {
+        left = region.from; moved = true;
+      }
+      if (region.contentEnd === right && region.contentStart >= a &&
+          region.to > right) {
+        right = region.to; moved = true;
+      }
+    }
+  } while (moved);
+  const atStart = left === a ? inline.regions.filter(r =>
+    r.contentStart < a && a < r.contentEnd && r.contentEnd < b) : [];
+  const atEnd = right === b ? inline.regions.filter(r =>
+    a < r.contentStart && r.contentStart < b && b < r.contentEnd) : [];
+  const innerFirst = (x, y) => y.contentStart - x.contentStart ||
+    x.contentEnd - y.contentEnd;
+  atStart.sort(innerFirst);
+  atEnd.sort(innerFirst);
+  const markers = regions => regions.map(r => INLINE_MARKERS[r.mark]).join("");
+  const replacement = markers(atStart) + INLINE_MARKERS[mark] +
+    markers([...atStart].reverse()) + raw.slice(left, right) +
+    markers(atEnd) + INLINE_MARKERS[mark] +
+    markers([...atEnd].reverse());
+  return { left, right, replacement };
+}
+
+/**
  * Format an existing, explicitly selected source range inside one projected
  * editable Flow block. Returns a single replaceRange for the shared undo
  * journal. Never silently strips other marks, EFSS tokens, or nested source.
@@ -308,10 +347,8 @@ export function planInlineMark({ source, block, start, end, mark }) {
     item.marks.length === 0 &&
     absolute(item.from) <= start && absolute(item.to) >= end);
   if (!run) {
-    // Controlled G0.6A.2 vertical slice: wrapping mixed *complete* runs,
-    // e.g. strike over a bold run plus adjacent plain text. Check the parser's
-    // actual styled projection before admitting a command. Adjacent '*'
-    // delimiters and partially selected nested marks deliberately fail.
+    // Full-run and partial-run mixed selections are both candidate plans.
+    // Asterisk collisions remain non-mutating refusals, never silent edits.
     const raw = source.slice(block.sourceStart, block.sourceEnd);
     const a = start - block.sourceStart, b = end - block.sourceStart;
     const visibleStart = mapInlineSourceOffset(inline, a);
@@ -319,14 +356,17 @@ export function planInlineMark({ source, block, start, end, mark }) {
     const selectedVisible = inline.text.slice(visibleStart, visibleEnd);
     if (!selectedVisible.trim() || /^\s|\s$/.test(selectedVisible))
       fail("MARK_WHITESPACE_EDGE");
-    const { left, right } = expandFullySelectedRegions(inline, a, b);
-    if (left === a && right === b) fail("CROSS_MARK_SELECTION_UNSUPPORTED");
-    const marker = INLINE_MARKERS[mark];
-    const replacement = marker + raw.slice(left, right) + marker;
+    const { left, right, replacement } =
+      wrapMixedMarkedSelection(inline, raw, a, b, mark);
+    const partial = inline.regions.some(r =>
+      (r.contentStart < a && a < r.contentEnd && r.contentEnd < b) ||
+      (a < r.contentStart && r.contentStart < b && b < r.contentEnd));
+    const unsupported = partial ?
+      "PARTIAL_MARK_SELECTION_UNSUPPORTED" : "CROSS_MARK_SELECTION_UNSUPPORTED";
     const candidate = projectInline(raw.slice(0, left) + replacement + raw.slice(right));
     if (!candidate.editable || candidate.text !== inline.text ||
         !preservesOutside(inline, candidate, visibleStart, visibleEnd, visibleEnd - visibleStart))
-      fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+      fail(unsupported);
     const before = styleTrace(inline, visibleStart, visibleEnd);
     const after = styleTrace(candidate, visibleStart, visibleEnd);
     // All selected characters must acquire the requested mark, keeping every
@@ -344,16 +384,19 @@ export function planInlineMark({ source, block, start, end, mark }) {
       return JSON.stringify(pieces);
     }
     if (signature(before, mark) !== signature(after, null))
-      fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+      fail(unsupported);
     return Object.freeze({
       type: "replaceRange",
       from: block.sourceStart + left,
       to: block.sourceStart + right,
       text: replacement,
-      // Logical source selection spans the inserted run. Render maps it to
-      // visible text; source syntax remains authoritative.
-      selectionStart: block.sourceStart + left + marker.length,
-      selectionEnd: block.sourceStart + left + replacement.length - marker.length,
+      // Map logical visible endpoints back to actual post-edit source runs,
+      // never to synthetic wrapper bytes; this also restores reverse DOM
+      // selections when the host retains anchor/focus direction.
+      selectionStart: block.sourceStart +
+        mapInlineVisibleOffset(candidate, visibleStart, "right"),
+      selectionEnd: block.sourceStart +
+        mapInlineVisibleOffset(candidate, visibleEnd, "left"),
       operation: "add-mixed"
     });
   }

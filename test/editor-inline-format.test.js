@@ -116,6 +116,80 @@ test("G0.6A.2 strike can wrap whole bold-plus-plain selection without losing bol
     ["strike"]);
   state.undo(); assert.equal(state.snapshot.text, original);
 });
+
+test("G0.6A.2 partial bold to plain strike preserves all selected and outside marks", () => {
+  const src = "A **kalın** B";
+  const from = src.indexOf("lın"), to = src.length;
+  const state = new TextEditorSession({ text: src, selection: {
+    anchor: textPosition(to), focus: textPosition(from)
+  } });
+  const op = planInlineMark({ source: src, block: paragraph(src),
+    start: from, end: to, mark: "strike" });
+  assert.equal(op.operation, "add-mixed");
+  state.dispatch(op);
+  assert.equal(state.snapshot.text, "A **ka**~~**lın** B~~");
+  assert.equal(projectInline(state.snapshot.text).text, "A kalın B");
+  const runs = projectInline(state.snapshot.text).runs;
+  assert.deepEqual(runs.find(r => r.text === "ka").marks, ["strong"]);
+  assert.deepEqual(runs.find(r => r.text === "lın").marks, ["strike", "strong"]);
+  assert.deepEqual(runs.find(r => r.text === " B").marks, ["strike"]);
+  assert.equal(projectInline(state.snapshot.text).text.slice(4, 9), "lın B");
+  state.undo();
+  assert.equal(state.snapshot.text, src);
+  assert.equal(state.snapshot.selection.anchor.offset, to);
+  assert.equal(state.snapshot.selection.focus.offset, from);
+  state.redo();
+  assert.equal(state.snapshot.text, "A **ka**~~**lın** B~~");
+});
+test("G0.6A.2 partial plain to bold and inner bold strike keep opposite sides intact", () => {
+  const cases = [
+    ["A düz **kalın** B", "düz", "ka", "A ~~düz **ka**~~**lın** B"],
+    ["A **kalın** B", "al", "al", "A **k~~al~~ın** B"]
+  ];
+  for (const [src, first, last, expected] of cases) {
+    const from = src.indexOf(first);
+    const to = src.indexOf(last, from) + last.length;
+    const op = planInlineMark({ source: src, block: paragraph(src),
+      start: from, end: to, mark: "strike" });
+    const result = src.slice(0, op.from) + op.text + src.slice(op.to);
+    assert.equal(result, expected);
+    assert.equal(projectInline(result).text, projectInline(src).text);
+    assert.equal(op.operation, "add-mixed");
+  }
+});
+test("G0.6A.2 supports mixed bold and italic around strike but refuses ambiguous stars", () => {
+  const src = "A ~~sil~~ B";
+  for (const [mark, expected] of [
+    ["strong", "A **~~sil~~ B**"],
+    ["emphasis", "A *~~sil~~ B*"]
+  ]) {
+    const op = planInlineMark({ source: src, block: paragraph(src),
+      start: src.indexOf("sil"), end: src.length, mark });
+    assert.equal(src.slice(0, op.from) + op.text + src.slice(op.to), expected);
+  }
+  const collision = "A **kalın** B";
+  const pristine = new TextEditorSession({ text: collision });
+  assert.throws(() => planInlineMark({ source: collision,
+    block: paragraph(collision), start: collision.indexOf("lın"),
+    end: collision.length, mark: "emphasis" }),
+  /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
+  assert.equal(pristine.snapshot.text, collision);
+  assert.equal(pristine.historyDepth, 0);
+});
+test("G0.6A.2 mixed partial formatting respects grapheme and EFSS/CRLF boundaries", () => {
+  const src = "Başlık\r\n\r\nA **kalın** 👩‍👧\r\n\r\n:::efss.opaque\r\npayload: Ö\r\n:::\r\n";
+  const b = projectFlowBlocks(createBlockDocument(src)).find(x =>
+    x.type === "paragraph" && x.text.includes("kalın"));
+  const from = src.indexOf("lın"), to = b.sourceEnd;
+  const op = planInlineMark({ source: src, block: b, start: from, end: to,
+    mark: "strike" });
+  const session = new TextEditorSession({ text: src });
+  session.dispatch(op);
+  assert.ok(session.snapshot.text.includes(":::efss.opaque\r\npayload: Ö\r\n:::\r\n"));
+  assert.ok(session.snapshot.text.includes("👩‍👧~~"));
+  session.undo(); assert.equal(session.snapshot.text, src);
+});
+
 test("G0.6A.2 refuses partial nested inline styling without changing source", () => {
   const original = "A **kalın *eğik* söz** B";
   const state = new TextEditorSession({ text: original });

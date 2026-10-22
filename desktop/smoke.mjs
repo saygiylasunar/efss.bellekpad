@@ -237,6 +237,48 @@ async function run() {
   assert.equal(savedNested.ok, true);
   assert.match(savedNested.data.body, /A ~~sil [*][*]ka[*][*]~~yenisi/);
   assert.match(savedNested.data.body, /:::efss.unknown\nsecret: y\n:::/);
+
+  // G0.6A.2: reverse selection across a partial bold run + plain text.
+  // Formatting must preserve both the source markers and DOM selection
+  // direction, including undo/redo and exact local-vault persistence.
+  await page("document.querySelector('#show-write').click()");
+  const mixedFormatSource = "A **kalın** B\n\n:::efss.unknown\nsecret: format\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(mixedFormatSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("mixed source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('**kalın** B')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("rich formatting paragraph", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;' +
+    'const runs=el.querySelectorAll("[data-inline-run]");' +
+    'const tail=runs[runs.length-1].firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(tail,tail.length,bold,2);' +
+    'document.querySelector("#format-strike").click();})()');
+  await retry("reverse mixed strike", () =>
+    page("document.querySelector('.flow-paragraph s strong')?.textContent === 'lın' && " +
+      "document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A kalın B'"));
+  assert.equal(await page('(() => {const s=document.getSelection();' +
+    'return s.anchorNode?.textContent === " B" && s.focusNode?.textContent === "lın";})()'), true);
+  await page("document.querySelector('#undo').click()");
+  await retry("partial mixed mark undo", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın' && " +
+      "document.querySelector('.flow-paragraph s') === null"));
+  assert.equal(await page('(() => {const s=document.getSelection();' +
+    'return s.anchorNode?.textContent === " B" && s.focusNode?.textContent === "kalın";})()'), true);
+  await page("document.querySelector('#redo').click()");
+  await retry("partial mixed mark redo", () =>
+    page("document.querySelector('.flow-paragraph s strong')?.textContent === 'lın'"));
+  await page("document.querySelector('#save').click()");
+  await retry("partial mixed note saved", () =>
+    page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
+  const storedPartial = await page("window.bellekpadDesktop.openDocument(" +
+    JSON.stringify(lastNote.kind) + "," + JSON.stringify(lastNote.id) + ")");
+  assert.equal(storedPartial.ok, true);
+  assert.match(storedPartial.data.body, /A [*][*]ka[*][*]~~[*][*]lın[*][*] B~~/);
+  assert.match(storedPartial.data.body, /:::efss.unknown\nsecret: format\n:::/);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }

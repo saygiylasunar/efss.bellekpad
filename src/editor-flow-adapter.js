@@ -303,7 +303,12 @@ export function attachFlowEditor(host, {
   function history(type) {
     if (composing) return;
     const result = type === "undo" ? session.undo() : session.redo();
-    finish(result);
+    if (!result.changed) return;
+    notify();
+    // Undo restores the model's original anchor/focus direction. Do not
+    // collapse its selection merely because the Flow DOM was rebuilt.
+    const { anchor, focus } = session.snapshot.selection;
+    render({ focusAt: anchor.offset, selectionEnd: focus.offset });
   }
   function reconcileNative(editor, block) {
     if (composing) return;
@@ -477,6 +482,8 @@ export function attachFlowEditor(host, {
       return false;
     }
     const { start, end } = selectionBounds(session.snapshot.selection);
+    const reversed = session.snapshot.selection.anchor.offset >
+      session.snapshot.selection.focus.offset;
     let operation;
     try {
       operation = planInlineMark({
@@ -488,12 +495,14 @@ export function attachFlowEditor(host, {
     }
     const { type, from, to, text, selectionStart, selectionEnd } = operation;
     const result = session.dispatch({ type, from, to, text });
+    const anchor = reversed ? selectionEnd : selectionStart;
+    const focus = reversed ? selectionStart : selectionEnd;
     session.setSelection({
-      anchor: textPosition(selectionStart),
-      focus: textPosition(selectionEnd)
+      anchor: textPosition(anchor),
+      focus: textPosition(focus)
     });
     notify();
-    render({ focusAt: selectionStart, selectionEnd });
+    render({ focusAt: anchor, selectionEnd: focus });
     return result.changed;
   }
 
