@@ -163,7 +163,7 @@ async function run() {
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
   const richOpened = await page(expression);
   assert.equal(richOpened.ok, true);
-  assert.match(richOpened.data.body, /# ~~Önce \\*\\*Başlık!\\*\\* son~~/);
+  assert.ok(richOpened.data.body.includes("# ~~Önce **Başlık!** son~~"));
   assert.match(richOpened.data.body, /:::efss.callout/);
   console.log("DESKTOP GUI SMOKE PASSED — G0.6A reverse mixed-run selection/undo/redo/vault.");
   win.close(); app.quit();
