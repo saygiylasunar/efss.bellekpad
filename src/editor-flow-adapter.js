@@ -5,7 +5,7 @@ import {
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand
 } from "./editor-flow-model.js";
-import { mapInlineVisibleOffset, planInlineMark } from "./editor-inline-format.js";
+import { mapInlineVisibleOffset, planInlineVisibleMark } from "./editor-inline-format.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -393,12 +393,20 @@ export function attachFlowEditor(host, {
     if (!block?.editable) { onError("Biçimlendirmek için düzenlenebilir metin seç."); return false; }
     const editor = [...host.querySelectorAll("[data-flow-block]")].find(el =>
       el.dataset.flowBlock === block.id);
-    if (editor && doc.getSelection()?.anchorNode &&
-        editor.contains(doc.getSelection().anchorNode)) selectedRange(editor, block);
-    const { start, end } = selectionBounds(session.snapshot.selection);
+    // Use the actual *visible* DOM selection. Source selection endpoints
+    // can straddle hidden Markdown delimiters across styled runs.
+    const selected = doc.getSelection();
+    const a = editor && domCaret(editor, selected?.anchorNode, selected?.anchorOffset);
+    const b = editor && domCaret(editor, selected?.focusNode, selected?.focusOffset);
+    if (a === null || b === null || a === undefined || b === undefined) {
+      onError("Biçimlendirmek için Görsel modda metin seç.");
+      return false;
+    }
+    const start = Math.min(a, b), end = Math.max(a, b);
+    const backwards = a > b;
     let operation;
     try {
-      operation = planInlineMark({
+      operation = planInlineVisibleMark({
         source: session.snapshot.text, block, start, end, mark
       });
     } catch (error) {
@@ -407,12 +415,16 @@ export function attachFlowEditor(host, {
     }
     const { type, from, to, text, selectionStart, selectionEnd } = operation;
     const result = session.dispatch({ type, from, to, text });
+    // Keep direction of reverse mouse selections when possible. Both
+    // endpoints are source offsets in the ONE authoritative text session.
+    const anchor = backwards ? selectionEnd : selectionStart;
+    const focus = backwards ? selectionStart : selectionEnd;
     session.setSelection({
-      anchor: textPosition(selectionStart),
-      focus: textPosition(selectionEnd)
+      anchor: textPosition(anchor),
+      focus: textPosition(focus)
     });
     notify();
-    render({ focusAt: selectionStart, selectionEnd });
+    render({ focusAt: anchor, selectionEnd: focus, preferredId: block.id });
     return result.changed;
   }
 
