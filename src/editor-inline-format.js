@@ -146,6 +146,9 @@ function preservesStyleWithAddedMark(before, after, start, end, mark) {
 
 export function planInlineVisibleMark({ source, block, start, end, mark }) {
   const inline = block?.inline;
+  const raw = typeof source === "string" && block ?
+    source.slice(block.sourceStart, block.sourceEnd) : "";
+  const actual = projectInline(raw);
   if (typeof source !== "string" || !block?.editable || !inline?.editable ||
       !Object.hasOwn(INLINE_MARKERS, mark) ||
       !Number.isSafeInteger(start) || !Number.isSafeInteger(end) ||
@@ -154,7 +157,11 @@ export function planInlineVisibleMark({ source, block, start, end, mark }) {
       !isGraphemeBoundary(inline.text, end) ||
       !Number.isSafeInteger(block.sourceStart) ||
       !Number.isSafeInteger(block.sourceEnd) ||
-      projectInline(source.slice(block.sourceStart, block.sourceEnd)).text !== inline.text)
+      block.sourceStart < 0 || block.sourceEnd < block.sourceStart ||
+      block.sourceEnd > source.length ||
+      actual.text !== inline.text || actual.editable !== inline.editable ||
+      JSON.stringify(actual.runs) !== JSON.stringify(inline.runs) ||
+      JSON.stringify(actual.regions) !== JSON.stringify(inline.regions))
     fail("INVALID_MARK_SELECTION");
 
   const selected = inline.text.slice(start, end);
@@ -190,15 +197,15 @@ export function planInlineVisibleMark({ source, block, start, end, mark }) {
   if (alreadyMarked) fail("CROSS_MARK_SELECTION_UNSUPPORTED");
 
   const marker = INLINE_MARKERS[mark];
-  const raw = source.slice(absoluteFrom, absoluteTo);
-  const candidate = source.slice(block.sourceStart, absoluteFrom) + marker + raw +
-    marker + source.slice(absoluteTo, block.sourceEnd);
+  const selectedSource = source.slice(absoluteFrom, absoluteTo);
+  const candidate = source.slice(block.sourceStart, absoluteFrom) + marker +
+    selectedSource + marker + source.slice(absoluteTo, block.sourceEnd);
   if (!preservesStyleWithAddedMark(inline, projectInline(candidate), start, end, mark))
     fail("CROSS_MARK_SELECTION_UNSUPPORTED");
 
   return Object.freeze({
     type: "replaceRange", from: absoluteFrom, to: absoluteTo,
-    text: marker + raw + marker,
+    text: marker + selectedSource + marker,
     selectionStart: absoluteFrom + marker.length,
     selectionEnd: absoluteTo + marker.length,
     operation: "add"
