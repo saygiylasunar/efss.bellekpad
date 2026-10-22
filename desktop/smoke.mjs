@@ -141,7 +141,7 @@ async function run() {
   await page("document.querySelector('#undo').click()");
   await retry("mixed deletion undo preserves strong", () =>
     page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
-  // A partially selected strong run must remain fail-closed.
+  // Partial rich selection can now split a mark while retaining its prefix.
   await page('(() => { const el=document.querySelector(".flow-paragraph .flow-editable");' +
     'const bold=el.querySelector("strong").firstChild;' +
     'const spans=el.querySelectorAll("[data-inline-run]");' +
@@ -149,8 +149,11 @@ async function run() {
     'el.focus();document.getSelection().setBaseAndExtent(last,last.length,bold,2);' +
     'el.dispatchEvent(new InputEvent("beforeinput",{' +
     'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
-  assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"),
-    "A kalın B");
+  await retry("partial deletion preserves remaining bold prefix", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A ka'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("partial deletion undo restores full marked run", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
   // The entire mixed selection can be struck through, preserving bold.
   await page('(() => { const el=document.querySelector(".flow-paragraph .flow-editable");' +
     'const bold=el.querySelector("strong").firstChild;' +

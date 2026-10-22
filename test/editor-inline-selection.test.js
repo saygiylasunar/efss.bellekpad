@@ -79,17 +79,37 @@ test("G0.6A.2 fully-selected bold plus plain can be replaced without hidden mark
   session.redo();
   assert.equal(session.snapshot.text, "A değiştir");
 });
-test("G0.6A.2 partial cross-mark selection still fails closed", () => {
+test("G0.6A.2 partial bold/plain cross-selection preserves the outside bold prefix", () => {
   const src = "A **kalın** B";
   const p = block(src);
   const session = new TextEditorSession({ text: src, selection: {
     anchor: textPosition(src.length), focus: textPosition(6)
   } });
-  assert.throws(() => planInlineTextEdit({
+  const c = planInlineTextEdit({
     source: src, block: p, from: 6, to: src.length, text: "değiştir"
-  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
+  });
+  assert.equal(c.operation, "partial-marker-split");
+  session.dispatch(c);
+  assert.equal(session.snapshot.text, "A **ka**değiştir");
+  assert.equal(projectInline(session.snapshot.text).text, "A kadeğiştir");
+  assert.deepEqual(projectInline(session.snapshot.text).runs.find(r => r.text === "ka").marks, ["strong"]);
+  session.undo();
   assert.equal(session.snapshot.text, src);
-  assert.equal(session.canUndo, false);
+  assert.equal(session.snapshot.selection.anchor.offset, src.length);
+  assert.equal(session.snapshot.selection.focus.offset, 6);
+  session.redo();
+  assert.equal(session.snapshot.text, "A **ka**değiştir");
+});
+test("G0.6A.2 partial plain-to-bold replacement reopens styling for preserved suffix", () => {
+  const src = "A düz **kalın** B";
+  const p = block(src);
+  const from = src.indexOf("düz"), to = src.indexOf("lın");
+  const c = planInlineTextEdit({ source: src, block: p, from, to, text: "yeni" });
+  assert.equal(c.operation, "partial-marker-split");
+  const next = src.slice(0, c.from) + c.text + src.slice(c.to);
+  assert.equal(next, "A yeni**lın** B");
+  assert.equal(projectInline(next).text, "A yenilın B");
+  assert.deepEqual(projectInline(next).runs.find(r => r.text === "lın").marks, ["strong"]);
 });
 test("G0.6A.2 delete a complete styled region without leaving orphan Markdown", () => {
   const src = "A **kalın** B";
@@ -141,6 +161,17 @@ test("G0.6A.2 CRLF and opaque extensions survive balanced mixed replacement", ()
   assert.ok(session.snapshot.text.includes(":::efss.unknown\r\nitem: ö\r\n:::\r\n"));
   session.undo(); assert.equal(session.snapshot.text, src);
 });
+test("G0.6A.2 crossing nested partial regions is rejected without mutation", () => {
+  const src = "A **kalın *eğik* metin** Z";
+  const p = block(src);
+  const session = new TextEditorSession({ text: src });
+  assert.throws(() => planInlineTextEdit({
+    source: src, block: p, from: src.indexOf("eğik") + 1,
+    to: src.length, text: "yeni"
+  }), /NESTED_PARTIAL_MARK_UNSUPPORTED/);
+  assert.equal(session.snapshot.text, src);
+  assert.equal(session.historyDepth, 0);
+});
 test("G0.6A nested mark gaps cannot silently be overwritten", () => {
   const src = "A **kalın *eğik* metin** Z";
   const p = block(src);
@@ -150,7 +181,7 @@ test("G0.6A nested mark gaps cannot silently be overwritten", () => {
   assert.throws(() => planInlineTextEdit({
     source: src, block: p, from: italic, to: src.indexOf(" Z") + 2,
     text: "yeni"
-  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
+  }), /NESTED_PARTIAL_MARK_UNSUPPORTED/);
   const planned = planInlineTextEdit({
     source: src, block: p, from: italic, to: wordEnd, text: "yeni"
   });

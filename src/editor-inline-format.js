@@ -135,18 +135,51 @@ function expandFullySelectedRegions(projection, from, to) {
   }
   return { left, right };
 }
-function verifyProjectedEdit(inline, raw, from, to, insert, start, end) {
+function verifyProjectedEdit(inline, raw, from, to, insert, start, end, visibleInsert = insert) {
   const nextRaw = raw.slice(0, from) + insert + raw.slice(to);
   const projection = projectInline(nextRaw);
   const visibleStart = mapInlineSourceOffset(inline, start);
   const visibleEnd = mapInlineSourceOffset(inline, end);
-  const intended = inline.text.slice(0, visibleStart) + insert +
+  const intended = inline.text.slice(0, visibleStart) + visibleInsert +
     inline.text.slice(visibleEnd);
   if (!projection.editable || projection.text !== intended)
     fail("INLINE_EDIT_CHANGES_MARKUP");
-  if (!preservesOutside(inline, projection, visibleStart, visibleEnd, insert.length))
+  if (!preservesOutside(inline, projection, visibleStart, visibleEnd, visibleInsert.length))
     fail("INLINE_EDIT_CHANGES_OUTSIDE_STYLE");
   return projection;
+}
+
+/**
+ * For a partly selected single-level mark, keep its *unselected* text styled
+ * by closing at the left source boundary or reopening at the right boundary.
+ * Every candidate is checked against the parser and preserved-style oracle.
+ * Nested partially intersected regions remain unsupported in this cut.
+ */
+function partialBoundarySplice(inline, a, b, text) {
+  const affected = inline.regions.filter(r => a < r.contentEnd && b > r.contentStart);
+  // No overlapping nested regions; other unrelated marks elsewhere are fine.
+  for (let i = 0; i < affected.length; i++)
+    for (let j = i + 1; j < affected.length; j++)
+      if (affected[i].from < affected[j].from && affected[i].to > affected[j].from &&
+          affected[i].to < affected[j].to ||
+          affected[j].from < affected[i].from && affected[j].to > affected[i].from &&
+          affected[j].to < affected[i].to ||
+          affected[i].from < affected[j].from && affected[i].to > affected[j].to ||
+          affected[j].from < affected[i].from && affected[j].to > affected[i].to)
+        fail("NESTED_PARTIAL_MARK_UNSUPPORTED");
+
+  let left = a, right = b, closing = "", opening = "";
+  for (const r of affected) {
+    if (a <= r.contentStart && b >= r.contentEnd) {
+      if (left === r.contentStart) left = r.from;
+      if (right === r.contentEnd) right = r.to;
+    } else if (a > r.contentStart && b > r.contentEnd) {
+      closing += INLINE_MARKERS[r.mark];
+    } else if (a < r.contentStart && b < r.contentEnd) {
+      opening += INLINE_MARKERS[r.mark];
+    } else fail("PARTIAL_MARK_SELECTION_UNSUPPORTED");
+  }
+  return { left, right, replacement: closing + text + opening };
 }
 
 /**
@@ -207,15 +240,25 @@ export function planInlineTextEdit({
         error.message !== "HIDDEN_MARKER_SELECTION"))
       throw error;
   }
-  const { left, right } = expandFullySelectedRegions(inline, a, b);
-  if (left === a && right === b && !inline.regions.some(region =>
-      region.from >= a && region.to <= b)) fail("HIDDEN_MARKER_SELECTION");
-  verifyProjectedEdit(inline, raw, left, right, text, a, b);
+  let slice, operation = "balanced-marker-splice";
+  try {
+    const { left, right } = expandFullySelectedRegions(inline, a, b);
+    slice = { left, right, replacement: text };
+  } catch (error) {
+    if (error.message !== "PARTIAL_MARK_SELECTION_UNSUPPORTED") throw error;
+    slice = partialBoundarySplice(inline, a, b, text);
+    operation = "partial-marker-split";
+  }
+  if (slice.left === a && slice.right === b && slice.replacement === text &&
+      !inline.regions.some(region => region.from >= a && region.to <= b))
+    fail("HIDDEN_MARKER_SELECTION");
+  verifyProjectedEdit(inline, raw, slice.left, slice.right,
+    slice.replacement, a, b, text);
   return Object.freeze({
-    type: "replaceRange", from: block.sourceStart + left,
-    to: block.sourceStart + right, text,
-    selectionAt: block.sourceStart + left + text.length,
-    operation: "balanced-marker-splice"
+    type: "replaceRange", from: block.sourceStart + slice.left,
+    to: block.sourceStart + slice.right, text: slice.replacement,
+    selectionAt: block.sourceStart + slice.left + slice.replacement.length,
+    operation
   });
 }
 
