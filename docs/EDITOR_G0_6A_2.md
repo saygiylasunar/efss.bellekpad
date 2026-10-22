@@ -55,3 +55,10 @@ Remain within **G0.6A.2**: extend the verified single-level close/reopen split t
 - Four new inline formatting regression tests + two transaction engine tests; Electron smoke checks backward mixed selection, rendering, Undo/Redo direction and vault roundtrip (including unknown EFSS block).
 - **Verified:** `a41c246` and `9e534eb` passed their core and Windows/Ubuntu Electron workflows. Final code commit `9e534ebfd29e4cbae32585f55613a60cddc4bfda`: **241/241 Node, sanity/check, Windows/Linux smoke succeeded.** [Core #39778195357](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39778195357) · [Desktop #39778195348](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39778195348).
 - Still unsupported: ambiguous adjacent bold/italic asterisk delimiters, full nested B/I/S toggling, true physical-keyboard/IME validation, cross-block natural editing, large-document performance and assistive tech. Those are not claimed as accepted.
+
+
+## G0.6A.2 — universal source/style gate for mark transactions
+
+The former plain-run mark-add and whole-mark remove paths could change how adjacent asterisk delimiters parse without verifying output. For instance, applying strong to the trailing plain `y` in `A *x*y` yielded `A *x***y**`, changing the visible text. This path now rejects such candidates as `MARK_SOURCE_COLLISION` without modifying the source.
+
+All mark add/remove operations now use a shared `verifyMarkCandidate()`: identical visible text, exact styles outside selection, expected per-character style delta inside selection, and re-mapped post-edit caret offsets. No grammar/migration or external editor runtime was introduced. Model tests cover collision refusal, supported formatting/Unicode, nested unformat and Undo/Redo; desktop smoke covers the refused toolbar action. **CI result must be validated against the new commit before calling this accepted.**

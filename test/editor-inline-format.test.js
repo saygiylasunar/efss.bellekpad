@@ -190,6 +190,58 @@ test("G0.6A.2 mixed partial formatting respects grapheme and EFSS/CRLF boundarie
   session.undo(); assert.equal(session.snapshot.text, src);
 });
 
+
+test("G0.6A.2 plain-run marks refuse asterisk collisions without mutation", () => {
+  const cases = [
+    ["A *x*y", "y", "strong"],
+    ["A *x*y", "y", "emphasis"],
+    ["x**y**z", "x", "emphasis"],
+    ["x*y*z", "z", "emphasis"]
+  ];
+  for (const [src, selected, mark] of cases) {
+    const state = new TextEditorSession({ text: src });
+    const from = src.lastIndexOf(selected);
+    assert.throws(() => planInlineMark({ source: src, block: paragraph(src),
+      start: from, end: from + selected.length, mark }),
+      /MARK_SOURCE_COLLISION/, src + " " + mark);
+    assert.equal(state.snapshot.text, src);
+    assert.equal(state.historyDepth, 0);
+  }
+});
+test("G0.6A.2 safe plain-run formatting verifies the same parser oracle", () => {
+  const cases = [
+    ["A *x*y", "y", "strike", "A *x*~~y~~"],
+    ["A **x**y", "y", "strike", "A **x**~~y~~"],
+    ["İlk 👩‍👧 son", "👩‍👧", "strong", "İlk **👩‍👧** son"]
+  ];
+  for (const [src, selected, mark, expected] of cases) {
+    const from = src.indexOf(selected);
+    const op = planInlineMark({ source: src, block: paragraph(src),
+      start: from, end: from + selected.length, mark });
+    const state = new TextEditorSession({ text: src });
+    state.dispatch({ ...op, selectionAfter: {
+      anchor: textPosition(op.selectionStart), focus: textPosition(op.selectionEnd)
+    } });
+    assert.equal(state.snapshot.text, expected);
+    assert.equal(projectInline(state.snapshot.text).text, projectInline(src).text);
+    state.undo(); assert.equal(state.snapshot.text, src);
+    state.redo(); assert.equal(state.snapshot.text, expected);
+  }
+});
+test("G0.6A.2 whole-mark unformat proves nested-style preservation", () => {
+  const src = "Ö **kalın *eğik* söz** Z";
+  const p = paragraph(src);
+  const region = p.inline.regions.find(r => r.mark === "strong");
+  const op = planInlineMark({ source: src, block: p,
+    start: p.sourceStart + region.contentStart,
+    end: p.sourceStart + region.contentEnd, mark: "strong" });
+  const state = new TextEditorSession({ text: src });
+  state.dispatch(op);
+  assert.equal(state.snapshot.text, "Ö kalın *eğik* söz Z");
+  assert.deepEqual(projectInline(state.snapshot.text).runs
+    .find(r => r.text === "eğik").marks, ["emphasis"]);
+  state.undo(); assert.equal(state.snapshot.text, src);
+});
 test("G0.6A.2 refuses partial nested inline styling without changing source", () => {
   const original = "A **kalın *eğik* söz** B";
   const state = new TextEditorSession({ text: original });

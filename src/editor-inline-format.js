@@ -314,6 +314,41 @@ function wrapMixedMarkedSelection(inline, raw, a, b, mark) {
 }
 
 /**
+ * Every inline mark operation must preserve visible bytes and unrelated
+ * styles under our own parser, including formerly unchecked plain-run adds.
+ */
+function styleSignature(trace, mark, action) {
+  const normalized = [];
+  for (const part of trace) {
+    const marks = part.marks ? part.marks.split("/") : [];
+    if (action === "add" && !marks.includes(mark)) marks.push(mark);
+    if (action === "remove") {
+      const index = marks.indexOf(mark);
+      if (index >= 0) marks.splice(index, 1);
+    }
+    const key = marks.sort().join("/");
+    const prior = normalized.at(-1);
+    if (prior && prior.marks === key) prior.text += part.text;
+    else normalized.push({ marks: key, text: part.text });
+  }
+  return JSON.stringify(normalized);
+}
+function verifyMarkCandidate(before, nextRaw, start, end, mark, action) {
+  const after = projectInline(nextRaw);
+  const a = mapInlineSourceOffset(before, start);
+  const b = mapInlineSourceOffset(before, end);
+  if (!after.editable || after.text !== before.text ||
+      !preservesOutside(before, after, a, b, b - a) ||
+      styleSignature(styleTrace(before, a, b), mark, action) !==
+        styleSignature(styleTrace(after, a, b), null, null))
+    fail("MARK_SOURCE_COLLISION");
+  return {
+    selectionStart: mapInlineVisibleOffset(after, a, "right"),
+    selectionEnd: mapInlineVisibleOffset(after, b, "left")
+  };
+}
+
+/**
  * Format an existing, explicitly selected source range inside one projected
  * editable Flow block. Returns a single replaceRange for the shared undo
  * journal. Never silently strips other marks, EFSS tokens, or nested source.
@@ -337,9 +372,14 @@ export function planInlineMark({ source, block, start, end, mark }) {
   if (contained) {
     const from = absolute(contained.from), to = absolute(contained.to);
     const selected = source.slice(start, end);
+    const raw = source.slice(block.sourceStart, block.sourceEnd);
+    const { selectionStart, selectionEnd } = verifyMarkCandidate(
+      inline, raw.slice(0, contained.from) + selected + raw.slice(contained.to),
+      start - block.sourceStart, end - block.sourceStart, mark, "remove");
     return Object.freeze({
       type: "replaceRange", from, to, text: selected,
-      selectionStart: from, selectionEnd: from + selected.length,
+      selectionStart: absolute(selectionStart),
+      selectionEnd: absolute(selectionEnd),
       operation: "remove"
     });
   }
@@ -363,28 +403,15 @@ export function planInlineMark({ source, block, start, end, mark }) {
       (a < r.contentStart && r.contentStart < b && b < r.contentEnd));
     const unsupported = partial ?
       "PARTIAL_MARK_SELECTION_UNSUPPORTED" : "CROSS_MARK_SELECTION_UNSUPPORTED";
-    const candidate = projectInline(raw.slice(0, left) + replacement + raw.slice(right));
-    if (!candidate.editable || candidate.text !== inline.text ||
-        !preservesOutside(inline, candidate, visibleStart, visibleEnd, visibleEnd - visibleStart))
-      fail(unsupported);
-    const before = styleTrace(inline, visibleStart, visibleEnd);
-    const after = styleTrace(candidate, visibleStart, visibleEnd);
-    // All selected characters must acquire the requested mark, keeping every
-    // existing mark; no hidden reinterpretation of their other formatting.
-    function signature(trace, add) {
-      const pieces = [];
-      for (const part of trace) {
-        const marks = part.marks ? part.marks.split("/") : [];
-        if (add && !marks.includes(add)) marks.push(add);
-        const signature = marks.sort().join("/");
-        const last = pieces.at(-1);
-        if (last && last.marks === signature) last.text += part.text;
-        else pieces.push({ marks: signature, text: part.text });
-      }
-      return JSON.stringify(pieces);
+    let validated;
+    try {
+      validated = verifyMarkCandidate(inline,
+        raw.slice(0, left) + replacement + raw.slice(right),
+        a, b, mark, "add");
+    } catch (error) {
+      if (error.message === "MARK_SOURCE_COLLISION") fail(unsupported);
+      throw error;
     }
-    if (signature(before, mark) !== signature(after, null))
-      fail(unsupported);
     return Object.freeze({
       type: "replaceRange",
       from: block.sourceStart + left,
@@ -404,11 +431,15 @@ export function planInlineMark({ source, block, start, end, mark }) {
   if (!selected.trim() || /^\s|\s$/.test(selected))
     fail("MARK_WHITESPACE_EDGE");
   const marker = INLINE_MARKERS[mark];
+  const text = marker + selected + marker;
+  const raw = source.slice(block.sourceStart, block.sourceEnd);
+  const a = start - block.sourceStart, b = end - block.sourceStart;
+  const { selectionStart, selectionEnd } = verifyMarkCandidate(
+    inline, raw.slice(0, a) + text + raw.slice(b), a, b, mark, "add");
   return Object.freeze({
-    type: "replaceRange", from: start, to: end,
-    text: marker + selected + marker,
-    selectionStart: start + marker.length,
-    selectionEnd: end + marker.length,
+    type: "replaceRange", from: start, to: end, text,
+    selectionStart: absolute(selectionStart),
+    selectionEnd: absolute(selectionEnd),
     operation: "add"
   });
 }

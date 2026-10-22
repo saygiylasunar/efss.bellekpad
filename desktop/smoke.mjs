@@ -282,6 +282,26 @@ async function run() {
   assert.equal(storedPartial.ok, true);
   assert.match(storedPartial.data.body, /A [*][*]ka[*][*]~~[*][*]lın[*][*] B~~/);
   assert.match(storedPartial.data.body, /:::efss.unknown\nsecret: format\n:::/);
+
+  // Regression: plain-run formatting must not reinterpret adjacent * and **.
+  await page("document.querySelector('#show-write').click()");
+  const markerGuard = "A *x*y\n\n:::efss.unknown\nsecret: guard\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(markerGuard) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("marker guard source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('*x*y')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("marker guard visible", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A xy'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const leaf=el.querySelectorAll("[data-inline-run]");' +
+    'const last=leaf[leaf.length-1].firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(last,0,last,last.length);' +
+    'document.querySelector("#format-strong").click();})()');
+  assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"), "A xy");
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('A *x*y')"), true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }
