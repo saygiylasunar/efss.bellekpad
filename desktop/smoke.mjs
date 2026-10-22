@@ -154,6 +154,8 @@ async function run() {
     "!document.querySelector('.flow-heading .flow-editable s') && " +
     "document.querySelector('.flow-heading .flow-editable strong')?.textContent === 'Başlık!'"
   ));
+  assert.equal(await page("document.getSelection()?.toString()"),
+    "Önce Başlık! son"); // Undo restored the backward native selection.
   await page("document.querySelector('#redo').click()");
   await retry("redo mixed mark", () => page(
     "document.querySelector('.flow-heading .flow-editable s strong')?.textContent === 'Başlık!'"
