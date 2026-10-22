@@ -172,8 +172,11 @@ export class TextEditorSession {
         if (from === to) to = nextBoundary(before.text, to);
         break;
       case "replaceRange":
+        // replaceRange is an explicit, source-authoritative transaction and
+        // must preserve CRLF or lone-CR source line endings. The native typing
+        // commands still reject raw CR; checkText validates the final document.
         if (!Number.isSafeInteger(command.from) || !Number.isSafeInteger(command.to) ||
-            typeof command.text !== "string" || command.text.includes("\r"))
+            typeof command.text !== "string")
           fail("INVALID_TEXT_CHANGE");
         from = command.from; to = command.to; inserted = command.text;
         break;

@@ -133,7 +133,7 @@ test("G0.6B.1 empty list item exits into a plain paragraph placeholder", () => {
     assert.equal(result.at(-1).editable, true);
   }
 });
-test("G0.6B.1 ordered markers continue when final and guard duplicate next sibling", () => {
+test("G0.6B.1 ordered markers continue at the end; G0.6B.2 renumbers siblings", () => {
   for (const [source, expected] of [
     ["7. Seven\n", "7. Seven\n8. \n"],
     ["7) Seven\r\n", "7) Seven\r\n8) \r\n"]
@@ -146,8 +146,10 @@ test("G0.6B.1 ordered markers continue when final and guard duplicate next sibli
   }
   const src = "1. One\n2. Two\n";
   const block = editable(src)[0];
-  assert.throws(() => planFlowEnter({ source: src, block, at: block.sourceEnd }),
-    /FLOW_ORDERED_RENUMBER_UNSUPPORTED/);
+  const planned = planFlowEnter({ source: src, block, at: block.sourceEnd });
+  assert.equal(planned.operation, "flow-enter-ordered-renumber");
+  assert.equal(src.slice(0, planned.from) + planned.text + src.slice(planned.to),
+    "1. One\n2. \n3. Two\n");
 });
 test("G0.6B.1 paragraph and heading Enter create a distinct prose block", () => {
   const cases = [

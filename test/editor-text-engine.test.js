@@ -37,6 +37,18 @@ test("immutable text-frame state, typed locations, and selection direction", () 
 });
 
 
+test("explicit source replaceRange preserves CRLF and lone CR in one undo journal", () => {
+  for (const eol of ["\r\n", "\r"]) {
+    const source = "A" + eol + "B";
+    const state = new TextEditorSession({ text: source });
+    state.dispatch({ type: "replaceRange", from: 1, to: 1,
+      text: eol + "item", selectionAfter: collapsedSelection(1 + eol.length + 4) });
+    assert.equal(state.snapshot.text, "A" + eol + "item" + eol + "B");
+    state.undo(); assert.equal(state.snapshot.text, source);
+    state.redo(); assert.equal(state.snapshot.text, "A" + eol + "item" + eol + "B");
+  }
+});
+
 test("rich replaceRange persists typed reverse selection in the same undo/redo transaction", () => {
   const original = "kalın";
   const s = new TextEditorSession({ text: original, selection: select(5, 0) });
