@@ -205,8 +205,11 @@ export function planFlowEnter({ source, block, at } = {}) {
   } else if (block.type === "quote") continuation = prefix;
   // Paragraphs/headings become separate paragraphs; use a blank Markdown line
   // so the AST does not merge adjacent prose into a read-only multi-line block.
-  const text = ["paragraph", "heading"].includes(block.type) ?
-    eol + eol : eol + continuation;
+  // A trailing source newline already supplies the second separator at
+  // end-of-line. Never accidentally insert three newlines on Enter.
+  const endsWithEol = at === block.sourceEnd && !!trailingEol(block.raw);
+  const text = ["paragraph", "heading", "blank"].includes(block.type) ?
+    (endsWithEol ? eol : eol + eol) : eol + continuation;
   const selectionAt = at + text.length;
   return Object.freeze({
     type: "replaceRange", from: at, to: at, text,
