@@ -329,6 +329,41 @@ async function run() {
   await retry("partial bold toggle redo", () =>
     page("Array.from(document.querySelectorAll('.flow-paragraph strong'))" +
       ".map(el=>el.textContent).join(',') === 'k,ın'"));
+
+  // G0.6B.1: Enter continues a bullet item, focuses the new list item,
+  // exits on the next empty-item Enter, and respects Undo/Redo.
+  await page("document.querySelector('#show-write').click()");
+  const bulletEnterSource = "- Birinci\n\n:::efss.unknown\nopaque: stay\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(bulletEnterSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("bullet source set", () =>
+    page("document.querySelector('#editor').textContent.includes('- Birinci')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("bullet visible", () =>
+    page("document.querySelector('.flow-list_item .flow-editable')?.textContent === 'Birinci'"));
+  await page('(() => {const el=document.querySelector(".flow-list_item .flow-editable");' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("bullet Enter continues", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 2"));
+  assert.equal(await page('document.activeElement?.closest(".flow-list_item")' +
+    '?.querySelector(".flow-editable")?.textContent === ""'), true);
+  await page('(() => {const el=document.activeElement;' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("empty bullet Enter exits list", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 1"));
+  await page("document.querySelector('#undo').click()");
+  await retry("bullet exit undo", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 2"));
+  await page("document.querySelector('#redo').click()");
+  await retry("bullet exit redo", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 1"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page('document.querySelector("#editor").textContent.includes("opaque: stay")'), true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }

@@ -105,7 +105,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .flow-heading .flow-editable{font-size:27px;font-weight:735;letter-spacing:-.035em;line-height:1.35}
 .flow-quote{border-left:3px solid #6b9998;border-radius:0}
 .flow-quote .flow-editable{color:#b5c7cc;font-style:italic}
-.flow-list_item .flow-gutter{color:#8cbdba}
+.flow-list_item .flow-gutter{color:#8cbdba;min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
+.flow-list_item .flow-editable{padding-left:9px}
+.flow-heading .flow-editable{font-weight:720}
+.flow-heading .flow-gutter{font-variant-numeric:tabular-nums}
+.flow-heading:has(.flow-gutter) {margin-top:6px}
 .flow-callout{border:1px solid #355569;background:#20343c;padding:14px 18px 17px}
 .flow-callout .flow-gutter{display:none}
 .flow-callout-header{font-size:12px;letter-spacing:.025em;color:#c8e3e8;font-weight:680;margin-bottom:8px}

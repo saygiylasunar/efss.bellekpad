@@ -1,12 +1,107 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createBlockDocument } from "../src/editor-block-model.js";
+import { TextEditorSession, collapsedSelection } from "../src/editor-text-engine.js";
 import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
-  calloutMarkdown, slashFlowCommand
+  calloutMarkdown, slashFlowCommand, planFlowEnter
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
+
+
+test("G0.6B.1 bullet Enter continues -, + and * source markers without losing text", () => {
+  for (const token of ["-", "+", "*"]) {
+    const source = token + " Birinci\n";
+    const block = editable(source).find(b => b.type === "list_item");
+    const at = block.sourceEnd;
+    const op = planFlowEnter({ source, block, at });
+    const session = new TextEditorSession({ text: source,
+      selection: collapsedSelection(at) });
+    session.dispatch(op);
+    assert.equal(session.snapshot.text,
+      token + " Birinci\n" + token + " \n");
+    assert.equal(session.snapshot.selection.focus.offset, at + (token + " \n").length);
+    const newBlocks = projectFlowBlocks(createBlockDocument(session.snapshot.text))
+      .filter(b => b.type === "list_item");
+    assert.equal(newBlocks.length, 2);
+    assert.equal(newBlocks[1].editable, true);
+    assert.equal(newBlocks[1].text, "");
+    session.undo(); assert.equal(session.snapshot.text, source);
+    session.redo(); assert.equal(session.snapshot.text,
+      token + " Birinci\n" + token + " \n");
+  }
+});
+test("G0.6B.1 Enter in middle of a list item splits into two real list items", () => {
+  const source = "- Birinci\n";
+  const block = editable(source)[0];
+  const at = source.indexOf("inci");
+  const op = planFlowEnter({ source, block, at });
+  const result = source.slice(0, op.from) + op.text + source.slice(op.to);
+  assert.equal(result, "- Bir\n- inci\n");
+  const list = projectFlowBlocks(createBlockDocument(result))
+    .filter(b => b.type === "list_item");
+  assert.deepEqual(list.map(b => b.text), ["Bir", "inci"]);
+});
+test("G0.6B.1 empty list item exits into a plain paragraph placeholder", () => {
+  for (const source of ["- one\n- \n", "1. item\n2. \n", "> quote\n> \n"]) {
+    const blocks = projectFlowBlocks(createBlockDocument(source));
+    const block = blocks.filter(b => b.editable && b.type !== "blank").at(-1);
+    const op = planFlowEnter({ source, block, at: block.sourceStart });
+    assert.equal(op.operation, "flow-exit-block");
+    const next = source.slice(0, op.from) + op.text + source.slice(op.to);
+    assert.ok(next.endsWith("\n\n"));
+    const result = projectFlowBlocks(createBlockDocument(next));
+    assert.equal(result.at(-1).type, "blank");
+    assert.equal(result.at(-1).editable, true);
+  }
+});
+test("G0.6B.1 ordered markers continue when final and guard duplicate next sibling", () => {
+  for (const [source, expected] of [
+    ["7. Seven\n", "7. Seven\n8. \n"],
+    ["7) Seven\r\n", "7) Seven\r\n8) \r\n"]
+  ]) {
+    const block = editable(source)[0];
+    assert.equal(block.list.style, "ordered");
+    assert.equal(block.list.ordinal, 7);
+    const op = planFlowEnter({ source, block, at: block.sourceEnd });
+    assert.equal(source.slice(0, op.from) + op.text + source.slice(op.to), expected);
+  }
+  const src = "1. One\n2. Two\n";
+  const block = editable(src)[0];
+  assert.throws(() => planFlowEnter({ source: src, block, at: block.sourceEnd }),
+    /FLOW_ORDERED_RENUMBER_UNSUPPORTED/);
+});
+test("G0.6B.1 paragraph and heading Enter create a distinct prose block", () => {
+  const cases = [
+    ["Merhaba\n", "Merhaba\n\n", "paragraph"],
+    ["Merhaba", "Mer\n\nhaba", "paragraph", 3],
+    ["# Başlık\n", "# Başlık\n\n", "heading"]
+  ];
+  for (const [source, expected, kind, atInput] of cases) {
+    const block = editable(source).find(b => b.type === kind);
+    const op = planFlowEnter({ source, block,
+      at: atInput ?? block.sourceEnd });
+    const next = source.slice(0, op.from) + op.text + source.slice(op.to);
+    assert.equal(next, expected);
+    assert.ok(projectFlowBlocks(createBlockDocument(next)).some(b => b.type === "blank"));
+  }
+});
+test("G0.6B.1 rich content, noncollapsed positions and opaque blocks refuse unsafe Enter", () => {
+  const src = "- **kalın**\n\n:::efss.secret\nprivate: X\n:::\n";
+  const blocks = projectFlowBlocks(createBlockDocument(src));
+  const marked = blocks.find(b => b.type === "list_item");
+  assert.throws(() => planFlowEnter({ source: src, block: marked,
+    at: marked.sourceEnd }), /FLOW_ENTER_RICH_UNSUPPORTED/);
+  assert.throws(() => planFlowEnter({ source: src,
+    block: blocks.find(b => b.type === "extension_block"),
+    at: src.indexOf("private") }), /INVALID_FLOW_ENTER/);
+  const plain = "- 👩‍👧\r\n";
+  const item = editable(plain)[0];
+  assert.throws(() => planFlowEnter({ source: plain, block: item, at: 3 }),
+    /INVALID_FLOW_ENTER/);
+  assert.equal(src.includes("private: X"), true);
+});
 
 test("flow projection hides heading, list and quote delimiters without altering EFSS source", () => {
   const source = "# Başlık\n\n- Madde\n\n> Alıntı\n\nDüz metin 💡\n";

@@ -1,7 +1,7 @@
 // G0.4: flow view of the *existing* EFSS source; it is not a second document
 // store. Only losslessly representable blocks are editable in this first pass.
 import { projectInline } from "./editor-inline-format.js";
-import { isGraphemeBoundary } from "./editor-text-engine.js";
+import { collapsedSelection, isGraphemeBoundary } from "./editor-text-engine.js";
 import { reconcileBlockSource } from "./editor-block-model.js";
 
 const TYPES = Object.freeze(["paragraph", "heading", "list_item", "quote", "blank"]);
@@ -80,8 +80,17 @@ export function projectFlowBlocks(doc) {
     });
     const rawText = line.slice(prefix.length);
     const inline = projectInline(rawText);
+    const listMatch = block.type === "list_item" ?
+      /^( {0,3})([-+*]|([0-9]{1,9})([.)]))([ \t]+)$/.exec(prefix) : null;
+    const list = listMatch ? Object.freeze({
+      style: listMatch[3] ? "ordered" : "bullet",
+      token: listMatch[2],
+      ...(listMatch[3] ? { ordinal: Number(listMatch[3]),
+        delimiter: listMatch[4] } : {})
+    }) : null;
     return Object.freeze({
       id: block.id, type: block.type, level: block.level,
+      ...(list ? { list } : {}),
       raw, text: inline.text, inline, start: block.start, end: block.end,
       sourceStart: block.start + prefix.length,
       sourceEnd: block.start + prefix.length + rawText.length,
@@ -141,6 +150,71 @@ export function insertFlowBlock(doc, {
   const source = before + separator + segment + tail + after;
   return reconcileBlockSource(doc, source, { expectedVersion });
 }
+
+/**
+ * G0.6B.1: natural Enter in source-authoritative, single-line Flow blocks.
+ * Only collapsed, grapheme-safe source positions are accepted. A marked run
+ * could require splitting invisible delimiters across the newline and is
+ * intentionally deferred; this planner NEVER guesses or loses those bytes.
+ * The returned selectionAfter belongs to the same TextEditorSession journal.
+ */
+export function planFlowEnter({ source, block, at } = {}) {
+  if (typeof source !== "string" || !block?.editable ||
+      !["paragraph", "heading", "list_item", "quote", "blank"].includes(block.type) ||
+      !Number.isSafeInteger(at) || at < block.sourceStart ||
+      at > block.sourceEnd || !isGraphemeBoundary(source, at))
+    fail("INVALID_FLOW_ENTER");
+  if (block.inline && (!block.inline.editable || block.inline.regions.length))
+    fail("FLOW_ENTER_RICH_UNSUPPORTED");
+  if (block.type !== "blank" &&
+      source.slice(block.sourceStart, block.sourceEnd) !== block.text)
+    fail("FLOW_ENTER_SOURCE_MISMATCH");
+  const eol = ending(source);
+  const prefix = source.slice(block.start, block.sourceStart);
+  const token = block.type === "list_item" ? block.list?.token :
+    block.type === "quote" ? prefix : "";
+  if ((block.type === "list_item" && !token) ||
+      (block.type === "quote" && !/^ {0,3}>[ \t]?$/.test(prefix)))
+    fail("FLOW_ENTER_PREFIX_UNSUPPORTED");
+  // An empty list/quote item is the user's explicit exit gesture.
+  if (["list_item", "quote"].includes(block.type) && !block.text.length) {
+    const from = block.start, to = block.sourceStart;
+    return Object.freeze({
+      type: "replaceRange", from, to, text: "",
+      selectionAfter: collapsedSelection(from),
+      operation: "flow-exit-block"
+    });
+  }
+  if (block.type === "list_item" && block.list?.style === "ordered") {
+    const next = block.list.ordinal + 1;
+    if (!Number.isSafeInteger(next) || next > 999999999)
+      fail("FLOW_LIST_NUMBER_LIMIT");
+    // Renumbering existing ordered siblings needs a separate atomic planner.
+    // Refuse insertion into an active numbered sequence, never duplicate
+    // list ordinals or mutate the following sibling as an incidental side effect.
+    const following = source.slice(block.end);
+    const nextLine = following.split(/\r\n|\r|\n/, 1)[0];
+    if (/^ {0,3}\d{1,9}[.)][ \t]+/.test(nextLine))
+      fail("FLOW_ORDERED_RENUMBER_UNSUPPORTED");
+  }
+  let continuation = "";
+  if (block.type === "list_item") {
+    continuation = block.list.style === "ordered" ?
+      String(block.list.ordinal + 1) + block.list.delimiter + " " :
+      block.list.token + " ";
+  } else if (block.type === "quote") continuation = prefix;
+  // Paragraphs/headings become separate paragraphs; use a blank Markdown line
+  // so the AST does not merge adjacent prose into a read-only multi-line block.
+  const text = ["paragraph", "heading"].includes(block.type) ?
+    eol + eol : eol + continuation;
+  const selectionAt = at + text.length;
+  return Object.freeze({
+    type: "replaceRange", from: at, to: at, text,
+    selectionAfter: collapsedSelection(selectionAt),
+    operation: "flow-enter"
+  });
+}
+
 export function slashFlowCommand(text) {
   if (typeof text !== "string") return null;
   const commands = {

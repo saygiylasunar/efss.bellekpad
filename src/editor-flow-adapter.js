@@ -3,7 +3,7 @@ import {
   selectionBounds, textPosition
 } from "./editor-text-engine.js";
 import {
-  projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand
+  projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -141,8 +141,8 @@ function editPayload(event) {
   if (event.inputType === "insertText" && typeof event.data === "string") {
     return { type: "insertText", text: event.data };
   }
-  if (event.inputType === "insertParagraph" || event.inputType === "insertLineBreak")
-    return { type: "replaceSelection", text: "\n\n" };
+  if (event.inputType === "insertParagraph") return { type: "flowEnter" };
+  if (event.inputType === "insertLineBreak") return { type: "softBreak" };
   if (event.inputType === "deleteContentBackward")
     return { type: "deleteBackward" };
   if (event.inputType === "deleteContentForward")
@@ -172,7 +172,9 @@ export function attachFlowEditor(host, {
     for (const block of blocks) {
       const label = block.type === "callout" ? block.icon :
         block.type === "heading" ? "H" + (block.level ?? 1) :
-        block.type === "list_item" ? "•" :
+        block.type === "list_item" ?
+          (block.list?.style === "ordered" ?
+            String(block.list.ordinal) + block.list.delimiter : "•") :
         block.type === "quote" ? "❝" : "⋮";
       const card = noteElement(doc, block, label);
       if (block.type === "callout") {
@@ -192,7 +194,10 @@ export function attachFlowEditor(host, {
         editor.contentEditable = "true";
         editor.role = "textbox";
         editor.setAttribute("aria-label", block.type === "callout" ?
-          "Callout içeriği" : "Düzenlenebilir " + block.type);
+          "Callout içeriği" : block.type === "list_item" ?
+          (block.list?.style === "ordered" ?
+            "Sıralı liste öğesi " + block.list.ordinal : "Liste öğesi") :
+          "Düzenlenebilir " + block.type);
         editor.setAttribute("aria-multiline", "false");
         editor.spellcheck = true;
         editor.dataset.placeholder = block.type === "callout" ?
@@ -219,8 +224,10 @@ export function attachFlowEditor(host, {
       fragment.append(card);
     }
     host.replaceChildren(fragment);
-    const toFocus = focusAt !== null ? (editors.get(preferredId) ??
-      editors.get(nearest)) : null;
+    // New blocks can reuse neither the previous block's ID nor its source
+    // range. Resolve the *post-edit* source offset before the old preferred ID.
+    const toFocus = focusAt !== null ? (editors.get(nearest) ??
+      editors.get(preferredId)) : null;
     if (toFocus) {
       activeId = toFocus.block.id;
       focusOffset(toFocus.editor, focusAt - toFocus.block.sourceStart, toFocus.block,
@@ -364,6 +371,28 @@ export function attachFlowEditor(host, {
     const command = editPayload(event);
     if (!command) return;
     event.preventDefault();
+    if (command.type === "flowEnter" || command.type === "softBreak") {
+      if (command.type === "softBreak") {
+        onError("Shift+Enter için satır-içi model henüz hazır değil; kaynak görünümünü kullan.");
+        return;
+      }
+      if (!selectedRange(editor, block)) return;
+      const range = selectionBounds(session.snapshot.selection);
+      if (range.start !== range.end) {
+        onError("Seçili metni Enter ile bölme henüz desteklenmiyor.");
+        return;
+      }
+      try {
+        const planned = planFlowEnter({
+          source: session.snapshot.text, block, at: range.start
+        });
+        const result = session.dispatch(planned);
+        finish(result, { focusAt: planned.selectionAfter.focus.offset });
+      } catch (error) {
+        onError("Blok Enter işlemi korunuyor: " + (error?.message ?? "UNSAFE_ENTER"));
+      }
+      return;
+    }
     if (command.type === "insertText" && !block.inline?.regions.length &&
         ["paragraph", "blank"].includes(block.type) &&
         block.sourceStart === block.start) {
