@@ -110,8 +110,8 @@ async function run() {
   assert.equal(await page("!!document.querySelector('.flow-callout')"), true);
   await page("document.querySelector('#show-preview').click()");
   assert.equal(await page("!document.querySelector('#preview-pane').hidden"), true);
-  // G0.6A regression: reversed selection across styled and plain runs must
-  // NEVER consume hidden Markdown delimiters or create an undo entry.
+  // G0.6A.2: complete marked runs may be atomically replaced; partial
+  // selections still refuse to consume invisible delimiters.
   const existingIds = new Set((await page("window.bellekpadDesktop.listDocuments()"))
     .data.map(item => item.id));
   const priorId = await page("document.querySelector('#document-id').textContent");
@@ -136,8 +136,34 @@ async function run() {
     'el.focus();document.getSelection().setBaseAndExtent(last,last.length,bold,0);' +
     'el.dispatchEvent(new InputEvent("beforeinput",{' +
     'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
+  await retry("fully selected bold-plus-plain deletion", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A '"));
+  await page("document.querySelector('#undo').click()");
+  await retry("mixed deletion undo preserves strong", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
+  // A partially selected strong run must remain fail-closed.
+  await page('(() => { const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;' +
+    'const spans=el.querySelectorAll("[data-inline-run]");' +
+    'const last=spans[spans.length-1].firstChild;' +
+    'el.focus();document.getSelection().setBaseAndExtent(last,last.length,bold,2);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
   assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"),
     "A kalın B");
+  // The entire mixed selection can be struck through, preserving bold.
+  await page('(() => { const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;' +
+    'const spans=el.querySelectorAll("[data-inline-run]");' +
+    'const last=spans[spans.length-1].firstChild;' +
+    'el.focus();document.getSelection().setBaseAndExtent(bold,0,last,last.length);' +
+    'document.querySelector("#format-strike").click();})()');
+  await retry("mixed strike keeps bold", () =>
+    page("document.querySelector('.flow-paragraph s strong')?.textContent === 'kalın'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("mixed strike undo", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın' && " +
+    "document.querySelector('.flow-paragraph s') === null"));
   // Focus at the *start of the strong DOM leaf*: source offset must be after
   // the opening **, not at the previous plain run's end.
   await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +

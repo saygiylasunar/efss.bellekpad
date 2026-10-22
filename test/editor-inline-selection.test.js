@@ -56,20 +56,90 @@ test("G0.6A caret at beginning/end of a rich run preserves wrapping syntax", () 
   session.undo();
   assert.equal(session.snapshot.text, completed);
 });
-test("G0.6A mixed rich/plain selection fails closed without deleting markers", () => {
+test("G0.6A.2 fully-selected bold plus plain can be replaced without hidden marker leaks", () => {
   const src = "A **kalın** B";
   const p = block(src);
   const session = new TextEditorSession({ text: src, selection: {
     anchor: textPosition(src.length), focus: textPosition(4)
   } });
   assert.equal(p.text, "A kalın B");
-  assert.throws(() => planInlineTextEdit({
+  const command = planInlineTextEdit({
     source: src, block: p, from: 4, to: src.length, text: "değiştir"
-  }), /HIDDEN_MARKER_SELECTION/);
+  });
+  assert.equal(command.operation, "balanced-marker-splice");
+  assert.equal(command.from, 2); // includes the opening ** marker
+  assert.equal(command.to, src.length);
+  session.dispatch(command);
+  assert.equal(session.snapshot.text, "A değiştir");
+  assert.equal(projectInline(session.snapshot.text).text, "A değiştir");
+  session.undo();
   assert.equal(session.snapshot.text, src);
   assert.equal(session.snapshot.selection.anchor.offset, src.length);
   assert.equal(session.snapshot.selection.focus.offset, 4);
+  session.redo();
+  assert.equal(session.snapshot.text, "A değiştir");
+});
+test("G0.6A.2 partial cross-mark selection still fails closed", () => {
+  const src = "A **kalın** B";
+  const p = block(src);
+  const session = new TextEditorSession({ text: src, selection: {
+    anchor: textPosition(src.length), focus: textPosition(6)
+  } });
+  assert.throws(() => planInlineTextEdit({
+    source: src, block: p, from: 6, to: src.length, text: "değiştir"
+  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
+  assert.equal(session.snapshot.text, src);
   assert.equal(session.canUndo, false);
+});
+test("G0.6A.2 delete a complete styled region without leaving orphan Markdown", () => {
+  const src = "A **kalın** B";
+  const p = block(src);
+  const from = src.indexOf("kalın");
+  const to = from + "kalın".length;
+  const command = planInlineTextEdit({ source: src, block: p, from, to, text: "" });
+  assert.equal(command.operation, "balanced-marker-splice");
+  const state = new TextEditorSession({ text: src });
+  state.dispatch(command);
+  assert.equal(state.snapshot.text, "A  B");
+  assert.equal(projectInline(state.snapshot.text).text, "A  B");
+  state.undo();
+  assert.equal(state.snapshot.text, src);
+});
+test("G0.6A.2 multiple fully selected style groups can be atomically replaced", () => {
+  const src = "A **kalın** B *italik* C";
+  const p = block(src);
+  const from = src.indexOf("kalın"), to = src.indexOf(" C");
+  const change = planInlineTextEdit({ source: src, block: p, from, to, text: "tek" });
+  assert.equal(change.operation, "balanced-marker-splice");
+  const session = new TextEditorSession({ text: src });
+  session.dispatch(change);
+  assert.equal(session.snapshot.text, "A tek C");
+  session.undo();
+  assert.equal(session.snapshot.text, src);
+  session.redo();
+  assert.equal(session.snapshot.text, "A tek C");
+});
+test("G0.6A.2 preserves non-selected bold styles during a partial within-run replacement", () => {
+  const src = "A **kalın** B";
+  const p = block(src);
+  const from = src.indexOf("lın"), to = from + "lın".length;
+  const change = planInlineTextEdit({ source: src, block: p, from, to, text: "lem" });
+  assert.equal(change.operation, "inline-splice");
+  const next = src.slice(0, change.from) + change.text + src.slice(change.to);
+  assert.equal(next, "A **kalem** B");
+  assert.deepEqual(projectInline(next).runs.find(r => r.text === "kalem").marks, ["strong"]);
+});
+test("G0.6A.2 CRLF and opaque extensions survive balanced mixed replacement", () => {
+  const src = "Başlık\r\n\r\nA **kalın** B\r\n\r\n:::efss.unknown\r\nitem: ö\r\n:::\r\n";
+  const p = projectFlowBlocks(createBlockDocument(src)).find(b => b.type === "paragraph" && b.text.includes("kalın"));
+  const from = src.indexOf("kalın");
+  const to = p.sourceEnd;
+  const c = planInlineTextEdit({ source: src, block: p, from, to, text: "yenisi" });
+  const session = new TextEditorSession({ text: src });
+  session.dispatch(c);
+  assert.equal(session.snapshot.text, src.replace("A **kalın** B", "A yenisi"));
+  assert.ok(session.snapshot.text.includes(":::efss.unknown\r\nitem: ö\r\n:::\r\n"));
+  session.undo(); assert.equal(session.snapshot.text, src);
 });
 test("G0.6A nested mark gaps cannot silently be overwritten", () => {
   const src = "A **kalın *eğik* metin** Z";
@@ -80,7 +150,7 @@ test("G0.6A nested mark gaps cannot silently be overwritten", () => {
   assert.throws(() => planInlineTextEdit({
     source: src, block: p, from: italic, to: src.indexOf(" Z") + 2,
     text: "yeni"
-  }), /HIDDEN_MARKER_SELECTION/);
+  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
   const planned = planInlineTextEdit({
     source: src, block: p, from: italic, to: wordEnd, text: "yeni"
   });

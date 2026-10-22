@@ -85,6 +85,71 @@ export function mapInlineSourceOffset(projection, offset) {
 }
 
 /**
+ * Check that the original unselected characters keep *all* their marks.
+ * The source format is allowed to change in the selected region only.
+ * Returns compact mark runs without allocating one entry per UTF-16 unit.
+ */
+function styleTrace(projection, from, to) {
+  const result = [];
+  let visible = 0;
+  for (const run of projection.runs) {
+    const stop = visible + run.text.length;
+    const a = Math.max(from, visible), b = Math.min(to, stop);
+    if (b > a) {
+      const marks = run.marks.join("/");
+      const text = run.text.slice(a - visible, b - visible);
+      const last = result.at(-1);
+      if (last && last.marks === marks) last.text += text;
+      else result.push({ marks, text });
+    }
+    visible = stop;
+  }
+  return result;
+}
+function preservesOutside(before, after, visibleStart, visibleEnd, insertedLength) {
+  const oldLength = before.text.length, newLength = after.text.length;
+  return JSON.stringify(styleTrace(before, 0, visibleStart)) ===
+      JSON.stringify(styleTrace(after, 0, visibleStart)) &&
+    JSON.stringify(styleTrace(before, visibleEnd, oldLength)) ===
+      JSON.stringify(styleTrace(after, visibleStart + insertedLength, newLength));
+}
+function expandFullySelectedRegions(projection, from, to) {
+  let left = from, right = to;
+  // A marked run can be removed with its wrapper ONLY when its entire
+  // visible content lies in the selection. Partially clipped regions fail.
+  for (const region of projection.regions) {
+    const touches = from < region.contentEnd && to > region.contentStart;
+    if (!touches) continue;
+    if (from > region.contentStart || to < region.contentEnd)
+      fail("PARTIAL_MARK_SELECTION_UNSUPPORTED");
+    if (region.contentStart === left) left = region.from;
+    if (region.contentEnd === right) right = region.to;
+  }
+  // Nested wrappers may need a second pass when their inner region was
+  // expanded first. This only widens into invisible delimiter bytes.
+  for (const region of [...projection.regions].reverse()) {
+    if (region.contentStart === left && region.contentEnd <= right &&
+        region.contentEnd >= from) left = region.from;
+    if (region.contentEnd === right && region.contentStart >= left &&
+        region.contentStart <= to) right = region.to;
+  }
+  return { left, right };
+}
+function verifyProjectedEdit(inline, raw, from, to, insert, start, end) {
+  const nextRaw = raw.slice(0, from) + insert + raw.slice(to);
+  const projection = projectInline(nextRaw);
+  const visibleStart = mapInlineSourceOffset(inline, start);
+  const visibleEnd = mapInlineSourceOffset(inline, end);
+  const intended = inline.text.slice(0, visibleStart) + insert +
+    inline.text.slice(visibleEnd);
+  if (!projection.editable || projection.text !== intended)
+    fail("INLINE_EDIT_CHANGES_MARKUP");
+  if (!preservesOutside(inline, projection, visibleStart, visibleEnd, insert.length))
+    fail("INLINE_EDIT_CHANGES_OUTSIDE_STYLE");
+  return projection;
+}
+
+/**
  * Safely plan a visually initiated replacement. Selection endpoints must be
  * actual source text positions, not formatting delimiters. The visible
  * selection must match the source substring EXACTLY: a selection covering
@@ -119,19 +184,38 @@ export function planInlineTextEdit({
         to <= block.sourceStart + run.to)) fail("HIDDEN_MARKER_CARET");
   const visibleStart = mapInlineSourceOffset(inline, a);
   const visibleEnd = mapInlineSourceOffset(inline, b);
-  if (visibleStart > visibleEnd ||
-      source.slice(from, to) !== inline.text.slice(visibleStart, visibleEnd))
-    fail("HIDDEN_MARKER_SELECTION");
+  if (visibleStart > visibleEnd)
+    fail("INVALID_INLINE_TEXT_EDIT");
   const raw = source.slice(block.sourceStart, block.sourceEnd);
-  const next = raw.slice(0, a) + text + raw.slice(b);
-  const projection = projectInline(next);
-  const intended = inline.text.slice(0, visibleStart) + text +
-    inline.text.slice(visibleEnd);
-  if (!projection.editable || projection.text !== intended)
-    fail("INLINE_EDIT_CHANGES_MARKUP");
+  // A hidden delimiter inside the source selection cannot be handled by
+  // direct text replacement: plan a balanced, complete-mark splice below.
+  const rawSelectionIsVisible = source.slice(from, to) ===
+    inline.text.slice(visibleStart, visibleEnd);
+  // Prefer a minimal source splice; it preserves the selected text's own
+  // formatting for normal typing. The second path removes complete wrappers
+  // when a mixed selection crosses their closing/opening delimiters.
+  try {
+    if (!rawSelectionIsVisible) fail("HIDDEN_MARKER_SELECTION");
+    verifyProjectedEdit(inline, raw, a, b, text, a, b);
+    return Object.freeze({
+      type: "replaceRange", from, to, text,
+      selectionAt: from + text.length, operation: "inline-splice"
+    });
+  } catch (error) {
+    if (from === to || (error.message !== "INLINE_EDIT_CHANGES_MARKUP" &&
+        error.message !== "INLINE_EDIT_CHANGES_OUTSIDE_STYLE" &&
+        error.message !== "HIDDEN_MARKER_SELECTION"))
+      throw error;
+  }
+  const { left, right } = expandFullySelectedRegions(inline, a, b);
+  if (left === a && right === b && !inline.regions.some(region =>
+      region.from >= a && region.to <= b)) fail("HIDDEN_MARKER_SELECTION");
+  verifyProjectedEdit(inline, raw, left, right, text, a, b);
   return Object.freeze({
-    type: "replaceRange", from, to, text,
-    selectionAt: from + text.length
+    type: "replaceRange", from: block.sourceStart + left,
+    to: block.sourceStart + right, text,
+    selectionAt: block.sourceStart + left + text.length,
+    operation: "balanced-marker-splice"
   });
 }
 
@@ -168,7 +252,56 @@ export function planInlineMark({ source, block, start, end, mark }) {
   const run = inline.runs.find(item =>
     item.marks.length === 0 &&
     absolute(item.from) <= start && absolute(item.to) >= end);
-  if (!run) fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+  if (!run) {
+    // Controlled G0.6A.2 vertical slice: wrapping mixed *complete* runs,
+    // e.g. strike over a bold run plus adjacent plain text. Check the parser's
+    // actual styled projection before admitting a command. Adjacent '*'
+    // delimiters and partially selected nested marks deliberately fail.
+    const raw = source.slice(block.sourceStart, block.sourceEnd);
+    const a = start - block.sourceStart, b = end - block.sourceStart;
+    const visibleStart = mapInlineSourceOffset(inline, a);
+    const visibleEnd = mapInlineSourceOffset(inline, b);
+    const selectedVisible = inline.text.slice(visibleStart, visibleEnd);
+    if (!selectedVisible.trim() || /^\s|\s$/.test(selectedVisible))
+      fail("MARK_WHITESPACE_EDGE");
+    const { left, right } = expandFullySelectedRegions(inline, a, b);
+    if (left === a && right === b) fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+    const marker = INLINE_MARKERS[mark];
+    const replacement = marker + raw.slice(left, right) + marker;
+    const candidate = projectInline(raw.slice(0, left) + replacement + raw.slice(right));
+    if (!candidate.editable || candidate.text !== inline.text ||
+        !preservesOutside(inline, candidate, visibleStart, visibleEnd, 0))
+      fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+    const before = styleTrace(inline, visibleStart, visibleEnd);
+    const after = styleTrace(candidate, visibleStart, visibleEnd);
+    // All selected characters must acquire the requested mark, keeping every
+    // existing mark; no hidden reinterpretation of their other formatting.
+    function signature(trace, add) {
+      const pieces = [];
+      for (const part of trace) {
+        const marks = part.marks ? part.marks.split("/") : [];
+        if (add && !marks.includes(add)) marks.push(add);
+        const signature = marks.sort().join("/");
+        const last = pieces.at(-1);
+        if (last && last.marks === signature) last.text += part.text;
+        else pieces.push({ marks: signature, text: part.text });
+      }
+      return JSON.stringify(pieces);
+    }
+    if (signature(before, mark) !== signature(after, null))
+      fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+    return Object.freeze({
+      type: "replaceRange",
+      from: block.sourceStart + left,
+      to: block.sourceStart + right,
+      text: replacement,
+      // Logical source selection spans the inserted run. Render maps it to
+      // visible text; source syntax remains authoritative.
+      selectionStart: block.sourceStart + left + marker.length,
+      selectionEnd: block.sourceStart + left + replacement.length - marker.length,
+      operation: "add-mixed"
+    });
+  }
   const selected = source.slice(start, end);
   if (!selected.trim() || /^\s|\s$/.test(selected))
     fail("MARK_WHITESPACE_EDGE");

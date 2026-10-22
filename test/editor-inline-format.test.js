@@ -65,9 +65,12 @@ test("mark selection adds a supported mark and unwrapping is reversible through 
 test("unrelated Markdown and EFSS symbols are never silently reformatted", () => {
   const rich = paragraph("A **bold** outside");
   const src = "A **bold** outside";
+  // A partial cut through an existing strong span is deliberately not
+  // licensed as an all-run mark operation yet.
   assert.throws(() => planInlineMark({
-    source: src, block: rich, start: 0, end: src.length, mark: "emphasis"
-  }), /CROSS_MARK_SELECTION_UNSUPPORTED/);
+    source: src, block: rich, start: src.indexOf("old"), end: src.length,
+    mark: "emphasis"
+  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
   const semantic = paragraph("value &Miktar{22}");
   assert.equal(semantic.editable, false);
   assert.throws(() => planInlineMark({
@@ -93,6 +96,36 @@ test("grapheme-safe emoji selection and whitespace edge validation", () => {
   assert.throws(() => planInlineMark({
     source, block, start: 0, end: 0, mark: "strong"
   }), /INVALID_MARK_SELECTION/);
+});
+test("G0.6A.2 strike can wrap whole bold-plus-plain selection without losing bold", () => {
+  const original = "A **kalın** B";
+  const p = paragraph(original);
+  const operation = planInlineMark({
+    source: original, block: p,
+    start: original.indexOf("kalın"), end: original.length, mark: "strike"
+  });
+  assert.equal(operation.operation, "add-mixed");
+  const state = new TextEditorSession({ text: original });
+  state.dispatch(operation);
+  assert.equal(state.snapshot.text, "A ~~**kalın** B~~");
+  const projected = projectInline(state.snapshot.text);
+  assert.equal(projected.text, "A kalın B");
+  assert.deepEqual(projected.runs.find(run => run.text === "kalın").marks,
+    ["strike", "strong"]);
+  assert.deepEqual(projected.runs.find(run => run.text === " B").marks,
+    ["strike"]);
+  state.undo(); assert.equal(state.snapshot.text, original);
+});
+test("G0.6A.2 refuses partial nested inline styling without changing source", () => {
+  const original = "A **kalın *eğik* söz** B";
+  const state = new TextEditorSession({ text: original });
+  const p = paragraph(original);
+  assert.throws(() => planInlineMark({
+    source: original, block: p, start: original.indexOf("eğik"),
+    end: original.length, mark: "strong"
+  }), /PARTIAL_MARK_SELECTION_UNSUPPORTED/);
+  assert.equal(state.snapshot.text, original);
+  assert.equal(state.historyDepth, 0);
 });
 test("source-to-visible mapping chooses safe sides of formatting markers", () => {
   const raw = "B **bold** E";

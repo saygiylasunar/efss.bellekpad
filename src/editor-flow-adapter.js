@@ -246,13 +246,10 @@ export function attachFlowEditor(host, {
   function dispatch(editor, block, command) {
     if (!selectedRange(editor, block)) return;
     const sel = selectionBounds(session.snapshot.selection);
-    const visibleSelection = doc.getSelection()?.toString() ?? "";
-    // Selected syntax delimiters must not be silently eaten by a visual edit.
-    if (sel.start !== sel.end &&
-        session.snapshot.text.slice(sel.start, sel.end) !== visibleSelection) {
-      onError("Karma biçim seçimi: Kaynak görünümünü kullan.");
-      return;
-    }
+    // The source-aware planner below validates the *visible* selection and
+    // balances fully selected Markdown wrappers. Never reject a mixed style
+    // selection merely because the raw source includes invisible markers.
+    // Partially cut wrappers still fail closed in the pure planner.
     if (command.type === "deleteBackward" || command.type === "deleteForward") {
       if (sel.start === sel.end) {
         const active = doc.getSelection();
@@ -296,10 +293,11 @@ export function attachFlowEditor(host, {
       });
     } catch (error) {
       onError("Kaynak korunuyor: " + (error?.message ?? "UNSAFE_EDIT"));
-      return;
+      return false;
     }
     const result = session.dispatch(planned);
     finish(result, { preferredId: block.id });
+    return result.changed;
   }
 
   function history(type) {
@@ -417,9 +415,11 @@ export function attachFlowEditor(host, {
     if (!block?.editable || !selectedRange(editor, block)) return;
     const selected = doc.getSelection()?.toString() ?? "";
     if (!selected) return;
+    // Clipboard is modified ONLY if the source-aware deletion was accepted.
+    // A rejected mixed/nested selection must not silently act like cut.
     event.preventDefault();
-    event.clipboardData?.setData("text/plain", selected);
-    dispatch(editor, block, { type: "replaceSelection", text: "" });
+    if (dispatch(editor, block, { type: "replaceSelection", text: "" }))
+      event.clipboardData?.setData("text/plain", selected);
   }, { signal });
 
   host.addEventListener("paste", event => {
