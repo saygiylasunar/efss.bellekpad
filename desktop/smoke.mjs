@@ -400,9 +400,9 @@ async function run() {
   // G0.6B.3: native event path for Tab/Shift+Tab/Backspace. Source remains
   // the sole journal; the unknown EFSS extension is immutable.
   await page("document.querySelector('#show-write').click()");
-  const nestedSource = "- Parent\n- Child\n\n:::efss.opaque\nsecret: unchanged\n:::\n";
+  const indentSource = "- Parent\n- Child\n\n:::efss.opaque\nsecret: unchanged\n:::\n";
   await page('(() => {const e=document.querySelector("#editor");e.focus();' +
-    'e.textContent=' + JSON.stringify(nestedSource) + ';' +
+    'e.textContent=' + JSON.stringify(indentSource) + ';' +
     'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
   await retry("nested bullet source loaded", () =>
     page("document.querySelector('#editor').textContent.includes('- Child')"));
