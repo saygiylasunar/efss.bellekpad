@@ -139,8 +139,8 @@ test("G0.6A: mixed strong/plain range gains strike while preserving nested sourc
 });
 
 test("G0.6A: mixed emphasis/plain with CRLF and opaque EFSS source round-trips", () => {
-  const opaque = ":::efss.unknown-custom\\r\\nşifreli: **ham** 👩‍👧\\r\\n:::\\r\\n";
-  const source = "Baş *ince* son\\r\\n\\r\\n" + opaque;
+  const opaque = ":::efss.unknown-custom\r\nşifreli: **ham** 👩‍👧\r\n:::\r\n";
+  const source = "Baş *ince* son\r\n\r\n" + opaque;
   const block = paragraph(source);
   const operation = planInlineVisibleMark({
     source, block, start: 0, end: block.text.length, mark: "strike"
@@ -148,7 +148,7 @@ test("G0.6A: mixed emphasis/plain with CRLF and opaque EFSS source round-trips",
   const editor = new TextEditorSession({ text: source });
   editor.dispatch(operation);
   assert.equal(editor.snapshot.text.endsWith(opaque), true);
-  assert.equal(editor.snapshot.text.startsWith("~~Baş *ince* son~~\\r\\n\\r\\n"), true);
+  assert.equal(editor.snapshot.text.startsWith("~~Baş *ince* son~~\r\n\r\n"), true);
   assert.equal(projectInline("~~Baş *ince* son~~").text, "Baş ince son");
   editor.undo();
   assert.equal(editor.snapshot.text, source);
