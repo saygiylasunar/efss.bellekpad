@@ -109,7 +109,7 @@ test("G0.5 renders inline marks via safe DOM without importing a rich-text libra
   for (const name of ["format-bold", "format-italic", "format-strike"])
     assert.match(html, new RegExp('id="' + name + '"'));
   assert.match(app, /flowBinding\.format\(mark\)/);
-  assert.match(flow, /planInlineMark/);
+  assert.match(flow, /planInlineVisibleMark/);
   assert.match(flow, /createElement\(tag\)/);
   assert.match(flow, /textContent/);
   assert.doesNotMatch(flow, /innerHTML/);

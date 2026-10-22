@@ -5,7 +5,7 @@ import {
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand
 } from "./editor-flow-model.js";
-import { mapInlineVisibleOffset, planInlineMark } from "./editor-inline-format.js";
+import { mapInlineVisibleOffset, planInlineVisibleMark } from "./editor-inline-format.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -199,9 +199,25 @@ export function attachFlowEditor(host, {
     return range;
   }
 
-  function finish(result, { focusAt = null, preferredId = null } = {}) {
+  function finish(result, {
+    focusAt = null, preferredId = null, preserveSelection = false
+  } = {}) {
     if (!result.changed) return;
     notify();
+    if (preserveSelection) {
+      // History retains anchor/focus in source coordinates. Restore native
+      // direction only when both ends belong to one supported Flow block.
+      const { anchor, focus } = session.snapshot.selection;
+      const block = projectFlowBlocks(getStructure()).find(item =>
+        item.editable && item.sourceStart <= anchor.offset &&
+        anchor.offset <= item.sourceEnd &&
+        item.sourceStart <= focus.offset && focus.offset <= item.sourceEnd);
+      if (block) {
+        render({ focusAt: anchor.offset, selectionEnd: focus.offset,
+          preferredId: block.id });
+        return;
+      }
+    }
     render({ focusAt: focusAt ?? session.snapshot.selection.focus.offset,
       preferredId });
   }
@@ -253,7 +269,7 @@ export function attachFlowEditor(host, {
   function history(type) {
     if (composing) return;
     const result = type === "undo" ? session.undo() : session.redo();
-    finish(result);
+    finish(result, { preserveSelection: true });
   }
   function reconcileNative(editor, block) {
     if (composing) return;
@@ -393,12 +409,23 @@ export function attachFlowEditor(host, {
     if (!block?.editable) { onError("Biçimlendirmek için düzenlenebilir metin seç."); return false; }
     const editor = [...host.querySelectorAll("[data-flow-block]")].find(el =>
       el.dataset.flowBlock === block.id);
-    if (editor && doc.getSelection()?.anchorNode &&
-        editor.contains(doc.getSelection().anchorNode)) selectedRange(editor, block);
-    const { start, end } = selectionBounds(session.snapshot.selection);
+    // Use the actual *visible* DOM selection. Source selection endpoints
+    // can straddle hidden Markdown delimiters across styled runs.
+    const selected = doc.getSelection();
+    const a = editor && domCaret(editor, selected?.anchorNode, selected?.anchorOffset);
+    const b = editor && domCaret(editor, selected?.focusNode, selected?.focusOffset);
+    if (a === null || b === null || a === undefined || b === undefined) {
+      onError("Biçimlendirmek için Görsel modda metin seç.");
+      return false;
+    }
+    const start = Math.min(a, b), end = Math.max(a, b);
+    const backwards = a > b;
+    // Capture the source-aware, directional *before* selection in the shared
+    // TextEditorSession so Undo can restore it as one atomic transaction.
+    if (!selectedRange(editor, block)) return false;
     let operation;
     try {
-      operation = planInlineMark({
+      operation = planInlineVisibleMark({
         source: session.snapshot.text, block, start, end, mark
       });
     } catch (error) {
@@ -407,12 +434,16 @@ export function attachFlowEditor(host, {
     }
     const { type, from, to, text, selectionStart, selectionEnd } = operation;
     const result = session.dispatch({ type, from, to, text });
+    // Keep direction of reverse mouse selections when possible. Both
+    // endpoints are source offsets in the ONE authoritative text session.
+    const anchor = backwards ? selectionEnd : selectionStart;
+    const focus = backwards ? selectionStart : selectionEnd;
     session.setSelection({
-      anchor: textPosition(selectionStart),
-      focus: textPosition(selectionEnd)
+      anchor: textPosition(anchor),
+      focus: textPosition(focus)
     });
     notify();
-    render({ focusAt: selectionStart, selectionEnd });
+    render({ focusAt: anchor, selectionEnd: focus, preferredId: block.id });
     return result.changed;
   }
 

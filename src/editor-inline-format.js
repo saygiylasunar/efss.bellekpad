@@ -111,3 +111,103 @@ export function planInlineMark({ source, block, start, end, mark }) {
     operation: "add"
   });
 }
+
+
+/**
+ * G0.6A — plan a mark against a *visible* UTF-16 selection, never against
+ * blindly sliced Markdown. This augments planInlineMark, it does not create
+ * another document, history stack or serialization format.
+ *
+ * Existing marks are retained only if reparsing the proposed source proves
+ * that every visible code unit kept its former style and the selected range
+ * gained precisely the requested mark. Ambiguous marker nesting refuses the
+ * operation without changing the authoritative source.
+ */
+function preservesStyleWithAddedMark(before, after, start, end, mark) {
+  if (!after.editable || before.text !== after.text) return false;
+  let a = 0, b = 0, position = 0, aEnd = 0, bEnd = 0;
+  const oldRuns = before.runs, newRuns = after.runs;
+  while (position < before.text.length) {
+    while (a < oldRuns.length && aEnd <= position) aEnd += oldRuns[a++].text.length;
+    while (b < newRuns.length && bEnd <= position) bEnd += newRuns[b++].text.length;
+    if (!a || !b || a > oldRuns.length || b > newRuns.length) return false;
+    const limit = Math.min(aEnd, bEnd,
+      position < start ? start : position < end ? end : before.text.length);
+    if (limit <= position) return false;
+    const expected = new Set(oldRuns[a - 1].marks);
+    if (position >= start && position < end) expected.add(mark);
+    const actual = new Set(newRuns[b - 1].marks);
+    if (expected.size !== actual.size || [...expected].some(x => !actual.has(x)))
+      return false;
+    position = limit;
+  }
+  return true;
+}
+
+export function planInlineVisibleMark({ source, block, start, end, mark }) {
+  const inline = block?.inline;
+  const raw = typeof source === "string" && block ?
+    source.slice(block.sourceStart, block.sourceEnd) : "";
+  const actual = projectInline(raw);
+  if (typeof source !== "string" || !block?.editable || !inline?.editable ||
+      !Object.hasOwn(INLINE_MARKERS, mark) ||
+      !Number.isSafeInteger(start) || !Number.isSafeInteger(end) ||
+      start < 0 || start >= end || end > inline.text.length ||
+      !isGraphemeBoundary(inline.text, start) ||
+      !isGraphemeBoundary(inline.text, end) ||
+      !Number.isSafeInteger(block.sourceStart) ||
+      !Number.isSafeInteger(block.sourceEnd) ||
+      block.sourceStart < 0 || block.sourceEnd < block.sourceStart ||
+      block.sourceEnd > source.length ||
+      actual.text !== inline.text || actual.editable !== inline.editable ||
+      JSON.stringify(actual.runs) !== JSON.stringify(inline.runs) ||
+      JSON.stringify(actual.regions) !== JSON.stringify(inline.regions))
+    fail("INVALID_MARK_SELECTION");
+
+  const selected = inline.text.slice(start, end);
+  if (!selected.trim() || /^\s|\s$/.test(selected))
+    fail("MARK_WHITESPACE_EDGE");
+
+  const from = mapInlineVisibleOffset(inline, start, "right");
+  const to = mapInlineVisibleOffset(inline, end, "left");
+  const absoluteFrom = block.sourceStart + from;
+  const absoluteTo = block.sourceStart + to;
+  if (from >= to || !isGraphemeBoundary(source, absoluteFrom) ||
+      !isGraphemeBoundary(source, absoluteTo))
+    fail("INVALID_MARK_SELECTION");
+
+  // Previous G0.5 full-region unwrap is already a lossless, single undo step.
+  const unwrapped = inline.regions.some(region =>
+    region.mark === mark && region.contentStart === from && region.contentEnd === to);
+  if (unwrapped) {
+    return planInlineMark({
+      source, block, start: absoluteFrom, end: absoluteTo, mark
+    });
+  }
+
+  let offset = 0, alreadyMarked = false;
+  for (const run of inline.runs) {
+    const next = offset + run.text.length;
+    if (start < next && end > offset && run.marks.includes(mark))
+      alreadyMarked = true;
+    offset = next;
+  }
+  // Do not attempt a partial toggle of existing marks until source-aware
+  // split/merge is implemented. A failed action leaves source byte-identical.
+  if (alreadyMarked) fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+
+  const marker = INLINE_MARKERS[mark];
+  const selectedSource = source.slice(absoluteFrom, absoluteTo);
+  const candidate = source.slice(block.sourceStart, absoluteFrom) + marker +
+    selectedSource + marker + source.slice(absoluteTo, block.sourceEnd);
+  if (!preservesStyleWithAddedMark(inline, projectInline(candidate), start, end, mark))
+    fail("CROSS_MARK_SELECTION_UNSUPPORTED");
+
+  return Object.freeze({
+    type: "replaceRange", from: absoluteFrom, to: absoluteTo,
+    text: marker + selectedSource + marker,
+    selectionStart: absoluteFrom + marker.length,
+    selectionEnd: absoluteTo + marker.length,
+    operation: "add"
+  });
+}
