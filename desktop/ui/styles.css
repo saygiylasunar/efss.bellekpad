@@ -157,3 +157,20 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .flow-callout[data-variant="success"] .ui-icon{color:#99c89a}
 .flow-callout[data-variant="error"] .ui-icon{color:#e89e91}
 .flow-callout .flow-callout-header span{min-width:0;overflow-wrap:anywhere}
+
+/* Semantic heading scales and ordered-list gutters live in the UI theme,
+   never as mutations of the EFSS document's raw source. */
+.flow-heading[data-heading-level="1"] .flow-editable{font-size:32px;line-height:1.28;font-weight:770;letter-spacing:-.042em}
+.flow-heading[data-heading-level="2"] .flow-editable{font-size:27px;line-height:1.32;font-weight:745;letter-spacing:-.038em}
+.flow-heading[data-heading-level="3"] .flow-editable{font-size:23px;line-height:1.4;font-weight:720;letter-spacing:-.025em}
+.flow-heading[data-heading-level="4"] .flow-editable{font-size:19px;line-height:1.48;font-weight:700;letter-spacing:-.012em}
+.flow-heading[data-heading-level="5"] .flow-editable{font-size:17px;line-height:1.55;font-weight:670;letter-spacing:0}
+.flow-heading[data-heading-level="6"] .flow-editable{font-size:15px;line-height:1.62;font-weight:660;letter-spacing:.005em}
+.flow-heading[data-heading-level="1"]{margin-top:20px;margin-bottom:10px}
+.flow-heading[data-heading-level="2"]{margin-top:16px;margin-bottom:8px}
+.flow-heading[data-heading-level="3"]{margin-top:13px;margin-bottom:6px}
+.flow-heading[data-heading-level="4"],.flow-heading[data-heading-level="5"],.flow-heading[data-heading-level="6"]{margin-top:9px;margin-bottom:3px}
+.flow-list_item[data-list-style="ordered"] .flow-gutter{color:#b4c7cd;font-family:var(--font-technical)}
+.flow-list_item[data-list-style="ordered"]{padding-left:50px}
+.flow-list_item[data-list-style="ordered"] .flow-gutter{left:8px;min-width:32px}
+.flow-block:focus-within{outline:1px solid #38575d;outline-offset:-1px}

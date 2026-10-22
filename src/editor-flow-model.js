@@ -164,6 +164,8 @@ export function planFlowEnter({ source, block, at } = {}) {
       !Number.isSafeInteger(at) || at < block.sourceStart ||
       at > block.sourceEnd || !isGraphemeBoundary(source, at))
     fail("INVALID_FLOW_ENTER");
+  if (source.slice(block.start, block.end) !== block.raw)
+    fail("FLOW_ENTER_STALE_BLOCK");
   if (block.inline && (!block.inline.editable || block.inline.regions.length))
     fail("FLOW_ENTER_RICH_UNSUPPORTED");
   if (block.type !== "blank" &&
@@ -185,36 +187,59 @@ export function planFlowEnter({ source, block, at } = {}) {
       operation: "flow-exit-block"
     });
   }
-  if (block.type === "list_item" && block.list?.style === "ordered") {
-    const next = block.list.ordinal + 1;
-    if (!Number.isSafeInteger(next) || next > 999999999)
-      fail("FLOW_LIST_NUMBER_LIMIT");
-    // Renumbering existing ordered siblings needs a separate atomic planner.
-    // Refuse insertion into an active numbered sequence, never duplicate
-    // list ordinals or mutate the following sibling as an incidental side effect.
-    const following = source.slice(block.end);
-    const nextLine = following.split(/\r\n|\r|\n/, 1)[0];
-    if (/^ {0,3}\d{1,9}[.)][ \t]+/.test(nextLine))
-      fail("FLOW_ORDERED_RENUMBER_UNSUPPORTED");
-  }
-  let continuation = "";
+  const localEol = trailingEol(block.raw) || eol;
+  let continuation = "", to = at, tail = "", operation = "flow-enter";
   if (block.type === "list_item") {
-    continuation = block.list.style === "ordered" ?
-      String(block.list.ordinal + 1) + block.list.delimiter + " " :
-      block.list.token + " ";
+    const indent = /^ {0,3}/.exec(prefix)?.[0] ?? "";
+    if (block.list.style === "ordered") {
+      const originalDigits = block.list.token.slice(0, -1);
+      const format = n => {
+        if (!Number.isSafeInteger(n) || n < 1 || n > 999999999)
+          fail("FLOW_LIST_NUMBER_LIMIT");
+        const digits = String(n);
+        const value = originalDigits.startsWith("0") ?
+          digits.padStart(originalDigits.length, "0") : digits;
+        if (value.length > 9) fail("FLOW_LIST_NUMBER_LIMIT");
+        return value;
+      };
+      continuation = indent + format(block.list.ordinal + 1) +
+        block.list.delimiter + " ";
+      // Only a contiguous ascending sequence at the same indentation and
+      // with the same delimiter can be renumbered without guessing intent.
+      let cursor = block.end, previous = block.list.ordinal, pos = at;
+      const segments = [];
+      while (cursor < source.length) {
+        const line = /^( {0,3})(\d{1,9})([.)])([ \t]+)([^\r\n]*)(\r\n|\r|\n|$)/
+          .exec(source.slice(cursor));
+        if (!line || line[1] !== indent ||
+            line[3] !== block.list.delimiter) break;
+        const number = Number(line[2]);
+        if (number !== previous + 1)
+          fail("FLOW_ORDERED_SEQUENCE_UNSUPPORTED");
+        const numberAt = cursor + line[1].length;
+        segments.push(source.slice(pos, numberAt), format(number + 1));
+        pos = numberAt + line[2].length;
+        previous = number;
+        cursor += line[0].length;
+        if (!line[6]) break;
+      }
+      if (segments.length) {
+        segments.push(source.slice(pos, cursor));
+        tail = segments.join("");
+        to = cursor;
+        operation = "flow-enter-ordered-renumber";
+      }
+    } else continuation = indent + block.list.token + " ";
   } else if (block.type === "quote") continuation = prefix;
-  // Paragraphs/headings become separate paragraphs; use a blank Markdown line
-  // so the AST does not merge adjacent prose into a read-only multi-line block.
-  // A trailing source newline already supplies the second separator at
-  // end-of-line. Never accidentally insert three newlines on Enter.
+  // A trailing EOL already supplies the following paragraph separator.
   const endsWithEol = at === block.sourceEnd && !!trailingEol(block.raw);
-  const text = ["paragraph", "heading", "blank"].includes(block.type) ?
-    (endsWithEol ? eol : eol + eol) : eol + continuation;
-  const selectionAt = at + text.length;
+  const insertion = ["paragraph", "heading", "blank"].includes(block.type) ?
+    (endsWithEol ? localEol : localEol + localEol) :
+    localEol + continuation;
   return Object.freeze({
-    type: "replaceRange", from: at, to: at, text,
-    selectionAfter: collapsedSelection(selectionAt),
-    operation: "flow-enter"
+    type: "replaceRange", from: at, to, text: insertion + tail,
+    selectionAfter: collapsedSelection(at + insertion.length),
+    operation
   });
 }
 

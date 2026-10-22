@@ -116,6 +116,16 @@ test("G0.5 renders inline marks via safe DOM without importing a rich-text libra
   assert.doesNotMatch(flow, /execCommand/);
 });
 
+test("G0.6B semantic heading/list variants are exposed to the renderer theme", () => {
+  const adapter = read("src/editor-flow-adapter.js");
+  const css = read("desktop/ui/styles.css");
+  assert.match(adapter, /card\.dataset\.headingLevel/);
+  assert.match(adapter, /card\.dataset\.listStyle/);
+  for (let n = 1; n <= 6; n++)
+    assert.ok(css.includes('data-heading-level="' + n + '"'));
+  assert.match(css, /data-list-style="ordered"/);
+});
+
 test("G0.6A maps native rich spans to exact Markdown source positions", () => {
   const adapter = read("src/editor-flow-adapter.js");
   const format = read("src/editor-inline-format.js");

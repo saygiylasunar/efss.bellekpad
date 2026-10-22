@@ -130,6 +130,11 @@ function noteElement(doc, block, kind) {
   card.className = "flow-block flow-" + block.type;
   card.dataset.blockId = block.id;
   if (block.variant) card.dataset.variant = block.variant;
+  if (block.type === "heading" && Number.isInteger(block.level) &&
+      block.level >= 1 && block.level <= 6)
+    card.dataset.headingLevel = String(block.level);
+  if (block.type === "list_item" && block.list)
+    card.dataset.listStyle = block.list.style;
   const gutter = doc.createElement("span");
   gutter.className = "flow-gutter";
   gutter.setAttribute("aria-hidden", "true");

@@ -154,3 +154,13 @@ Her blok yalnızca Markdown sözdiziminin renklendirilmiş hali değildir. Bir t
 ## 6. Kullanıcı onayı gerektiren tasarım kararları
 
 Bu belgede tipografi ölçüleri, inspector alanlarının sırası, list nesting / ordered auto-renumber ve task-checklist varyantlarının UI tasarımı **öneridir**. Çekirdek kaynak sözleşmesi ve kayıpsız düzenleme zorunludur. Hangi blokların öncelikle görselleştirileceği, hangi kontrolün sürekli/gizli olacağı ve ileri metadata'nın versioned EFSS söz dizimi kullanıcıyla doğrulanacak; varsayımsal bir migration uygulanmayacak.
+
+## G0.6B.2 — Atomic numbered-list Enter and visual heading levels
+
+**Implementation slice (accept only after CI on final commit):** A collapsed caret in a simple ordered list item can split/continue that item and renumber all immediately adjacent, ascending ordered siblings of the same indentation and delimiter. It is one TextEditorSession replaceRange transaction and one Undo/Redo entry. Source caret placement follows the inserted prefix, preserving CRLF, `)` markers, leading-zero ordinals such as `001.`, and modest indentation. Blank lines, different delimiters, bullet items and unknown EFSS extensions are never traversed. Nonsequential ordinals or overflow are rejected rather than guessed.
+
+Headings H1–H6 now have six distinct typography tiers via the semantic data-heading-level and CSS, not by altering Markdown source. Ordered list markers are derived from the source's real ordinal.
+
+**CI correction:** Previous Windows/Linux Electron smoke runs emitted `DESKTOP GUI SMOKE PASSED` and then stayed alive until the job timed out. The smoke success path now exits via `app.exit(0)`, while failed assertions still call `app.exit(1)`. This modifies the CI test runner, not the production application lifecycle.
+
+**Not yet supported:** Nested ordered trees, arbitrary Tab/Shift+Tab reparenting, discontinuous/manual numbered lists, normalizing an entire list, rich inline Enter, selected-range Enter, cross-block Backspace/Delete and soft breaks.

@@ -364,8 +364,42 @@ async function run() {
     page("document.querySelectorAll('.flow-list_item').length === 1"));
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page('document.querySelector("#editor").textContent.includes("opaque: stay")'), true);
+
+  // G0.6B.2: ordered Enter in the middle of a sequence inserts the correct
+  // new ordinal and renumbers its following siblings. Undo is atomic.
+  await page("document.querySelector('#show-write').click()");
+  const numberedSource = "1. İlk\n2. İkinci\n3. Üçüncü\n\n:::efss.unknown\nopaque: unchanged\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(numberedSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("numbered source set", () =>
+    page("document.querySelector('#editor').textContent.includes('2. İkinci')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("three numbered items", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 3"));
+  assert.equal(await page("document.querySelector('.flow-list_item')?.dataset.listStyle"), "ordered");
+  await page('(() => {const el=document.querySelector(".flow-list_item .flow-editable");' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("ordered siblings renumbered", () =>
+    page("Array.from(document.querySelectorAll('.flow-list_item .flow-gutter'))" +
+      ".map(e=>e.textContent).join(',') === '1.,2.,3.,4.'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("numbered Enter undo", () =>
+    page("Array.from(document.querySelectorAll('.flow-list_item .flow-gutter'))" +
+      ".map(e=>e.textContent).join(',') === '1.,2.,3.'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("numbered Enter redo", () =>
+    page("Array.from(document.querySelectorAll('.flow-list_item .flow-gutter'))" +
+      ".map(e=>e.textContent).join(',') === '1.,2.,3.,4.'"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page('document.querySelector("#editor").textContent.includes("opaque: unchanged")'), true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
-  win.close(); app.quit();
+  // A successful CI smoke previously stayed alive until the 12-minute
+  // workflow timeout after printing PASSED. Exit Electron deterministically.
+  app.exit(0);
 }
 run().catch(error => {
   console.error("DESKTOP GUI SMOKE FAILED:", error.message);

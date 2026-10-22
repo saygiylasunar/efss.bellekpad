@@ -10,6 +10,83 @@ import {
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
 
 
+
+test("G0.6B.2 ordered Enter renumbers consecutive siblings in one undo transaction", () => {
+  const cases = [
+    ["1. One\n2. Two\n3. Three\n", "1. One\n2. \n3. Two\n4. Three\n", "2. "],
+    ["1. One\r\n2. Two\r\n3. Three\r\n",
+      "1. One\r\n2. \r\n3. Two\r\n4. Three\r\n", "2. "],
+    ["7) Seven\n8) Eight\n", "7) Seven\n8) \n9) Eight\n", "8) "],
+    ["001. One\n002. Two\n", "001. One\n002. \n003. Two\n", "002. "],
+    ["  1. A\n  2. B\n", "  1. A\n  2. \n  3. B\n", "  2. "]
+  ];
+  for (const [source, expected, newPrefix] of cases) {
+    const block = editable(source).find(b => b.type === "list_item");
+    const at = block.sourceEnd, eol = source.includes("\r\n") ? "\r\n" : "\n";
+    const state = new TextEditorSession({ text: source,
+      selection: collapsedSelection(at) });
+    const op = planFlowEnter({ source, block, at });
+    assert.equal(op.operation, "flow-enter-ordered-renumber");
+    assert.equal(op.selectionAfter.focus.offset, at + eol.length + newPrefix.length);
+    state.dispatch(op);
+    assert.equal(state.snapshot.text, expected);
+    const list = projectFlowBlocks(createBlockDocument(expected))
+      .filter(b => b.type === "list_item");
+    assert.ok(list.length >= 3);
+    assert.equal(list[1].text, "");
+    state.undo();
+    assert.equal(state.snapshot.text, source);
+    assert.equal(state.snapshot.selection.focus.offset, at);
+    state.redo();
+    assert.equal(state.snapshot.text, expected);
+    assert.equal(state.snapshot.selection.focus.offset, at + eol.length + newPrefix.length);
+  }
+});
+test("G0.6B.2 ordered Enter splits current text and shifts later sibling markers", () => {
+  const source = "1. One\n2. Two\n";
+  const block = editable(source)[0], at = source.indexOf("n", source.indexOf("One"));
+  const op = planFlowEnter({ source, block, at });
+  assert.equal(source.slice(0, op.from) + op.text + source.slice(op.to),
+    "1. O\n2. ne\n3. Two\n");
+  const updated = "1. O\n2. ne\n3. Two\n";
+  assert.deepEqual(projectFlowBlocks(createBlockDocument(updated))
+    .filter(b => b.type === "list_item").map(b => b.list.ordinal), [1, 2, 3]);
+});
+test("G0.6B.2 renumber does not cross blank, other family or unknown EFSS", () => {
+  const samples = [
+    "1. One\n\n2. Separate\n",
+    "1. One\n2) Different delimiter\n",
+    "1. One\n- Bullet\n2. New run\n",
+    "1. One\n:::efss.secret\nprivate: x\n:::\n"
+  ];
+  for (const source of samples) {
+    const block = editable(source)[0], op = planFlowEnter({
+      source, block, at: block.sourceEnd
+    });
+    assert.equal(op.operation, "flow-enter");
+    assert.equal(op.to, block.sourceEnd);
+    assert.equal(op.text, "\n2. ");
+    const updated = source.slice(0, op.from) + op.text + source.slice(op.to);
+    assert.ok(updated.endsWith(source.slice(block.sourceEnd)));
+  }
+});
+test("G0.6B.2 invalid ordinal sequence, overflow and stale block refuse mutation", () => {
+  for (const source of [
+    "1. One\n4. Unexpected\n",
+    "999999998. Last\n999999999. Overflow\n",
+    "999999999. Overflow\n"
+  ]) {
+    const block = editable(source)[0], state = new TextEditorSession({ text: source });
+    assert.throws(() => planFlowEnter({ source, block, at: block.sourceEnd }),
+      /FLOW_ORDERED_SEQUENCE_UNSUPPORTED|FLOW_LIST_NUMBER_LIMIT/);
+    assert.equal(state.snapshot.text, source);
+    assert.equal(state.historyDepth, 0);
+  }
+  const source = "1. One\n", block = editable(source)[0];
+  assert.throws(() => planFlowEnter({ source: "1. Two\n", block,
+    at: block.sourceEnd }), /FLOW_ENTER_STALE_BLOCK/);
+});
+
 test("G0.6B.1 bullet Enter continues -, + and * source markers without losing text", () => {
   for (const token of ["-", "+", "*"]) {
     const source = token + " Birinci\n";
