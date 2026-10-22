@@ -85,6 +85,8 @@ export function projectFlowBlocks(doc) {
     const list = listMatch ? Object.freeze({
       style: listMatch[3] ? "ordered" : "bullet",
       token: listMatch[2],
+      indent: listMatch[1].length,
+      depth: listMatch[1].length === 2 ? 1 : 0,
       ...(listMatch[3] ? { ordinal: Number(listMatch[3]),
         delimiter: listMatch[4] } : {})
     }) : null;
@@ -240,6 +242,79 @@ export function planFlowEnter({ source, block, at } = {}) {
     type: "replaceRange", from: at, to, text: insertion + tail,
     selectionAfter: collapsedSelection(at + insertion.length),
     operation
+  });
+}
+
+
+/**
+ * G0.6B.3: one deliberate two-space list indentation level. The EFSS parser
+ * recognizes only 0..3 spaces; higher levels must remain unsupported until
+ * the AST itself represents them. Parent must precede the item immediately.
+ */
+export function planFlowListIndent({ source, block, at, direction } = {}) {
+  if (typeof source !== "string" || block?.type !== "list_item" ||
+      !block.editable || block.list?.style !== "bullet" ||
+      !["indent", "outdent"].includes(direction) ||
+      !Number.isSafeInteger(at) || at < block.sourceStart ||
+      at > block.sourceEnd || !isGraphemeBoundary(source, at))
+    fail("INVALID_FLOW_INDENT");
+  if (source.slice(block.start, block.end) !== block.raw)
+    fail("FLOW_INDENT_STALE_BLOCK");
+  const prefix = source.slice(block.start, block.sourceStart);
+  const match = /^( *)([-+*])([ \t]+)$/.exec(prefix);
+  if (!match || match[1].length !== block.list.indent)
+    fail("FLOW_INDENT_PREFIX_UNSUPPORTED");
+  const indent = match[1].length;
+  let from, to, text, nextOffset;
+  if (direction === "indent") {
+    if (indent !== 0) fail("FLOW_INDENT_DEPTH_LIMIT");
+    const before = source.slice(0, block.start).split(/\r\n|\r|\n/);
+    const previous = before.length > 1 ? before.at(-2) : "";
+    if (!previous || !(previous.startsWith(match[2] + " ") ||
+        previous.startsWith(match[2] + "\t")))
+      fail("FLOW_INDENT_PARENT_REQUIRED");
+    // Reparenting an existing nested child requires a tree transaction;
+    // never leave that child silently attached to a different list item.
+    const after = source.slice(block.end).split(/\r\n|\r|\n/, 1)[0];
+    if (/^ {2}[-+*][ \t]+/.test(after))
+      fail("FLOW_INDENT_CHILDREN_UNSUPPORTED");
+    from = block.start; to = from; text = "  "; nextOffset = at + 2;
+  } else {
+    if (indent !== 2) fail("FLOW_INDENT_DEPTH_LIMIT");
+    from = block.start; to = from + 2; text = ""; nextOffset = at - 2;
+  }
+  return Object.freeze({
+    type: "replaceRange", from, to, text,
+    selectionAfter: collapsedSelection(nextOffset),
+    operation: direction === "indent" ? "flow-list-indent" : "flow-list-outdent"
+  });
+}
+
+/**
+ * Backspace at the visible beginning of a structural line unwraps its
+ * marker, without deleting source in the preceding block. A nested bullet
+ * first outdents; subsequent Backspace can convert it to plain text.
+ */
+export function planFlowBackspaceAtStart({ source, block, at } = {}) {
+  if (typeof source !== "string" || !block?.editable ||
+      !["list_item", "quote", "heading"].includes(block.type) ||
+      !Number.isSafeInteger(at) || at !== block.sourceStart ||
+      !isGraphemeBoundary(source, at))
+    fail("INVALID_FLOW_BACKSPACE");
+  if (source.slice(block.start, block.end) !== block.raw)
+    fail("FLOW_BACKSPACE_STALE_BLOCK");
+  if (block.type === "list_item") {
+    if (block.list?.style !== "bullet") fail("FLOW_BACKSPACE_ORDERED_UNSUPPORTED");
+    if (block.list?.indent === 2)
+      return planFlowListIndent({ source, block, at, direction: "outdent" });
+    if (block.list?.indent !== 0) fail("FLOW_BACKSPACE_INDENT_UNSUPPORTED");
+  }
+  const prefix = source.slice(block.start, block.sourceStart);
+  if (!prefix || /[\r\n]/.test(prefix)) fail("FLOW_BACKSPACE_PREFIX_UNSUPPORTED");
+  return Object.freeze({
+    type: "replaceRange", from: block.start, to: block.sourceStart, text: "",
+    selectionAfter: collapsedSelection(block.start),
+    operation: "flow-unwrap-marker"
   });
 }
 

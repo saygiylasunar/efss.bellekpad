@@ -396,6 +396,45 @@ async function run() {
       ".map(e=>e.textContent).join(',') === '1.,2.,3.,4.'"));
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page('document.querySelector("#editor").textContent.includes("opaque: unchanged")'), true);
+
+  // G0.6B.3: native event path for Tab/Shift+Tab/Backspace. Source remains
+  // the sole journal; the unknown EFSS extension is immutable.
+  await page("document.querySelector('#show-write').click()");
+  const nestedSource = "- Parent\n- Child\n\n:::efss.opaque\nsecret: unchanged\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(nestedSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("nested bullet source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('- Child')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("nested bullet visible", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 2"));
+  await page('(() => {const el=document.querySelectorAll(".flow-list_item .flow-editable")[1];' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,0,t,0);' +
+    'el.dispatchEvent(new KeyboardEvent("keydown",{' +
+    'bubbles:true,cancelable:true,key:"Tab"}));})()');
+  await retry("Tab creates one nested bullet", () =>
+    page("document.querySelectorAll('.flow-list_item[data-list-depth=\"1\"]').length === 1"));
+  assert.equal(await page("document.activeElement?.textContent === 'Child'"),true);
+  await page('document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{' +
+    'bubbles:true,cancelable:true,key:"Tab",shiftKey:true}))');
+  await retry("Shift Tab outdents bullet", () =>
+    page("document.querySelectorAll('.flow-list_item[data-list-depth=\"1\"]').length === 0"));
+  await page('(() => {const el=document.querySelectorAll(".flow-list_item .flow-editable")[1];' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,0,t,0);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"deleteContentBackward"}));})()');
+  await retry("Backspace unwraps bullet into paragraph", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 1 && " +
+      "Array.from(document.querySelectorAll('.flow-paragraph .flow-editable'))" +
+      ".some(el=>el.textContent==='Child')"));
+  await page("document.querySelector('#undo').click()");
+  await retry("marker unwrap undo", () =>
+    page("document.querySelectorAll('.flow-list_item').length === 2"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: unchanged')"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

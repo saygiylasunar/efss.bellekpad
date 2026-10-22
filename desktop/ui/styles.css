@@ -174,3 +174,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .flow-list_item[data-list-style="ordered"]{padding-left:50px}
 .flow-list_item[data-list-style="ordered"] .flow-gutter{left:8px;min-width:32px}
 .flow-block:focus-within{outline:1px solid #38575d;outline-offset:-1px}
+
+/* G0.6B.3 first-level nested bullets. Source owns indentation; CSS only
+   makes the semantic depth visible and preserves a readable focus target. */
+.flow-list_item[data-list-depth="1"]{margin-left:24px}
+.flow-list_item[data-list-depth="1"] .flow-gutter{color:#a4bcbc}
+.flow-list_item[data-list-depth="1"] .flow-editable{border-left:1px solid #38545a;padding-left:12px}
+.flow-list_item[data-list-depth="1"]:focus-within .flow-editable{border-left-color:#86b1aa}

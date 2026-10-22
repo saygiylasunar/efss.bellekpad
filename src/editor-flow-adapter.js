@@ -3,7 +3,8 @@ import {
   selectionBounds, textPosition
 } from "./editor-text-engine.js";
 import {
-  projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter
+  projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter,
+  planFlowListIndent, planFlowBackspaceAtStart
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -133,8 +134,10 @@ function noteElement(doc, block, kind) {
   if (block.type === "heading" && Number.isInteger(block.level) &&
       block.level >= 1 && block.level <= 6)
     card.dataset.headingLevel = String(block.level);
-  if (block.type === "list_item" && block.list)
+  if (block.type === "list_item" && block.list) {
     card.dataset.listStyle = block.list.style;
+    card.dataset.listDepth = String(block.list.depth);
+  }
   const gutter = doc.createElement("span");
   gutter.className = "flow-gutter";
   gutter.setAttribute("aria-hidden", "true");
@@ -376,6 +379,23 @@ export function attachFlowEditor(host, {
     const command = editPayload(event);
     if (!command) return;
     event.preventDefault();
+    if (command.type === "deleteBackward" &&
+        ["list_item", "heading", "quote"].includes(block.type)) {
+      if (!selectedRange(editor, block)) return;
+      const sel = selectionBounds(session.snapshot.selection);
+      if (sel.start === sel.end && sel.start === block.sourceStart) {
+        try {
+          const planned = planFlowBackspaceAtStart({
+            source: session.snapshot.text, block, at: sel.start
+          });
+          const result = session.dispatch(planned);
+          finish(result, { focusAt: planned.selectionAfter.focus.offset });
+        } catch (error) {
+          onError("Blok başlangıcı korunuyor: " + (error?.message ?? "UNSAFE_BACKSPACE"));
+        }
+        return;
+      }
+    }
     if (command.type === "flowEnter" || command.type === "softBreak") {
       if (command.type === "softBreak") {
         onError("Shift+Enter için satır-içi model henüz hazır değil; kaynak görünümünü kullan.");
@@ -488,7 +508,33 @@ export function attachFlowEditor(host, {
   }, { signal });
 
   host.addEventListener("keydown", event => {
-    if (!(event.ctrlKey || event.metaKey) || composing || event.isComposing) return;
+    if (composing || event.isComposing) return;
+    if (event.key === "Tab" && !(event.ctrlKey || event.metaKey || event.altKey)) {
+      const editor = event.target.closest?.("[data-flow-block]");
+      const block = editor && projectFlowBlocks(getStructure())
+        .find(b => b.id === editor.dataset.flowBlock);
+      if (block?.type === "list_item" && block.editable) {
+        event.preventDefault();
+        if (!selectedRange(editor, block)) return;
+        const sel = selectionBounds(session.snapshot.selection);
+        if (sel.start !== sel.end) {
+          onError("Birden çok karakter seçiliyken liste girintisi henüz desteklenmiyor.");
+          return;
+        }
+        try {
+          const planned = planFlowListIndent({
+            source: session.snapshot.text, block, at: sel.start,
+            direction: event.shiftKey ? "outdent" : "indent"
+          });
+          const result = session.dispatch(planned);
+          finish(result, { focusAt: planned.selectionAfter.focus.offset });
+        } catch (error) {
+          onError("Liste girintisi korunuyor: " + (error?.message ?? "UNSAFE_INDENT"));
+        }
+      }
+      return;
+    }
+    if (!(event.ctrlKey || event.metaKey)) return;
     const k = event.key.toLowerCase();
     if (k === "b" && !event.shiftKey && !event.altKey) {
       event.preventDefault(); format("strong");

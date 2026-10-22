@@ -4,12 +4,124 @@ import { createBlockDocument } from "../src/editor-block-model.js";
 import { TextEditorSession, collapsedSelection } from "../src/editor-text-engine.js";
 import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
-  calloutMarkdown, slashFlowCommand, planFlowEnter
+  calloutMarkdown, slashFlowCommand, planFlowEnter,
+  planFlowListIndent, planFlowBackspaceAtStart
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
 
 
+
+
+test("G0.6B.3 Tab indents a second bullet to one level and Shift+Tab reverses it", () => {
+  for (const [marker,eol] of [["-","\n"],["+","\r\n"],["*","\r"]]) {
+    const source = marker + " Ebeveyn" + eol +
+      marker + " Çocuk 👩‍👧" + eol;
+    const child = editable(source).filter(b => b.type === "list_item")[1];
+    const at = child.sourceStart + 2;
+    const state = new TextEditorSession({text:source,
+      selection: collapsedSelection(at)});
+    const indent = planFlowListIndent({ source, block: child, at,
+      direction: "indent" });
+    assert.equal(indent.operation, "flow-list-indent");
+    assert.equal(indent.selectionAfter.focus.offset, at + 2);
+    state.dispatch(indent);
+    const expected = marker + " Ebeveyn" + eol +
+      "  " + marker + " Çocuk 👩‍👧" + eol;
+    assert.equal(state.snapshot.text, expected);
+    const nested = editable(expected).filter(b => b.type === "list_item")[1];
+    assert.equal(nested.list.depth, 1);
+    assert.equal(nested.list.indent, 2);
+    const outdent = planFlowListIndent({
+      source: expected, block: nested, at: indent.selectionAfter.focus.offset,
+      direction: "outdent"
+    });
+    state.dispatch(outdent);
+    assert.equal(state.snapshot.text, source);
+    state.undo(); assert.equal(state.snapshot.text, expected);
+    state.undo(); assert.equal(state.snapshot.text, source);
+    state.redo(); assert.equal(state.snapshot.text, expected);
+    state.redo(); assert.equal(state.snapshot.text, source);
+  }
+});
+test("G0.6B.3 Tab fails closed without a parent or on unsupported levels", () => {
+  for (const [source, index, direction, error] of [
+    ["- First\n- Second\n",0,"indent","FLOW_INDENT_PARENT_REQUIRED"],
+    ["Paragraph\n- Item\n",0,"indent","FLOW_INDENT_PARENT_REQUIRED"],
+    ["- Parent\n\n- Child\n",1,"indent","FLOW_INDENT_PARENT_REQUIRED"],
+    ["- Parent\n  - Child\n",1,"indent","FLOW_INDENT_DEPTH_LIMIT"],
+    ["- Parent\n- Child\n  - Grandchild\n",1,"indent","FLOW_INDENT_CHILDREN_UNSUPPORTED"],
+    ["- Parent\n- Child\n",1,"outdent","FLOW_INDENT_DEPTH_LIMIT"],
+    ["1. First\n2. Second\n",1,"indent","INVALID_FLOW_INDENT"]
+  ]) {
+    const item = editable(source).filter(b => b.type === "list_item")[index];
+    const at = item.sourceStart, state = new TextEditorSession({ text: source });
+    assert.throws(() => planFlowListIndent({ source, block: item, at, direction }),
+      new RegExp(error), source);
+    assert.equal(state.snapshot.text, source);
+    assert.equal(state.historyDepth, 0);
+  }
+});
+test("G0.6B.3 Backspace at structural start unwraps only marker as one transaction", () => {
+  for (const [source, expected, kind] of [
+    ["- Madde\n", "Madde\n", "list_item"],
+    ["> Alıntı\n", "Alıntı\n", "quote"],
+    ["## Başlık\n", "Başlık\n", "heading"],
+    ["- Önce\n- Sonra\n", "- Önce\nSonra\n", "list_item"]
+  ]) {
+    const blocks = editable(source);
+    const block = blocks.filter(b => b.type === kind).at(-1);
+    const before = source, at = block.sourceStart;
+    const session = new TextEditorSession({text:source,
+      selection: collapsedSelection(at)});
+    const op = planFlowBackspaceAtStart({source,block,at});
+    assert.equal(op.operation,"flow-unwrap-marker");
+    session.dispatch(op);
+    assert.equal(session.snapshot.text,expected);
+    assert.equal(session.snapshot.selection.focus.offset,block.start);
+    session.undo();
+    assert.equal(session.snapshot.text,before);
+    session.redo();
+    assert.equal(session.snapshot.text,expected);
+  }
+});
+test("G0.6B.3 nested bullet Backspace outdents before unwrapping to paragraph", () => {
+  const source = "- Parent\r\n  - Child\r\n\r\n:::efss.hidden\r\nsecret: 123\r\n:::\r\n";
+  const child = editable(source).find(b => b.list?.depth === 1);
+  assert.ok(child);
+  const state = new TextEditorSession({text:source,
+    selection:collapsedSelection(child.sourceStart)});
+  const first = planFlowBackspaceAtStart({
+    source,block:child,at:child.sourceStart
+  });
+  assert.equal(first.operation,"flow-list-outdent");
+  state.dispatch(first);
+  assert.ok(state.snapshot.text.startsWith("- Parent\r\n- Child\r\n"));
+  const next = editable(state.snapshot.text).find(b => b.text === "Child");
+  const second = planFlowBackspaceAtStart({
+    source:state.snapshot.text,block:next,at:next.sourceStart
+  });
+  state.dispatch(second);
+  assert.ok(state.snapshot.text.startsWith("- Parent\r\nChild\r\n"));
+  assert.ok(state.snapshot.text.endsWith(":::efss.hidden\r\nsecret: 123\r\n:::\r\n"));
+  state.undo(); state.undo(); assert.equal(state.snapshot.text,source);
+});
+test("G0.6B.3 cannot unwrap unsupported ordered item or stale source", () => {
+  const numbered = "1. First\n2. Second\n";
+  const ordered = editable(numbered).find(b => b.text === "Second");
+  assert.throws(() => planFlowBackspaceAtStart({
+    source:numbered,block:ordered,at:ordered.sourceStart
+  }), /FLOW_BACKSPACE_ORDERED_UNSUPPORTED/);
+  const source = "- Ebeveyn\n- Çocuk\n";
+  const child = editable(source).find(b => b.text === "Çocuk");
+  assert.throws(() => planFlowListIndent({
+    source:"- Ebeveyn\n- Başka\n",block:child,
+    at:child.sourceStart,direction:"indent"
+  }), /FLOW_INDENT_STALE_BLOCK/);
+  assert.throws(() => planFlowBackspaceAtStart({
+    source,block:child,at:child.sourceStart + 1
+  }), /INVALID_FLOW_BACKSPACE/);
+});
 
 test("G0.6B.2 ordered Enter renumbers consecutive siblings in one undo transaction", () => {
   const cases = [

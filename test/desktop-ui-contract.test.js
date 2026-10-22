@@ -116,6 +116,18 @@ test("G0.5 renders inline marks via safe DOM without importing a rich-text libra
   assert.doesNotMatch(flow, /execCommand/);
 });
 
+test("G0.6B.3 single-depth bullet keyboard actions stay local and source-aware", () => {
+  const flow = read("src/editor-flow-model.js");
+  const adapter = read("src/editor-flow-adapter.js");
+  const styles = read("desktop/ui/styles.css");
+  assert.match(flow, /planFlowListIndent/);
+  assert.match(flow, /planFlowBackspaceAtStart/);
+  assert.match(adapter, /event\.key === "Tab"/);
+  assert.match(adapter, /planFlowBackspaceAtStart/);
+  assert.match(adapter, /card\.dataset\.listDepth/);
+  assert.match(styles, /data-list-depth="1"/);
+});
+
 test("G0.6B semantic heading/list variants are exposed to the renderer theme", () => {
   const adapter = read("src/editor-flow-adapter.js");
   const css = read("desktop/ui/styles.css");
