@@ -72,3 +72,7 @@ GitHub Actions `desktop-smoke` passed on Windows and Ubuntu/Xvfb for commit `a16
 Own inline run projection + B/I/S commands, source-aware range map and mark toggling implemented in visual Flow via shared TextEditorSession. Existing Electron IPC, sandbox and DevTools policy unchanged. Mixed cross-mark selections, rich multi-line text, proper table/layout and comprehensive IME remain unimplemented. [G0.5](EDITOR_G0_5.md).
 
 **G0.5 verification:** Core Node 211/211; real Electron smoke passed on Windows and Linux including bold mark selection, edit inside a bold run, Undo/Redo and EFSS save/open. Physical keyboard/IME and full visual editing are still not validated.
+
+## G0.6A.1 — Rich caret ve kayıpsız inline edit (22.10.2026)
+
+`src/editor-inline-format.js` kaynak↔görünür offset ters eşleme ve `planInlineTextEdit()` doğrulaması kazandı. `src/editor-flow-adapter.js` DOM span başı/sonu için doğru kaynak run'ını seçiyor; karma mark bölgesinde görünmeyen Markdown işaretini tüketecek delete/replace korumalı reddediliyor; cut güvenli bağlantıda. 219/219 Node, Windows+Ubuntu GUI smoke başarılı (commit `dfac015`). Hâlâ karma style split/merge ve cross-block editing yapılmadı. [EDITOR_G0_6A.md](EDITOR_G0_6A.md).

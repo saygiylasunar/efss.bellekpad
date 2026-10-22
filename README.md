@@ -104,3 +104,7 @@ Görsel Flow metninde B/I/S ile seçili bölüme kalın, italik ve üzeri çizil
 ### G0.5 test confirmation
 
 The real Electron desktop smoke test now covers selecting and styling heading text, typing inside the formatted run, Undo/Redo, save/open and both editing modes on **Windows and Ubuntu**. Both targets passed on commit `be3bfa0`; 211/211 Node tests passed. Keyboard/IME and complex cross-style selections are still explicit limitations.
+
+## G0.6A.1 — Güvenli rich-text seçim ve kaynak sınırları
+
+Biçimli metin içindeki native caret, görünür karakter offset'i yerine ilgili **inline DOM run → kaynak aralığı** üzerinden eşlenir. Biçimsiz + biçimli run seçiminin gizli Markdown işaretlerini bozacağı düzenleme fail-closed reddedilir; native cut güvenli metin payload'ına ve aynı transaction'a bağlanır. `A **kalın** B` ters karma seçim, `**İçerik**` baş/son Unicode, Undo/Redo ve EFSS unknown extension regresyonları eklendi. **219/219** Node test ve **Windows/Linux Electron GUI smoke** başarılı (commit `dfac015`). Tam karma stil dönüştürme **G0.6A.2**, çok satırlı akış **G0.6B**. [G0.6A teknik kayıt](docs/EDITOR_G0_6A.md).

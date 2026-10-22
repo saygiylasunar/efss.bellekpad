@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.5 / v0.2.5**, commit **906968ca0556d0c75e761633c9d6ec8c4c2baafc**.
+> Doğrulanan son uygulama durumu: **G0.6A.1 / v0.2.6**, commit **dfac01555f4b256887fb89c93a6a7db86a1bb3a8**. [Kod + test devri](EDITOR_G0_6A.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **G0.6A.1 güncellemesi / ana dal doğrulaması:** `dfac015` kaynak + GUI köprü düzeltmeleri, `219/219` Node testi ve gerçek Windows/Linux Electron smoke **başarılı**. Rich span içindeki imleç artık kendi kaynak run'ını seçiyor; görünmeyen Markdown işaretlerini tüketecek karışık seçimler reddediliyor. Bu **tam rich selection editing değildir**; sıradaki kesit **G0.6A.2 run split/merge**, sonra G0.6B. Detay: [EDITOR_G0_6A.md](EDITOR_G0_6A.md). Önceki G0.5 durum paragrafı aşağıda tarihsel referans niteliğindedir.
 
 ## 0. Ürünü bir paragrafta devret
 
@@ -125,11 +127,11 @@ PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-o
 
 ## 5. Yeni sohbetin ilk somut uygulama görevi
 
-**Görev: G0.6A — Rich selection mapping / source-aware transaction.**
+**Görev: G0.6A.2 — karma biçimli seçimlerde kayıpsız split/merge ve güvenli kaynak transaction.** İlk G0.6A.1 caret/guard regresyonu tamamlandı; aynı işi yeniden sıfırdan yazma.
 
 1. GitHub'da **main HEAD** ve **core-checks + desktop-smoke** sonuçlarını güncel oku; bu dosyayı ve \`docs/EDITOR_G0_5.md\`'yi yeniden gözden geçir.
 2. \`src/editor-inline-format.js\`, \`src/editor-flow-adapter.js\`, \`src/editor-text-engine.js\`, \`src/editor-flow-model.js\` ve \`desktop/smoke.mjs\` kodunu canlı repodan oku.
-3. **Önce test:** karışık run seçimi, formatlı run başı/sonuna Unicode giriş, ters seçim/drag, Undo/Redo, CRLF + EFSS extension roundtrip. Kaynak metin harf veya marker kaybediyorsa tek bir adımı bile başarı ilan etme.
+3. **Önce test:** G0.6A.1 içinde zaten doğrulanan run başı/sonu Unicode ve ters karma seçim üzerine; bu kez gerçekten seçili **karma run metnini değiştirme/biçim değiştirme** planının güvenli split/merge regresyonları. Undo/Redo, CRLF ve EFSS extension byte korumasını sürdür. Kaynak metin harf veya marker kaybediyorsa tek bir adımı bile başarı ilan etme.
 4. Own range mapping/transaction düzenleyicisini geliştir; sadece doğrulanan küçük bir dikey dilim tamamla. Yeni editör paketi, ikinci kaydetme formatı ve onaysız migration yok.
 5. Windows ve Linux **gerçek Electron** workflow smoke testlerini güncelle, kırmızı CI'ı düzelt; commit SHA, test sonucu, açık risk ve sonraki net işi bildir.
 6. Daha sonraki G0.6B işine ancak bu ilk gate stabil olduğunda geç. “Amerika'yı yeniden keşfetme” araştırma iznidir, kütüphane import izni değildir.
@@ -193,6 +195,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette aynen verilebilecek tek satırlık talimat
 
-> **“BellekPad'e docs/DEV_HANDOFF.md üzerinden devam et. saygiylasunar/efss.bellekpad main HEAD ve CI'yi kontrol et. Electron + özgün editör + EFSS Markdown kararlarına bağlı kal. G0.6A rich selection/source offset mapping için test yaz, kodu uygula, Windows/Linux Electron smoke'u çalıştır, commit et; mevcut mimariyi sıfırdan yeniden tasarlama veya üçüncü taraf editör getirme.”**
+> **“BellekPad'e docs/DEV_HANDOFF.md ve docs/EDITOR_G0_6A.md üzerinden devam et. saygiylasunar/efss.bellekpad main HEAD ve CI'yi kontrol et. G0.6A.1 caret/source guard tamamlandı; G0.6A.2 karma rich run split/merge için regresyon testlerini, güvenli kodu ve Windows/Linux Electron smoke'u geliştir, commit et. Electron + özgün editör + EFSS Markdown kararlarına bağlı kal; üçüncü taraf editör getirme.”**
 
 **Amaç:** Bir dosya, bir ürün mantığı, katmanlar arasında net köprüler, veri kaybı olmadan öngörülebilir ve hassas bir gerçek metin editörü.
