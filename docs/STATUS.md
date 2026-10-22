@@ -1,5 +1,7 @@
 # EFSS BellekPad — Current status
 
+> **22 Ekim 2026 güncel devir ve ileri roadmap:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
+
 **Active stage: P1.4 contract cleanup (schema version 2)**
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.

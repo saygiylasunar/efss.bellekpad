@@ -3,6 +3,8 @@
 > **PROPRIETARY / ALL RIGHTS RESERVED.** Original source code and original design materials are **not open source** and are not granted for third-party use, adaptation, execution, redistribution or commercial deployment without prior written permission, except rights under applicable law and GitHub's Terms of Service. See [LICENSE](LICENSE) and [rights & distribution](docs/RIGHTS_AND_DISTRIBUTION.md). Public visibility is **not** public software licensing.
 
 
+> **🧭 GELİŞTİRME DEVRİ / AKTİF ROADMAP:** [docs/DEV_HANDOFF.md](docs/DEV_HANDOFF.md) — güncel durum, tamamlanan dilimler, G0.6'dan itibaren öncelikler, dosya haritası, test kapıları ve yeni sohbet başlangıç talimatı. **Yeni çalışmaya bu dosyadan başla.**
+
 Local-first experimental EFSS Markdown and contextual-memory kernel. Own Markdown parser, AST, source-linked references and offline document vault. **A stored value is not automatically a fact or the current state of a real-world object.**
 
 ## Symbol contract (P1.4 cleanup)
@@ -48,7 +50,7 @@ npm test
 
 The public-source sanity check and GitHub Actions help catch private paths or credential patterns, but they cannot guarantee that all private information is absent. Local personal data, trained models, private notes, logs, and keys must stay off the public repository. See [privacy policy](docs/PRIVACY.md).
 
-**Not yet a user-facing note editor.** Browser IndexedDB, UI, migration/import tooling and live model testing remain future work.
+**Editor status:** An early, desktop Electron visual Flow editor (G0.5) exists; it is **not a complete production-ready note editor**. Full rich multi-block editing, tables, artboards, installer, crash recovery, browser IndexedDB and complete import/export remain future work. See the [current development handoff](docs/DEV_HANDOFF.md).
 
 ## Genuine self-developed editor — next priority
 
