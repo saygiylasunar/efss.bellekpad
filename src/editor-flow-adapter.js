@@ -9,6 +9,7 @@ import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
   planInlineMark, planInlineTextEdit
 } from "./editor-inline-format.js";
+import { makeIcon } from "./ui-icons.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -177,7 +178,11 @@ export function attachFlowEditor(host, {
       if (block.type === "callout") {
         const header = doc.createElement("div");
         header.className = "flow-callout-header";
-        header.textContent = block.icon + "  " + block.title;
+        if (["info", "tip", "warning", "success", "error"].includes(block.variant))
+          header.append(makeIcon(doc, block.variant, { size: 19 }));
+        const label = doc.createElement("span");
+        label.textContent = block.title;
+        header.append(label);
         card.append(header);
       }
       if (block.editable) {

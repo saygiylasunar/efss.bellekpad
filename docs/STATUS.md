@@ -76,3 +76,8 @@ Own inline run projection + B/I/S commands, source-aware range map and mark togg
 ## G0.6A.1 — Rich caret ve kayıpsız inline edit (22.10.2026)
 
 `src/editor-inline-format.js` kaynak↔görünür offset ters eşleme ve `planInlineTextEdit()` doğrulaması kazandı. `src/editor-flow-adapter.js` DOM span başı/sonu için doğru kaynak run'ını seçiyor; karma mark bölgesinde görünmeyen Markdown işaretini tüketecek delete/replace korumalı reddediliyor; cut güvenli bağlantıda. 219/219 Node, Windows+Ubuntu GUI smoke başarılı (commit `dfac015`). Hâlâ karma style split/merge ve cross-block editing yapılmadı. [EDITOR_G0_6A.md](EDITOR_G0_6A.md).
+
+
+## UI Tipografi ve Özgün SVG İkonları (v0.2.7)
+
+Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI), Noka (görüntüleme/başlık), Exo (teknik/metin), Türkçe harfler için sistem fallback'leri. Lisanslı font dosyası repoda yoktur; ailelerin makinede bulunması gerekir, web kit içeriği ayrıca doğrulanmalıdır. Electron UI'de yerel SVG ikon sözlüğü (src/ui-icons.js) ile araç çubuğu, belge gezgini ve callout başlıkları değiştirildi. Adobe Fonts web-project URL `https://use.typekit.net/aww8lcp.css` yalnız **web-only** örneğinde yer alır; CSP ve `connect-src 'none'` ile desktop'ta harici ağ fontu yüklenmez. `src/editor-text-engine.js` ve not verisi değiştirilmedi. [Ayrıntılı tipografi/lisans/ikon notları](docs/TYPOGRAPHY_ICONOGRAPHY.md).

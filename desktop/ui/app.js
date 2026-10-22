@@ -3,9 +3,12 @@ import { TextEditorSession, collapsedSelection } from "../../src/editor-text-eng
 import { attachTextFrame } from "../../src/editor-input-adapter.js";
 import { createBlockDocument, reconcileBlockSource, blockOutline } from "../../src/editor-block-model.js";
 import { attachFlowEditor } from "../../src/editor-flow-adapter.js";
+import { makeIcon, decorateUI } from "../../src/ui-icons.js";
 import {
   createDraft, editDraft, snapshotDraft, confirmDraftSave
 } from "../../src/editor-draft.js";
+
+decorateUI(document);
 
 const bridge = window.bellekpadDesktop;
 const nodes = Object.fromEntries([
@@ -149,9 +152,7 @@ async function refreshList() {
     button.type = "button";
     button.className = "document-item" +
       (current?.id === item.id && current.kind === item.kind ? " selected" : "");
-    const symbol = document.createElement("span");
-    symbol.textContent = item.kind === "project" ? "◇" : "▤";
-    symbol.setAttribute("aria-hidden", "true");
+    const symbol = makeIcon(document, item.kind === "project" ? "layers" : "document");
     const label = document.createElement("span");
     label.textContent = item.title || "Adsız sayfa";
     button.append(symbol, label);

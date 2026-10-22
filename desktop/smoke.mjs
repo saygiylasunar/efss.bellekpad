@@ -25,6 +25,12 @@ async function run() {
   const page = code => win.webContents.executeJavaScript(code, true);
   assert.equal(win.webContents.isDevToolsOpened(), false);
   assert.equal(await page("typeof window.bellekpadDesktop"), "object");
+  // UI theme and packaged, original vector icons must work completely offline.
+  assert.equal(await page("document.querySelector('#undo svg[data-icon=undo]') !== null"), true);
+  assert.equal(await page("document.querySelector('#save svg[data-icon=save]') !== null"), true);
+  assert.equal(await page("getComputedStyle(document.documentElement)" +
+    ".getPropertyValue('--font-ui').includes('All Round Gothic')"), true);
+  assert.equal(await page("document.styleSheets.length === 1"), true);
   assert.equal(await page("!!document.querySelector('#show-flow')"), true);
   await page("document.querySelector('#new-document').click()");
   await retry("new document", () =>
@@ -41,6 +47,7 @@ async function run() {
     ' bubbles:true,cancelable:true,inputType:"insertText",data:ch})); } })()');
   await retry("visual callout", () =>
     page("!!document.querySelector('.flow-callout .flow-editable')"));
+  assert.equal(await page("!!document.querySelector('.flow-callout-header svg[data-icon=info]')"), true);
   await page('(() => { const el=document.querySelector(".flow-callout .flow-editable");' +
     'el.focus();el.dispatchEvent(new InputEvent("beforeinput",{' +
     'bubbles:true,cancelable:true,inputType:"insertText",data:"Deneme 😀"}));})()');

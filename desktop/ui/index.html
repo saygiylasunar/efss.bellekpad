@@ -6,6 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="color-scheme" content="dark">
   <title>BellekPad — Editor Laboratory</title>
+  <!-- Offline Electron shell: NO remote Adobe Fonts requests. See docs/TYPOGRAPHY_ICONOGRAPHY.md. -->
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
 </head>
@@ -13,8 +14,8 @@
   <div class="shell">
     <aside class="sidebar" aria-label="Belge gezgini">
       <div class="brand"><span class="brand-mark">◈</span><span>bel<span class="em">lek</span>pad<small>EFSS EDITOR LAB</small></span></div>
-      <div class="side-heading"><span>ÇALIŞMA ALANI</span><span class="side-icon">⌘</span></div>
-      <button class="create" id="new-document" type="button"><span>＋</span> Yeni sayfa</button>
+      <div class="side-heading"><span>ÇALIŞMA ALANI</span><span class="side-icon" data-ui-icon="layers" data-icon-only="true" aria-label="Çalışma alanı"></span></div>
+      <button class="create" id="new-document" type="button" data-ui-icon="new">Yeni sayfa</button>
       <div class="side-heading"><span>BELGELER</span><span id="document-count">0</span></div>
       <nav id="document-list" aria-label="Yerel belgeler" class="document-list"></nav>
       <div class="side-bottom"><span class="status-lamp"></span> Yalnızca bu cihazda <small>Bulut bağlantısı kullanılmıyor.</small></div>
@@ -25,7 +26,7 @@
         <div class="header-actions">
           <span class="chip" title="G0 — Native input ve dosya köprüsü">G0 · PROTOTİP</span>
           <span class="save-state" id="save-state" role="status" aria-live="polite">Hazır</span>
-          <button id="save" class="button primary" type="button" disabled>Kaydet <kbd>Ctrl S</kbd></button>
+          <button id="save" class="button primary" data-ui-icon="save" type="button" disabled>Kaydet <kbd>Ctrl S</kbd></button>
         </div>
       </header>
       <main class="main">
@@ -35,11 +36,11 @@
           <p class="document-hint">G0.5: Seçili metni B / I / S ile biçimlendir; Markdown kaynağı korunur. Karmaşık içerikler Kaynak görünümündedir.</p>
           <div class="surface-toolbar">
             <span class="tool-label">METİN ÇALIŞMA ALANI</span>
-            <button class="toolbar-tab history-button" id="undo" type="button" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled>↶</button>
-            <button class="toolbar-tab history-button" id="redo" type="button" title="İleri al (Ctrl+Y)" aria-label="İleri al" disabled>↷</button>
-            <button class="toolbar-tab active" id="show-flow" type="button" aria-pressed="true">Görsel</button>
-            <button class="toolbar-tab" id="show-write" type="button" aria-pressed="false">Kaynak</button>
-            <button class="toolbar-tab" id="show-preview" type="button" aria-pressed="false">Önizleme</button>
+            <button class="toolbar-tab history-button" id="undo" type="button" data-ui-icon="undo" data-icon-only="true" title="Geri al (Ctrl+Z)" aria-label="Geri al" disabled></button>
+            <button class="toolbar-tab history-button" id="redo" type="button" data-ui-icon="redo" data-icon-only="true" title="İleri al (Ctrl+Y)" aria-label="İleri al" disabled></button>
+            <button class="toolbar-tab active" id="show-flow" data-ui-icon="flow" type="button" aria-pressed="true">Görsel</button>
+            <button class="toolbar-tab" id="show-write" data-ui-icon="source" type="button" aria-pressed="false">Kaynak</button>
+            <button class="toolbar-tab" id="show-preview" data-ui-icon="preview" type="button" aria-pressed="false">Önizleme</button>
             <span class="format-separator" aria-hidden="true"></span>
             <div class="inline-tools" role="group" aria-label="Metin biçimlendirme">
               <button id="format-bold" class="toolbar-tab format-tool" type="button" title="Kalın (Ctrl+B)" aria-label="Seçili metni kalın yap"><strong>B</strong></button>
@@ -57,7 +58,7 @@
               <option value="callout:tip">💡 İpucu kutusu</option>
               <option value="callout:success">✓ Başarı kutusu</option>
             </select>
-            <button id="insert-block" class="toolbar-tab insert-action" type="button">＋ Ekle</button>
+            <button id="insert-block" class="toolbar-tab insert-action" data-ui-icon="new" type="button">Ekle</button>
             <span class="tool-fill"></span>
             <span id="block-count" title="Kaynak Markdown blokları">0 blok</span>
             <span id="character-count">0 karakter</span>
@@ -79,7 +80,7 @@
           <span class="eyebrow">EFSS · BELLEKPAD</span>
           <h1>Fikirler için<br><em>kendine ait</em> bir alan.</h1>
           <p>Bir sayfa oluştur. Metnini yaz. BellekPad onu bu cihazda saklasın. Bu ekran ilk masaüstü editör altyapısıdır; artboard ve zengin düzenleme sıradaki aşamalardır.</p>
-          <button id="start-document" type="button" class="button primary large">＋ İlk sayfanı oluştur</button>
+          <button id="start-document" type="button" data-ui-icon="new" class="button primary large">İlk sayfanı oluştur</button>
         </section>
       </main>
       <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · INLINE LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>

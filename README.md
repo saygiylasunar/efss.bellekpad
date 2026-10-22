@@ -108,3 +108,8 @@ The real Electron desktop smoke test now covers selecting and styling heading te
 ## G0.6A.1 — Güvenli rich-text seçim ve kaynak sınırları
 
 Biçimli metin içindeki native caret, görünür karakter offset'i yerine ilgili **inline DOM run → kaynak aralığı** üzerinden eşlenir. Biçimsiz + biçimli run seçiminin gizli Markdown işaretlerini bozacağı düzenleme fail-closed reddedilir; native cut güvenli metin payload'ına ve aynı transaction'a bağlanır. `A **kalın** B` ters karma seçim, `**İçerik**` baş/son Unicode, Undo/Redo ve EFSS unknown extension regresyonları eklendi. **219/219** Node test ve **Windows/Linux Electron GUI smoke** başarılı (commit `dfac015`). Tam karma stil dönüştürme **G0.6A.2**, çok satırlı akış **G0.6B**. [G0.6A teknik kayıt](docs/EDITOR_G0_6A.md).
+
+
+## UI Tipografi ve Özgün SVG İkonları (v0.2.7)
+
+Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI), Noka (görüntüleme/başlık), Exo (teknik/metin), Türkçe harfler için sistem fallback'leri. Lisanslı font dosyası repoda yoktur; ailelerin makinede bulunması gerekir, web kit içeriği ayrıca doğrulanmalıdır. Electron UI'de yerel SVG ikon sözlüğü (src/ui-icons.js) ile araç çubuğu, belge gezgini ve callout başlıkları değiştirildi. Adobe Fonts web-project URL `https://use.typekit.net/aww8lcp.css` yalnız **web-only** örneğinde yer alır; CSP ve `connect-src 'none'` ile desktop'ta harici ağ fontu yüklenmez. `src/editor-text-engine.js` ve not verisi değiştirilmedi. [Ayrıntılı tipografi/lisans/ikon notları](docs/TYPOGRAPHY_ICONOGRAPHY.md).
