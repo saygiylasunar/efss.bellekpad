@@ -85,3 +85,5 @@ Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI
 ## G0.6A.2 — Karma mark seçimi
 
 Tam seçilen Markdown işaretlerini ve düz metni bir işlemde değiştirme/silme, Undo/Redo ve kısıtlı karma strike eklendi. 230/230 Node ve Windows/Linux Electron smoke başarılı (commit 2c31b07). Kısmen seçilmiş stilleri kesme ve genel B/I henüz güvenle desteklenmiyor. [Teknik kayıt](EDITOR_G0_6A_2.md).
+
+**G0.6A.2 ek doğrulama:** Tek seviyeli partial mark split/reopen tamamlandı; kalan stil korunuyor. Nested partial marklar korunarak reddediliyor. 232/232 Node, Windows/Linux Electron smoke başarılı (`7ecb9e7`). [Ayrıntı](EDITOR_G0_6A_2.md).

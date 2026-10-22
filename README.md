@@ -117,3 +117,5 @@ Arayüz için merkezi, **offline** font stack'leri eklendi: All Round Gothic (UI
 ## G0.6A.2 — Karma rich seçimler
 
 Tam seçilen Markdown stilleriyle düz metin aynı işlemde değiştirilebilir/silinebilir. Doğrulanmış karma strike, kaynak bütünlüğü ve Undo/Redo korunur. Kısmi mark kesişimleri hâlâ fail-closed; bu iş devam edecek. [G0.6A.2 teknik kayıt](docs/EDITOR_G0_6A_2.md).
+
+**G0.6A.2 güncellemesi:** Basit biçimli bölgenin ortasından düz metne veya düz metinden biçimli bölgeye uzanan seçimi de kayıpsız düzenleyen tek seviyeli close/reopen eklendi. İç içe biçimlerdeki kısmi kesimler henüz fail-closed. 232/232 Node + Windows/Linux desktop smoke yeşil.

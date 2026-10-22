@@ -11,6 +11,8 @@
 
 > **G0.6A.2 güncellemesi:** Tam seçilmiş Markdown stilleri ve yanındaki düz metni birlikte değiştirme/silme, marker korumalı balanced splice ile desteklenir. Güvenli karma strike, 230/230 Node ve Windows/Linux Electron smoke doğrulandı. Kısmi kesilen stiller ve genelleştirilmiş karma B/I henüz eksik. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
+> **G0.6A.2 takip iyileştirmesi:** İlk complete-run balanced splice üzerine **tek seviyeli kısmi Markdown biçim seçimi** de güvenli close/reopen algoritmasıyla eklendi. `A **kalın** B` üzerinde kısmi rich→plain/ plain→rich edit geri alınabilir ve kalan biçimi korur. 232/232 Node + Windows/Linux Electron smoke geçti (`7ecb9e7`). **Nested partial mark ve genel karma B/I/S hâlâ eksik.** [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
+
 ## 0. Ürünü bir paragrafta devret
 
 **BellekPad**, EFSS Markdown'ı taşınabilir **kalıcı kaynak dili** olarak kullanan, ama kullanıcıyı Markdown yazmaya zorlamayan; Word kadar güçlü metin düzenlemeyi, Notion benzeri blok/komut eklemeyi ve Illustrator benzeri hassas konum/ölçü/typography denetimini **minimal, öngörülebilir arayüzle** sunmayı hedefleyen **yerel-öncelikli Electron masaüstü editörü**. Kendi belge modeli, transaction/undo motoru, görsel metin işleme ve artboard/layout algoritması geliştirilecek. Başka editörlerin fikirleri/algoritmaları araştırılabilir, ancak **başka editör kütüphanesi ya da veri formatı projeye ithal edilmeyecek**. Mevcut sürüm tam ürün değil; çalışan **erken G0.5 görsel Flow prototipi**.
@@ -131,7 +133,7 @@ PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-o
 
 ## 5. Yeni sohbetin ilk somut uygulama görevi
 
-**Görev: G0.6A.2 devamı — kısmen kesilen Markdown markları için güvenli kapanış/açılış; karma B/I biçimlendirme.** Tam seçilen mark span splice ve karma strike hazır; yeniden sıfırdan yazma. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
+**Görev: G0.6A.2 devamı — iç içe/kesişen biçimler için güvenli mark dönüşümü ve genel karma B/I biçimlendirme.** Tam seçilen mark span splice ve karma strike hazır; yeniden sıfırdan yazma. [EDITOR_G0_6A_2.md](EDITOR_G0_6A_2.md).
 
 1. GitHub'da **main HEAD** ve **core-checks + desktop-smoke** sonuçlarını güncel oku; bu dosyayı ve \`docs/EDITOR_G0_5.md\`'yi yeniden gözden geçir.
 2. \`src/editor-inline-format.js\`, \`src/editor-flow-adapter.js\`, \`src/editor-text-engine.js\`, \`src/editor-flow-model.js\` ve \`desktop/smoke.mjs\` kodunu canlı repodan oku.

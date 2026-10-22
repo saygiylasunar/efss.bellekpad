@@ -1,6 +1,6 @@
 # G0.6A.2 — Balanced inline selection transactions (first accepted slice)
 
-**Date:** 2026-10-22. **Repository:** saygiylasunar/efss.bellekpad **Branch:** main. **Version:** 0.2.8. **Verified implementation commit:** 2c31b07280fbda48ffcf06f72d24374f621cda61.
+**Date:** 2026-10-22. **Repository:** saygiylasunar/efss.bellekpad **Branch:** main. **Version:** 0.2.8. **Verified implementation commits:** 2c31b07280fbda48ffcf06f72d24374f621cda61 (complete marks) and 7ecb9e71417805f11b8c39d2395aa5230e1c0381 (partial single-level split).
 
 ## Implemented
 
@@ -30,4 +30,10 @@
 
 ## Next authorized step
 
-Remain within **G0.6A.2**: implement partial cross-mark split/reopen with source-preservation oracle and property-like regressions; then support further safe mixed B/I/S formatting. Do not weaken checks to “make the test pass.” When verified, proceed to G0.6B multi-line/Enter/Backspace. Update this document and \`docs/DEV_HANDOFF.md\` as implementation advances.
+Remain within **G0.6A.2**: extend the verified single-level close/reopen split to nested/overlapping marks where parsing proves losslessness; then support further safe mixed B/I/S formatting. Do not weaken checks to “make the test pass.” When verified, proceed to G0.6B multi-line/Enter/Backspace. Update this document and \`docs/DEV_HANDOFF.md\` as implementation advances.
+
+## Verified follow-up: partial single-level split (commit `7ecb9e7`)
+
+- A new `partialBoundarySplice()` computes marker closures/openings for a selected region crossing only simple non-nested mark boundaries. Candidate source is reparsed and checked for exact visible output and original **unselected** mark traces. Unsupported nested partial interactions are rejected.
+- `test/editor-inline-selection.test.js` covers rich→plain partial replacement, plain→rich partial replacement and nested rejection. `desktop/smoke.mjs` covers partial deletion retaining a styled prefix and Undo.
+- **Core CI 232/232 tests, sanity passing; both Windows/Linux Electron smoke passing** for `7ecb9e7`. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39735156830) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39735156806). Physical keyboard and IME remain untested by this synthetic input smoke.
