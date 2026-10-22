@@ -150,36 +150,40 @@ function verifyProjectedEdit(inline, raw, from, to, insert, start, end, visibleI
 }
 
 /**
- * For a partly selected single-level mark, keep its *unselected* text styled
- * by closing at the left source boundary or reopening at the right boundary.
- * Every candidate is checked against the parser and preserved-style oracle.
- * Nested partially intersected regions remain unsupported in this cut.
+ * Balance source wrappers affected by a partial selection. Wrappers spanning
+ * both endpoints survive; wrappers ending within the selection close from
+ * inner to outer, and wrappers starting within it reopen outer to inner.
+ * The caller's parser and visible-text/style oracles authorize the result.
+ * Ambiguous adjacent asterisk markers must still fail closed.
  */
 function partialBoundarySplice(inline, a, b, text) {
   const affected = inline.regions.filter(r => a < r.contentEnd && b > r.contentStart);
-  // No overlapping nested regions; other unrelated marks elsewhere are fine.
-  for (let i = 0; i < affected.length; i++)
-    for (let j = i + 1; j < affected.length; j++)
-      if (affected[i].from < affected[j].from && affected[i].to > affected[j].from &&
-          affected[i].to < affected[j].to ||
-          affected[j].from < affected[i].from && affected[j].to > affected[i].from &&
-          affected[j].to < affected[i].to ||
-          affected[i].from < affected[j].from && affected[i].to > affected[j].to ||
-          affected[j].from < affected[i].from && affected[j].to > affected[i].to)
-        fail("NESTED_PARTIAL_MARK_UNSUPPORTED");
-
-  let left = a, right = b, closing = "", opening = "";
+  const nested = affected.some((r, i) => affected.some((other, j) =>
+    i !== j && r.from < other.from && r.to > other.to));
+  let left = a, right = b;
+  const closing = [], opening = [];
   for (const r of affected) {
-    if (a <= r.contentStart && b >= r.contentEnd) {
-      if (left === r.contentStart) left = r.from;
-      if (right === r.contentEnd) right = r.to;
-    } else if (a > r.contentStart && b > r.contentEnd) {
-      closing += INLINE_MARKERS[r.mark];
-    } else if (a < r.contentStart && b < r.contentEnd) {
-      opening += INLINE_MARKERS[r.mark];
-    } else fail("PARTIAL_MARK_SELECTION_UNSUPPORTED");
+    const startsBefore = r.contentStart < a;
+    const endsAfter = r.contentEnd > b;
+    if (startsBefore && endsAfter) continue;
+    if (startsBefore) {
+      closing.push(r);
+      if (r.contentEnd === b) right = Math.max(right, r.to);
+    } else if (endsAfter) {
+      opening.push(r);
+      if (r.contentStart === a) left = Math.min(left, r.from);
+    } else {
+      if (r.contentStart === a) left = Math.min(left, r.from);
+      if (r.contentEnd === b) right = Math.max(right, r.to);
+    }
   }
-  return { left, right, replacement: closing + text + opening };
+  closing.sort((x, y) => y.contentStart - x.contentStart ||
+    x.contentEnd - y.contentEnd);
+  opening.sort((x, y) => x.contentStart - y.contentStart ||
+    y.contentEnd - x.contentEnd);
+  const replacement = closing.map(r => INLINE_MARKERS[r.mark]).join("") +
+    text + opening.map(r => INLINE_MARKERS[r.mark]).join("");
+  return { left, right, replacement, nested };
 }
 
 /**
@@ -252,8 +256,16 @@ export function planInlineTextEdit({
   if (slice.left === a && slice.right === b && slice.replacement === text &&
       !inline.regions.some(region => region.from >= a && region.to <= b))
     fail("HIDDEN_MARKER_SELECTION");
-  verifyProjectedEdit(inline, raw, slice.left, slice.right,
-    slice.replacement, a, b, text);
+  try {
+    verifyProjectedEdit(inline, raw, slice.left, slice.right,
+      slice.replacement, a, b, text);
+  } catch (error) {
+    // Some nested asterisk boundaries have no safely parseable splice.
+    if (slice.nested && ["INLINE_EDIT_CHANGES_MARKUP",
+      "INLINE_EDIT_CHANGES_OUTSIDE_STYLE"].includes(error.message))
+      fail("NESTED_PARTIAL_MARK_UNSUPPORTED");
+    throw error;
+  }
   return Object.freeze({
     type: "replaceRange", from: block.sourceStart + slice.left,
     to: block.sourceStart + slice.right, text: slice.replacement,

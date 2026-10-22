@@ -201,6 +201,42 @@ async function run() {
   assert.equal(readRich.ok, true);
   assert.match(readRich.data.body, /A \*\*ğkalın👩‍👧\*\* B/);
   assert.match(readRich.data.body, /:::efss.unknown/);
+
+  // Reverse DOM selection across two nested wrappers in the real Electron
+  // renderer. Editing, undo/redo, and vault persistence share one source.
+  await page("document.querySelector('#show-write').click()");
+  const nestedSource = "A ~~sil **kalın** metin~~ Z\n\n:::efss.unknown\nsecret: y\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(nestedSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("nested source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('~~sil **kalın** metin~~')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("nested run projection", () =>
+    page("document.querySelector('.flow-paragraph s strong')?.textContent === 'kalın'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("s strong").firstChild;' +
+    'const spans=el.querySelectorAll("[data-inline-run]");' +
+    'const tail=spans[spans.length-1].firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(tail,tail.length,bold,2);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"yenisi"}));})()');
+  await retry("nested balanced mixed edit", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A sil kayenisi'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("nested edit undo", () =>
+    page("document.querySelector('.flow-paragraph s strong')?.textContent === 'kalın'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("nested edit redo", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'A sil kayenisi'"));
+  await page("document.querySelector('#save').click()");
+  await retry("nested note saved", () =>
+    page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
+  const savedNested = await page("window.bellekpadDesktop.openDocument(" +
+    JSON.stringify(lastNote.kind) + "," + JSON.stringify(lastNote.id) + ")");
+  assert.equal(savedNested.ok, true);
+  assert.match(savedNested.data.body, /A ~~sil [*][*]ka[*][*]~~yenisi/);
+  assert.match(savedNested.data.body, /:::efss.unknown\nsecret: y\n:::/);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }

@@ -161,6 +161,63 @@ test("G0.6A.2 CRLF and opaque extensions survive balanced mixed replacement", ()
   assert.ok(session.snapshot.text.includes(":::efss.unknown\r\nitem: ö\r\n:::\r\n"));
   session.undo(); assert.equal(session.snapshot.text, src);
 });
+
+test("G0.6A.2 nested strike and strong partial selection preserves outside styles and reverse undo", () => {
+  const src = "A ~~sil **kalın** metin~~ Z";
+  const from = src.indexOf("lın"), to = src.length;
+  const session = new TextEditorSession({ text: src, selection: {
+    anchor: textPosition(to), focus: textPosition(from)
+  } });
+  const command = planInlineTextEdit({
+    source: src, block: block(src), from, to, text: "yenisi"
+  });
+  assert.equal(command.operation, "partial-marker-split");
+  session.dispatch(command);
+  assert.equal(session.snapshot.text, "A ~~sil **ka**~~yenisi");
+  const projected = projectInline(session.snapshot.text);
+  assert.equal(projected.text, "A sil kayenisi");
+  assert.deepEqual(projected.runs.find(r => r.text === "ka").marks,
+    ["strike", "strong"]);
+  assert.deepEqual(projected.runs.find(r => r.text === "yenisi").marks, []);
+  session.undo();
+  assert.equal(session.snapshot.text, src);
+  assert.equal(session.snapshot.selection.anchor.offset, to);
+  assert.equal(session.snapshot.selection.focus.offset, from);
+  session.redo();
+  assert.equal(session.snapshot.text, "A ~~sil **ka**~~yenisi");
+});
+test("G0.6A.2 nested partial split keeps its enclosing mark when that mark spans both endpoints", () => {
+  const src = "A ~~sil **kalın** metin~~ Z";
+  const from = src.indexOf("lın"), to = src.indexOf("metin") + 3;
+  const command = planInlineTextEdit({
+    source: src, block: block(src), from, to, text: "yeni"
+  });
+  assert.equal(command.operation, "partial-marker-split");
+  const next = src.slice(0, command.from) + command.text + src.slice(command.to);
+  assert.equal(next, "A ~~sil **ka**yeniin~~ Z");
+  const projected = projectInline(next);
+  assert.equal(projected.text, "A sil kayeniin Z");
+  assert.deepEqual(projected.runs.find(r => r.text === "ka").marks,
+    ["strike", "strong"]);
+  assert.deepEqual(projected.runs.find(r => r.text === "yeniin").marks,
+    ["strike"]);
+});
+test("G0.6A.2 nested partial transaction preserves CRLF and opaque EFSS extension", () => {
+  const src = "Başlık\r\n\r\nA ~~sil **kalın** metin~~ Z\r\n\r\n:::efss.unknown\r\nözel: 👩‍👧\r\n:::\r\n";
+  const p = projectFlowBlocks(createBlockDocument(src)).find(b =>
+    b.type === "paragraph" && b.text.includes("kalın"));
+  const command = planInlineTextEdit({
+    source: src, block: p, from: src.indexOf("lın"), to: p.sourceEnd, text: "X"
+  });
+  const session = new TextEditorSession({ text: src });
+  session.dispatch(command);
+  assert.equal(session.snapshot.text,
+    src.replace("A ~~sil **kalın** metin~~ Z", "A ~~sil **ka**~~X"));
+  assert.ok(session.snapshot.text.includes(":::efss.unknown\r\nözel: 👩‍👧\r\n:::\r\n"));
+  session.undo();
+  assert.equal(session.snapshot.text, src);
+});
+
 test("G0.6A.2 crossing nested partial regions is rejected without mutation", () => {
   const src = "A **kalın *eğik* metin** Z";
   const p = block(src);
