@@ -59,3 +59,7 @@ src/editor-text-engine.js and EFSS Markdown persistence are unchanged.
 - Ürün UI için sadece aday font adları + fallback var; gerçek font dosyası lisansı / offline font paketi / güncel Web Project entegrasyonu tamamlanmış sayılmaz.
 - Icon picker veya icon-as-document-object, Word/Illustrator typography inspector, font dropdown ve export özellikleri henüz yapılmadı.
 - Kullanıcının onayladığı fontlar dışında yeni tasarım/font framework bağımlılıkları eklenmez.
+
+## CI doğrulaması
+
+UI tokenları ve SVG registry için `test/ui-icons.test.js` eklendi; mevcut masaüstü smoke içinde toolbar SVG, callout SVG ve yerel font değişkenleri denetlendi. **v0.2.7** üzerinde kontrol commit'i `5893692087648a29ecf7ef66e35d948f9117c587`: **223/223 Node testi**, sanity başarılı ve **Windows + Linux Electron smoke** başarılı. İlk desktop CI çalışmasında smoke betiğinin eski belgeyi liste sırasından seçmesi test hatasına yol açtı; yeni belge artık ID farkıyla seçiliyor. Bu çözüm canlı belge kaydetme koduna değil, test kimlik seçim mantığına uygulandı. Adobe Fonts CDN CSS erişimi ve gerçek font ailesi listesi ayrıca doğrulanmadı.
