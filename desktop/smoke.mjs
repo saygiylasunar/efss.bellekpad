@@ -112,6 +112,8 @@ async function run() {
   assert.equal(await page("!document.querySelector('#preview-pane').hidden"), true);
   // G0.6A regression: reversed selection across styled and plain runs must
   // NEVER consume hidden Markdown delimiters or create an undo entry.
+  const existingIds = new Set((await page("window.bellekpadDesktop.listDocuments()"))
+    .data.map(item => item.id));
   const priorId = await page("document.querySelector('#document-id').textContent");
   await page("document.querySelector('#new-document').click()");
   await retry("new regression note", () =>
@@ -163,7 +165,8 @@ async function run() {
     page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
   const richNotes = await page("window.bellekpadDesktop.listDocuments()");
   assert.equal(richNotes.ok, true);
-  const lastNote = richNotes.data.at(-1);
+  const lastNote = richNotes.data.find(item => !existingIds.has(item.id));
+  assert.ok(lastNote, "new regression document must be selected by identity, not sort order");
   const readRich = await page("window.bellekpadDesktop.openDocument(" +
     JSON.stringify(lastNote.kind) + "," + JSON.stringify(lastNote.id) + ")");
   assert.equal(readRich.ok, true);
