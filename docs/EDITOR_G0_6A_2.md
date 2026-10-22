@@ -67,3 +67,10 @@ All mark add/remove operations now use a shared `verifyMarkCandidate()`: identic
 ### Hotfix: mixed-mark selection offset regression (22.10.2026)
 
 Source commit `e8be393` **did not pass CI**: 5 Node tests raised `ReferenceError: candidate is not defined` in `planInlineMark` after the shared verifier refactor, and Windows/Linux renderer smokes timed out at mixed strike. These are implementation regressions, not confirmed parser failures. The fix reads `selectionStart`/`selectionEnd` from the already-validated `verifyMarkCandidate` result, removes the dangling `candidate` variable, and adds a direct mixed-mark/Undo-Redo offset regression. Re-run core and both desktop jobs on the new commit; do not credit green status from the previous commit.
+
+
+## G0.6A.2 — partial-mark toggle / unformat (new candidate, CI pending)
+
+A selected interior part of a single rich-text run already containing the requested mark now **removes** that mark from just the selected characters, preserving the surrounding wrappers and unrelated nested styles. Example: `A **kalın** B`, select `al`, toggle strong → `A **k**al**ın** B`. This is a reversible one-transaction splice; `verifyMarkCandidate()` must independently confirm exact visible text and selected/unselected mark traces or reject the operation. No generalized cross-run style removal is claimed.
+
+Regression tests include all three bold selection boundary shapes, italic/strike, nested strike+strong, CRLF, opaque EFSS extension and reversed selection Undo/Redo. Electron smoke covers partial-bold toggling on a real renderer and history. **Do not mark accepted until this exact code commit passes Core and Windows/Linux Electron CI.**

@@ -302,6 +302,33 @@ async function run() {
   assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable')?.textContent"), "A xy");
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('A *x*y')"), true);
+
+  // Toggling B inside an existing B run removes B only from the selection,
+  // rather than writing an ineffective nested ** wrapper. Undo restores it.
+  await page("document.querySelector('#show-write').click()");
+  const toggleSource = "A **kalın** B\n\n:::efss.unknown\nsecret: toggle\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(toggleSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("partial toggle source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('**kalın** B')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("partial toggle bold available", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const bold=el.querySelector("strong").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(bold,3,bold,1);' +
+    'document.querySelector("#format-bold").click();})()');
+  await retry("partial bold toggle preserves left and right strong", () =>
+    page("Array.from(document.querySelectorAll('.flow-paragraph strong'))" +
+      ".map(el=>el.textContent).join(',') === 'k,ın'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("partial bold toggle undo", () =>
+    page("document.querySelector('.flow-paragraph strong')?.textContent === 'kalın'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("partial bold toggle redo", () =>
+    page("Array.from(document.querySelectorAll('.flow-paragraph strong'))" +
+      ".map(el=>el.textContent).join(',') === 'k,ın'"));
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   win.close(); app.quit();
 }

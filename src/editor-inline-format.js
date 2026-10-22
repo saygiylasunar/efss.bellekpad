@@ -383,6 +383,44 @@ export function planInlineMark({ source, block, start, end, mark }) {
       operation: "remove"
     });
   }
+  // G0.6A.2: toggling a mark OFF within one rich-text run must split the
+  // enclosing wrapper, not add another copy of the same style. Keep the
+  // original raw text and every unselected mark; reject any parse ambiguity.
+  {
+    const selA = start - block.sourceStart, selB = end - block.sourceStart;
+    const removable = inline.regions
+      .filter(r => r.mark === mark && r.contentStart <= selA && selB <= r.contentEnd)
+      .sort((x, y) => (x.to - x.from) - (y.to - y.from))
+      .find(r => inline.runs.some(run =>
+        run.from <= selA && selB <= run.to && run.marks.includes(mark)));
+    if (removable) {
+      const raw = source.slice(block.sourceStart, block.sourceEnd);
+      const marker = INLINE_MARKERS[mark];
+      let left = selA, right = selB, replacement = "";
+      const selected = raw.slice(selA, selB);
+      if (selA === removable.contentStart) left = removable.from;
+      else replacement += marker;
+      replacement += selected;
+      if (selB === removable.contentEnd) right = removable.to;
+      else replacement += marker;
+      try {
+        const validated = verifyMarkCandidate(inline,
+          raw.slice(0, left) + replacement + raw.slice(right),
+          selA, selB, mark, "remove");
+        return Object.freeze({
+          type: "replaceRange",
+          from: absolute(left), to: absolute(right), text: replacement,
+          selectionStart: absolute(validated.selectionStart),
+          selectionEnd: absolute(validated.selectionEnd),
+          operation: "remove-partial"
+        });
+      } catch (error) {
+        if (error.message === "MARK_SOURCE_COLLISION")
+          fail("PARTIAL_MARK_SELECTION_UNSUPPORTED");
+        throw error;
+      }
+    }
+  }
   const run = inline.runs.find(item =>
     item.marks.length === 0 &&
     absolute(item.from) <= start && absolute(item.to) >= end);

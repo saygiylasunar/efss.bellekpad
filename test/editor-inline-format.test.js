@@ -215,6 +215,56 @@ test("G0.6A.2 mixed mark planner returns concrete post-edit source selection pos
     assert.equal(state.snapshot.selection.anchor.offset, op.selectionEnd);
   }
 });
+
+test("G0.6A.2 mark toggle removes selected middle or boundary of one styled run", () => {
+  const cases = [
+    ["A **kalın** B", "al", "strong", "A **k**al**ın** B"],
+    ["A **kalın** B", "ka", "strong", "A ka**lın** B"],
+    ["A **kalın** B", "lın", "strong", "A **ka**lın B"],
+    ["A *kalın* B", "al", "emphasis", "A *k*al*ın* B"],
+    ["A ~~kalın~~ B", "al", "strike", "A ~~k~~al~~ın~~ B"]
+  ];
+  for (const [src, selected, mark, expected] of cases) {
+    const from = src.indexOf(selected), end = from + selected.length;
+    const session = new TextEditorSession({ text: src, selection: {
+      anchor: textPosition(end), focus: textPosition(from)
+    } });
+    const op = planInlineMark({ source: src, block: paragraph(src),
+      start: from, end, mark });
+    assert.equal(op.operation, "remove-partial");
+    session.dispatch({ ...op, selectionAfter: {
+      anchor: textPosition(op.selectionEnd), focus: textPosition(op.selectionStart)
+    } });
+    assert.equal(session.snapshot.text, expected);
+    assert.equal(projectInline(session.snapshot.text).text, projectInline(src).text);
+    assert.deepEqual(session.snapshot.selection, {
+      anchor: textPosition(op.selectionEnd), focus: textPosition(op.selectionStart)
+    });
+    session.undo();
+    assert.equal(session.snapshot.text, src);
+    assert.deepEqual(session.snapshot.selection, {
+      anchor: textPosition(end), focus: textPosition(from)
+    });
+    session.redo();
+    assert.equal(session.snapshot.text, expected);
+  }
+});
+test("G0.6A.2 partial unformat within nested strike preserves strike and opaque bytes", () => {
+  const src = "Üst\r\n\r\nA ~~sil **kalın** metin~~ Z\r\n\r\n:::efss.custom\r\nflag: 👩‍👧\r\n:::\r\n";
+  const block = projectFlowBlocks(createBlockDocument(src)).find(b =>
+    b.type === "paragraph" && b.text.includes("kalın"));
+  const from = src.indexOf("al"), end = from + 2;
+  const op = planInlineMark({ source: src, block, start: from, end, mark: "strong" });
+  const session = new TextEditorSession({ text: src });
+  session.dispatch(op);
+  assert.ok(session.snapshot.text.includes("~~sil **k**al**ın** metin~~"));
+  assert.ok(session.snapshot.text.includes(":::efss.custom\r\nflag: 👩‍👧\r\n:::\r\n"));
+  const nested = projectInline("~~sil **k**al**ın** metin~~");
+  assert.deepEqual(nested.runs.find(run => run.text === "al").marks, ["strike"]);
+  assert.deepEqual(nested.runs.find(run => run.text === "ın").marks, ["strike", "strong"]);
+  session.undo(); assert.equal(session.snapshot.text, src);
+});
+
 test("G0.6A.2 plain-run marks refuse asterisk collisions without mutation", () => {
   const cases = [
     ["A *x*y", "y", "strong"],
