@@ -466,6 +466,36 @@ async function run() {
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('- **kal**\\n- **ın**')"),true);
   assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: safe')"),true);
+
+  // Regression for normal note-taking: after Enter at the end of prose,
+  // the next typed word must create another editable visual paragraph.
+  // Previously the source was reclassified as one read-only multiline block,
+  // displaying a "Kaynağı düzenle" detour.
+  await page("document.querySelector('#show-write').click()");
+  const paragraphSource = "Birinci\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent=' + JSON.stringify(paragraphSource) + ';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("simple prose source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('Birinci')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("first editable paragraph", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("terminal blank receives Enter focus", () =>
+    page("document.activeElement?.closest('.flow-blank') !== null"));
+  await page('document.activeElement.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"İkinci"}))');
+  await retry("Enter then typing keeps both paragraphs visual", () =>
+    page("Array.from(document.querySelectorAll('.flow-paragraph .flow-editable'))" +
+      ".map(el=>el.textContent).join(',') === 'Birinci,İkinci'"));
+  assert.equal(await page("document.querySelector('.flow-readonly') === null"), true);
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinci\\n\\nİkinci')"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

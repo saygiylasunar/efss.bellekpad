@@ -55,17 +55,24 @@ export function projectFlowBlocks(doc) {
     id: "virtual_empty", type: "paragraph", text: "", raw: "",
     start: 0, end: 0, sourceStart: 0, sourceEnd: 0, editable: true, virtual: true
   })]);
-  const result = doc.blocks.map(block => {
+  const result = doc.blocks.map((block, index) => {
     const callout = flowCallout(block);
     if (callout) return callout;
     const raw = block.raw;
     const eol = trailingEol(raw);
     const line = raw.slice(0, raw.length - eol.length);
-    if (block.type === "blank") return Object.freeze({
-      id: block.id, type: "blank", text: "", raw, start: block.start,
-      end: block.end, sourceStart: block.start, sourceEnd: block.start,
-      editable: true
-    });
+    if (block.type === "blank") {
+      // A terminal blank line stands for the next paragraph at EOF.
+      // Typing at its *start* instead of after its EOL merges prose into
+      // a multiline AST paragraph, making Flow read-only.
+      const caret = index === doc.blocks.length - 1 &&
+        block.end === doc.source.length ? block.end : block.start;
+      return Object.freeze({
+        id: block.id, type: "blank", text: "", raw, start: block.start,
+        end: block.end, sourceStart: caret, sourceEnd: caret,
+        editable: true
+      });
+    }
     if (!TYPES.includes(block.type) || EOL.test(line)) return Object.freeze({
       id: block.id, type: block.type, raw, text: raw,
       start: block.start, end: block.end, editable: false
@@ -214,8 +221,11 @@ function planRichFlowEnter({ source, block, at, eol, continuation }) {
     eol + continuation;
   // An empty new paragraph occupies the interval between two newlines, not
   // EOF where no editable Flow block's sourceStart can accept the caret.
-  const caretGap = prose && !hasFollowingEol && !rightInline.text.length ?
-    eol.length : separator.length;
+  const terminalProse = prose && !rightInline.text.length &&
+    block.end === source.length;
+  const caretGap = terminalProse ?
+    separator.length + (hasFollowingEol ? trailingEol(block.raw).length : 0) :
+    separator.length;
   const replacement = left + separator + right;
   return Object.freeze({
     type: "replaceRange", from: block.sourceStart, to: block.sourceEnd,
@@ -320,9 +330,16 @@ export function planFlowEnter({ source, block, at } = {}) {
   const insertion = ["paragraph", "heading", "blank"].includes(block.type) ?
     (endsWithEol ? localEol : localEol + localEol) :
     localEol + continuation;
+  // At document end, put the caret AFTER the blank's trailing EOL.
+  // Otherwise the next character merges the new line back into the old
+  // Markdown paragraph and the visual projection becomes read-only.
+  const terminalProse = ["paragraph", "heading"].includes(block.type) &&
+    at === block.sourceEnd && block.end === source.length;
+  const caret = at + insertion.length +
+    (terminalProse && endsWithEol ? trailingEol(block.raw).length : 0);
   return Object.freeze({
     type: "replaceRange", from: at, to, text: insertion + tail,
-    selectionAfter: collapsedSelection(at + insertion.length),
+    selectionAfter: collapsedSelection(caret),
     operation
   });
 }

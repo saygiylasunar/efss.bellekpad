@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createBlockDocument } from "../src/editor-block-model.js";
 import { TextEditorSession, collapsedSelection } from "../src/editor-text-engine.js";
+import { planInlineTextEdit } from "../src/editor-inline-format.js";
 import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
   calloutMarkdown, slashFlowCommand, planFlowEnter,
@@ -13,6 +14,45 @@ const editable = source => projectFlowBlocks(createBlockDocument(source)).filter
 
 
 
+
+
+test("G0.6B.4 terminal Enter then typing stays in editable Flow, never merges two paragraphs", () => {
+  for (const source of [
+    "Birinci", "Birinci\n", "Birinci\r\n", "# Başlık\n",
+    "**kalın**\n", "A **kalın**\n"
+  ]) {
+    const original = editable(source).find(b =>
+      b.type === "paragraph" || b.type === "heading");
+    const at = original.inline?.regions.length ?
+      source.indexOf("kalın") + "kalın".length : original.sourceEnd;
+    const session = new TextEditorSession({
+      text: source, selection: collapsedSelection(at)
+    });
+    const enter = planFlowEnter({ source, block: original, at });
+    session.dispatch(enter);
+    const next = session.snapshot.text;
+    const terminal = editable(next).at(-1);
+    assert.equal(terminal.type, "blank", source);
+    assert.equal(terminal.sourceStart, next.length, source);
+    assert.equal(session.snapshot.selection.focus.offset, next.length, source);
+    const type = planInlineTextEdit({
+      source: next, block: terminal, from: next.length, text: "İkinci"
+    });
+    session.dispatch(type);
+    const after = projectFlowBlocks(createBlockDocument(session.snapshot.text));
+    const prose = after.filter(b => b.type === "paragraph" || b.type === "heading");
+    assert.equal(prose.length, 2, source);
+    assert.ok(prose.every(b => b.editable), source);
+    assert.equal(prose.at(-1).text, "İkinci", source);
+    session.undo();
+    assert.equal(session.snapshot.text, next);
+    session.undo();
+    assert.equal(session.snapshot.text, source);
+    session.redo();
+    session.redo();
+    assert.equal(session.snapshot.text, next + "İkinci");
+  }
+});
 
 test("G0.6B.4 rich Enter splits visible B/I/S content without touching unrelated source", () => {
   const cases = [
