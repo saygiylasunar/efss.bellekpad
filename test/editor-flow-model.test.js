@@ -75,6 +75,7 @@ test("G0.6B.1 ordered markers continue when final and guard duplicate next sibli
 test("G0.6B.1 paragraph and heading Enter create a distinct prose block", () => {
   const cases = [
     ["Merhaba\n", "Merhaba\n\n", "paragraph"],
+    ["Merhaba\r\n", "Merhaba\r\n\r\n", "paragraph"],
     ["Merhaba", "Mer\n\nhaba", "paragraph", 3],
     ["# Başlık\n", "# Başlık\n\n", "heading"]
   ];
