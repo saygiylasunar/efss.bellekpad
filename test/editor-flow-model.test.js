@@ -631,7 +631,11 @@ test("complex or unknown EFSS constructs are read-only in flow view, editable in
   assert.equal(marked.editable, true);
   assert.equal(marked.inline.runs.some(run => run.marks.includes("strong")), true);
   assert.equal(blocks.find(b => b.text.includes("&Miktar")).editable, false);
-  assert.equal(blocks.some(b => !b.editable && b.raw.includes("satırlı paragraf")), true);
+  const multiline = blocks.find(b => b.raw.includes("satırlı paragraf"));
+  assert.equal(multiline?.type, "paragraph");
+  assert.equal(multiline?.multiline, true);
+  assert.equal(multiline?.editable, true);
+  assert.equal(multiline?.text, "Birden çok\nsatırlı paragraf");
   for (const block of blocks.filter(b => !b.editable))
     assert.throws(() => editFlowText(doc, { id: block.id, text: "override" }),
       /FLOW_BLOCK_READ_ONLY/);
