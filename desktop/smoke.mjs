@@ -571,6 +571,19 @@ async function run() {
     page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci\\nİkinci'"));
   assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable').getAttribute('aria-multiline')"), "true");
   assert.equal(await page("document.querySelector('.flow-readonly')?.textContent.includes('secret: keep')"),true);
+
+  // Keep typing inside the same multiline paragraph after the native
+  // Shift+Enter event. Visual editing must not fall back to source mode.
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const text=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(text,8,text,8);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertText",data:"Güzel "}));})()');
+  await retry("multiline typing stays visual",()=>page(
+    "document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci\\nGüzel İkinci'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("multiline typing undo", () => page(
+    "document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci\\nİkinci'"));
   await page("document.querySelector('#undo').click()");
   await retry("softbreak undo", () =>
     page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinciİkinci'"));

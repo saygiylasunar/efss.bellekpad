@@ -38,6 +38,25 @@ test("Flow hides only the implicit prose separator, not intentional blank lines"
 
 
 
+
+test("G0.6B.6 ordinary Enter on an existing soft break never inserts a third EOL",()=>{
+  for(const eol of ["\n","\r\n","\r"]) {
+    const source="Birinci"+eol+"İkinci"+eol;
+    const doc=createBlockDocument(source);
+    const block=projectFlowBlocks(doc)[0];
+    const starts=["Birinci".length, "Birinci".length+eol.length];
+    for(const at of starts) {
+      const op=planFlowEnter({source,block,at});
+      assert.equal(op.text,eol,JSON.stringify({eol,at}));
+      const result=source.slice(0,op.from)+op.text+source.slice(op.to);
+      assert.equal(result,"Birinci"+eol+eol+"İkinci"+eol);
+      const blocks=projectFlowBlocks(createBlockDocument(result));
+      assert.equal(blocks.filter(b=>b.type==="paragraph").length,2);
+      assert.equal(blocks.filter(b=>b.type==="blank").length,1);
+      assert.equal(blocks.some(b=>b.separator),true);
+    }
+  }
+});
 test("G0.6B.6 Shift+Enter creates an editable single paragraph soft break", () => {
   for (const eol of ["\n", "\r\n", "\r"]) {
     const source = "Birinciİkinci" + eol;

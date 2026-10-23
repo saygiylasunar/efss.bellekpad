@@ -439,8 +439,14 @@ export function planFlowEnter({ source, block, at } = {}) {
   } else if (block.type === "quote") continuation = prefix;
   // A trailing EOL already supplies the following paragraph separator.
   const endsWithEol = at === block.sourceEnd && !!trailingEol(block.raw);
+  // A soft-break paragraph may already contain the EOL at the caret:
+  // inserting TWO more creates a visibly unintended extra blank row.
+  // In that case only the missing separator is inserted.
+  const inlineEolAdjacent = block.multiline &&
+    (source.slice(at).startsWith(localEol) ||
+      source.slice(0, at).endsWith(localEol));
   const insertion = ["paragraph", "heading", "blank"].includes(block.type) ?
-    (endsWithEol ? localEol : localEol + localEol) :
+    (endsWithEol || inlineEolAdjacent ? localEol : localEol + localEol) :
     localEol + continuation;
   // At document end, put the caret AFTER the blank's trailing EOL.
   // Otherwise the next character merges the new line back into the old
