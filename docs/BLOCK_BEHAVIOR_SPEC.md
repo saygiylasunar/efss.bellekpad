@@ -201,3 +201,13 @@ One `replaceRange` command owns both the separator deletion and the new caret; U
 
 **Not covered:** rich/mixed-style paragraph joining, heading-to-paragraph conversion, other block boundaries, multiple deliberate blank lines, Shift+Enter and general multiline paragraph DOM↔source selection mapping.
 
+
+## G0.6B.6 — Plain multiline Flow projection and guarded Shift+Enter (first slice)
+
+**Verified code:** `af31760f592e16e28a873e135c84bf308d220fe8` — **280/280 Node**, sanity gate and real Windows/Linux Electron GUI smoke. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39884333666) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/39884333685).
+
+- A contiguous *plain* multiline Markdown paragraph (`Birinci\\nİkinci`) now has a single editable Flow projection, not a read-only source detour. Inline display is a single source-identical text run; CRLF/CR and Unicode grapheme lengths are handled via source-aware offsets. A genuine B/I/S or unsupported EFSS marker spanning lines remains fail-closed.
+- `planFlowSoftBreak` inserts exactly **one local EOL** using one `TextEditorSession` source transaction when the caret has text to its right. Candidate EFSS parse must be **one editable paragraph**; a heading, list, extension, nested style collision or new syntax classification is rejected.
+- `planFlowMultilineEdit` supports safe typing/removal within that one paragraph. A Backspace removing the only soft-break EOL restores a plain single-line paragraph; Undo/Redo restores source and caret. Normal Enter next to an existing internal newline inserts only the *missing* separator (not a third newline).
+- **Explicit limitations:** Shift+Enter at end of line / an empty trailing soft line, multi-run rich-styled paragraphs, cross-block selections, paste with embedded newlines, and real physical IME are **not accepted**. Do not advertise all multiline editing as complete.
+

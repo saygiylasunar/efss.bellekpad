@@ -2,7 +2,7 @@
 
 > **22 Ekim 2026 güncel devir ve ileri roadmap:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active editor delivery: G0.6B.5 / v0.2.8 (22.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active editor delivery: G0.6B.6 partial / v0.2.8 (23.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -111,4 +111,9 @@ Code `c0c8cc` adds parser-verified rich B/I/S one-line split on Enter; code `91f
 ## G0.6B.5 — verified source-safe plain paragraph joining (22.10.2026)
 
 Commit `6482537` adds **Backspace at beginning of next paragraph** and **Delete at end of previous paragraph** over exactly one Markdown blank separator; parser verification enforces a single editable paragraph after joining. Source corruption, opaque EFSS, extra blanks and mixed-rich markers fail closed. **275/275 Node**, source sanity and real Windows/Linux Electron smoke passed. Next: multiline/Shift+Enter, selection across paragraphs, physical IME. [Block contract](BLOCK_BEHAVIOR_SPEC.md).
+
+
+## G0.6B.6 — verified editable plain multiline Flow (23.10.2026)
+
+Code `af31760`: an EFSS plain Markdown paragraph may span multiple source lines and remain one editable visual block. Source-preserving Shift+Enter is accepted **inside text**, with guarded multiline typing/backspace/Undo/Redo and parser revalidation. Normal Enter beside a soft break avoids a third EOL. **280/280 Node**, sanity and native Windows/Linux Electron smoke green. Still open: trailing empty soft line, marked multiline, cross-block selections/paste, physical IME. [Contract](BLOCK_BEHAVIOR_SPEC.md).
 

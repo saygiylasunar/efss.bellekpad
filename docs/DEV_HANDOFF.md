@@ -1,9 +1,11 @@
 # EFSS BellekPad — Devir README'si ve Uygulama Roadmap'i
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
-> Güncelleme: **22 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6B.5 (görsel editörde güvenli düz paragraf Backspace/Delete birleştirmesi) / v0.2.8**. Son doğrulanan kaynak commit'i **6482537c151c732d8f081a91fd4989c01fbae0b9**. **275/275 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
+> Güncelleme: **23 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
+> Doğrulanan son uygulama durumu: **G0.6B.6 kısmi (kayıpsız basit çok satırlı paragraf + metnin ortasında Shift+Enter) / v0.2.8**. Son doğrulanan kaynak commit'i **af31760f592e16e28a873e135c84bf308d220fe8**. **280/280 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **G0.6B.6 kısmi çok satırlı editör — 23.10.2026:** Güvenli düz metin paragrafları iki kaynak satırına yayıldığında artık Flow'da tek **editable** metin yüzeyidir; Markdown AST ve aynı TextEditorSession journal korunur. Metnin ortasındaki Shift+Enter tek yerel EOL ekler; sonraki yazma ve Backspace görsel editörde, Undo/Redo ile çalışır. Önceden var olan satır kırığının çevresinde normal Enter atıldığında 3. EOL üretilmez. **Sınır:** Shift+Enter'ın *satır sonunda boş satır açma* davranışı, rich çok satır, çapraz blok seçim ve fiziksel IME henüz desteklenmiyor; güvenle reddediliyor. `af31760`: **280/280 Node + Windows/Linux Electron smoke yeşil**.
 
 > **G0.6B.5 paragraf birleşimi — 22.10.2026:** Görsel Flow'da ikinci düz paragrafın başında Backspace ya da ilkinin sonunda Delete, aradaki tam iki kaynak satır sonunu **tek replaceRange transaction** ile kaldırır. Örnek: `Birinci\n\nİkinci` → `Birinciİkinci`. Candidate EFSS parser ile yeniden açılıp tek **editable** paragraf kaldığı doğrulanır. Başlık/liste/alıntı, kalın-italik-karışık kaynak, fazladan blank ve bilinmeyen EFSS üzerinden birleşim **reddedilir**, byte kaybı yaratılmaz. `6482537` kodu **275/275 Node ve Windows/Linux Electron smoke başarılı**. **Model entegrasyonu hâlâ Electron IPC'ye bağlı değil; G0.6B/C doğal editör kabulü bitmeden hazır gibi sunulmayacak.**
 
@@ -149,18 +151,19 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sıradaki gerçek geliştirme görevi (G0.6B.6 → G0.6C)
+## 5. Sıradaki gerçek geliştirme görevi (G0.6B.6 tamamlanacak → G0.6C)
 
-**Aktif hedef:** B.5'te iki düz paragrafın sınırındaki Backspace/Delete artık kaynak güvenli. Sıradaki sorun **çok satırlı/Shift+Enter metin akışı ve paragraf içi boş satırlar**. Bunlar tek satırlı EFSS AST projeksiyonunda hâlâ read-only hale gelebilir. Önce multiline projection ile kaynak↔DOM offsets; sonra editor Ctrl/Shift/Enter davranışını kayıpsız bağla.
+**Mevcut kabul:** G0.6B.6 ilk kesit `af31760` ile doğrulandı: basit düz çok satırlı Markdown paragrafı Flow'da gerçek içerik olarak çiziliyor, metnin ortasında `insertLineBreak` / Shift+Enter (tek EOL), sonraki yazma, güvenli silme ve Undo/Redo çalışıyor. Yanındaki EFSS opaque veriler bozulmuyor.
 
-1. `main` HEAD, Core ve gerçek Windows/Linux Electron smoke'u doğrula; **G0.6B.5 kabul edilmiş kod: `6482537c151c732d8f081a91fd4989c01fbae0b9`**.
-2. `src/ast.js` paragraph grouping, `src/editor-flow-model.js` flow projection, `src/editor-flow-adapter.js` DOM selection, `src/editor-inline-format.js` parser style oracle sınırlarını birlikte incele. Shift+Enter için kaynak formatını tahmin etme.
-3. İlk hedef çok satırlı paragrafın iki kaynak satırını **tek Flow metin gövdesinde** görünür tutmak, caret konumlarını kayıpsız map etmek ve native input/Undo/Redo testi yapmak. Eksik grammar için fail-closed; özel EFSS/escaped code biçimlerini zorla işleme.
-4. Sonrasında Shift+Enter, paragraf içindeki nonterminal blank, normal Enter + Backspace/Delete ve çizim teması üzerine kabul testleri. Türkçe Unicode/ZWJ, CRLF, source roundtrip, kaydet-yeniden aç.
-5. G0.6C fiziksel klavye/IME kabulü ve tam editör sağlamlığı. Bundan sonra paralel AI runtime Electron köprüsünü (yerel LM Studio `/v1`) gerçek kullanıcı seçimine bağlı olarak aç; provider/ComfyUI parçaları hazır olsa da **desktop bağları henüz yok**.
-6. Kapsam: doğru repo `saygiylasunar/efss.bellekpad`, **main**, yeni branch yok, ayrı DOM belge otoritesi yok, yeniden paketlenen harici editor yok. Gerçek CI geçmeden milestone kabulü ilan etme.
+**Hemen sıradaki eksikler:**
+1. **Shift+Enter satır sonunda:** Boş ikinci satırı oluştururken editörün source/caret kimliğini ve satır sonu semantiğini karıştırmadan kalıcı/kayıpsız modelle. Bir `\n` eklendiğinde EOF ve son EOL farkını açıkça tanımla. Şimdilik bu vaka bilinçli fail-closed.
+2. **Çok satırlı rich mark:** B/I/S'yi ve görünmeyen kaynak delimiter'larını span boyunca koruyarak kaynak↔DOM pozisyonlarını hesapla. Düz çok satırlı imza ile rich imzayı karıştırma.
+3. **Çok bloklu seçim, IME ve clipboard:** Gerçek klavye/IME kabulü, pasted multiline, Unicode/ZWJ, CRLF/tekil CR ve kaydet-aç geri testlerini tamamla. `G0.6C` kabul kapısı bu işler sonuçlanmadan kapanmaz.
+4. **Flow UX ve bloklar:** Yanlış yerde "Kaynağı düzenle" uyarısı vermeyen doğal yazma, desteklenmeyen formata dokunmayan güvenli fallback; ardından G0.7 tablo/checklist ve bağlamsal Inspector. 
+5. AI runtime bağımsız hatta: `src/model-provider.js`, `src/comfy-provider.js`, `src/model-discovery.js` hazır kısımlar; **Electron GUI IPC / model seçimi / gerçek inference kabulü henüz yok**. Editör kabulünü bozmayacak izole bir entegrasyon seç.
+6. Bütün değişiklikleri yalnızca `saygiylasunar/efss.bellekpad` **main** üzerinde yap. Yeni branch yok. Her şey için kaynak roundtrip + Node ve gerçek Windows/Linux Electron GUI smoke; CI yeşil olmadan "tamam" deme.
 
-**Açık eksikler:** zengin metin içi çok bloklu seçim, birden fazla list nesting seviyesi, IME kompozisyonu, rich paragraph join, Inspector gerçek blok özellikleri. B.5 yalnızca `paragraph + tek blank + paragraph` senaryosunu açtı.
+**G0.6B.6'nın birinci kesitiyle G0.6B'nin tamamını karıştırma.** Kullanıcı, görsel editörde günlük yazmanın kaynak sekmesine mecbur bırakmamasını istiyor.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -216,6 +219,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette kullanılacak görev cümlesi
 
-> **“BellekPad'e `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md` üzerinden devam et. `saygiylasunar/efss.bellekpad` main HEAD ve CI'yi denetle. G0.6B.5 düz paragraf Backspace/Delete atomik birleşimi (code `6482537`, 275/275 + Win/Linux smoke) çalışıyor. Sırada multiline/Shift+Enter ve kaynak↔DOM seçim doğruluğu var; bunu Node regresyonları + gerçek masaüstü testleriyle uygula. EFSS kaynağını tek belge otoritesi tut, opaque byte'ları koru, doğru repo main'den ilerle.”**
+> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden devam ettir. `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md`'yi oku. G0.6B.6 ilk kesiti `af31760` ile doğrulandı: tek kaynaklı düz çok satırlı Flow + satır içi Shift+Enter + yazma/silme (280/280, Win/Linux). **Sıradaki somut iş: Shift+Enter satır sonu, çok satırlı rich ve ardından fiziksel IME kabulü.** Kaynak delimiter'ları ile unknown EFSS byte'larını koru, her davranışı gerçek GUI smoke ve Undo/Redo'yla kanıtla. Yeni branch yaratma.”
 
-**Prensip:** Kullanıcı görsel editörden temel yazım için kaynak sekmesine gönderilmeyecek; ancak kayıp riski olan karmaşık durumlar sessizce değiştirilmez.
+**Ürün hedefi:** Görsel yazım doğal olmalı; kanıtlanmamış çok satırlı ve model/AI yetenekleri tamamlandı gibi gösterilmemeli.
