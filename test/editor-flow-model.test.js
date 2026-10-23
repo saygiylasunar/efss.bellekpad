@@ -6,7 +6,8 @@ import { planInlineTextEdit } from "../src/editor-inline-format.js";
 import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
   calloutMarkdown, slashFlowCommand, planFlowEnter,
-  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin
+  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
+  planFlowSoftBreak, planFlowMultilineEdit
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
@@ -35,6 +36,110 @@ test("Flow hides only the implicit prose separator, not intentional blank lines"
   }
 });
 
+
+
+test("G0.6B.6 Shift+Enter creates an editable single paragraph soft break", () => {
+  for (const eol of ["\n", "\r\n", "\r"]) {
+    const source = "Birinciİkinci" + eol;
+    const document = createBlockDocument(source);
+    const block = projectFlowBlocks(document).find(b => b.type === "paragraph");
+    const at = "Birinci".length;
+    const session = new TextEditorSession({text:source,selection:collapsedSelection(at)});
+    const operation = planFlowSoftBreak({source,document,block,at});
+    assert.equal(operation.operation,"flow-soft-break");
+    session.dispatch(operation);
+    assert.equal(session.snapshot.text,"Birinci" + eol + "İkinci" + eol);
+    assert.equal(session.snapshot.selection.focus.offset,at+eol.length);
+    const nextDocument = createBlockDocument(session.snapshot.text);
+    const projected = projectFlowBlocks(nextDocument);
+    const paragraph = projected.find(b => b.type === "paragraph");
+    assert.equal(paragraph.multiline,true);
+    assert.equal(paragraph.editable,true);
+    assert.equal(paragraph.text,"Birinci"+eol+"İkinci");
+    assert.equal(paragraph.inline.text,paragraph.text);
+    assert.equal(paragraph.inline.runs[0].text,paragraph.text);
+    session.undo();
+    assert.equal(session.snapshot.text,source);
+    session.redo();
+    assert.equal(session.snapshot.text,"Birinci"+eol+"İkinci"+eol);
+  }
+});
+test("G0.6B.6 type/backspace inside multiline paragraph stays editable", () => {
+  for (const eol of ["\n","\r\n","\r"]) {
+    const source = "Birinci" + eol + "İkinci" + eol;
+    const doc = createBlockDocument(source), block = projectFlowBlocks(doc)[0];
+    assert.equal(block.multiline,true);
+    const at = "Birinci".length+eol.length;
+    const edit = planFlowMultilineEdit({source,document:doc,block,
+      from:at,text:"Güzel "});
+    const session = new TextEditorSession({text:source,
+      selection:collapsedSelection(at)});
+    session.dispatch(edit);
+    const after = "Birinci"+eol+"Güzel İkinci"+eol;
+    assert.equal(session.snapshot.text,after);
+    const current = createBlockDocument(after);
+    const paragraph = projectFlowBlocks(current)[0];
+    const deletion = planFlowMultilineEdit({
+      source:after,document:current,block:paragraph,
+      from:"Birinci".length,to:"Birinci".length+eol.length,text:""
+    });
+    session.dispatch(deletion);
+    assert.equal(session.snapshot.text,"BirinciGüzel İkinci"+eol);
+    assert.equal(projectFlowBlocks(createBlockDocument(session.snapshot.text))[0].editable,true);
+    session.undo();
+    assert.equal(session.snapshot.text,after);
+    session.undo();
+    assert.equal(session.snapshot.text,source);
+    session.redo();
+    session.redo();
+    assert.equal(session.snapshot.text,"BirinciGüzel İkinci"+eol);
+  }
+});
+test("G0.6B.6 multiline soft breaks fail closed at EOF or across EFSS structures", () => {
+  for (const source of [
+    "- Madde", "# Başlık", "A **kalın** B", "A &Miktar B",
+    "A\n\n:::efss.secret\nvalue: private\n:::\n"
+  ]) {
+    const document=createBlockDocument(source);
+    const block=projectFlowBlocks(document)[0];
+    const at=block.type==="paragraph" ? Math.min(block.sourceEnd,block.sourceStart+1) :
+      block.sourceStart+1;
+    const original=new TextEditorSession({text:source});
+    assert.throws(()=>planFlowSoftBreak({source,document,block,at}),
+      /FLOW_SOFT_BREAK_UNSUPPORTED|FLOW_MULTILINE_REPARSE_FAILED/,source);
+    assert.equal(original.snapshot.text,source);
+  }
+  const src="Üst\n\nBirinciİkinci\n\n:::efss.unknown\nsecret: 💾\n:::\n";
+  const document=createBlockDocument(src);
+  const block=projectFlowBlocks(document).find(b=>b.text==="Birinciİkinci");
+  const at=src.indexOf("İkinci");
+  const op=planFlowSoftBreak({source:src,document,block,at});
+  const next=src.slice(0,op.from)+op.text+src.slice(op.to);
+  assert.ok(next.includes("Birinci\nİkinci"));
+  assert.ok(next.endsWith(":::efss.unknown\nsecret: 💾\n:::\n"));
+});
+test("G0.6B.6 rejects unsafe multiline edits and preserves original byte stream",()=>{
+  const examples=[
+    "Birinci\n- Liste\n",
+    "Birinci\n# Başlık\n",
+    "Birinci\n:::efss.opaque\nid:x\n:::\n",
+    "Birinci\n**kalın**\n"
+  ];
+  for (const source of examples) {
+    const block=projectFlowBlocks(createBlockDocument(source))[0];
+    assert.notEqual(block.multiline,true,source);
+  }
+  const source="Birinci\nİkinci";
+  const document=createBlockDocument(source),block=projectFlowBlocks(document)[0];
+  assert.throws(()=>planFlowMultilineEdit({
+    source,document,block,from:source.indexOf("İkinci"),
+    text:"# "
+  }),/FLOW_MULTILINE_EDIT_REPARSE_FAILED/);
+  assert.throws(()=>planFlowMultilineEdit({
+    source,document,block,from:0,to:0,text:"- "
+  }),/FLOW_MULTILINE_EDIT_REPARSE_FAILED/);
+  assert.equal(document.source,source);
+});
 
 test("G0.6B.5 Backspace/Delete join adjacent plain paragraphs without extra line endings", () => {
   for (const eol of ["\n", "\r\n", "\r"]) {

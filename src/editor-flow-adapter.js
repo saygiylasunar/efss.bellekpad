@@ -4,7 +4,8 @@ import {
 } from "./editor-text-engine.js";
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter,
-  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin
+  planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
+  planFlowSoftBreak, planFlowMultilineEdit
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -210,7 +211,7 @@ export function attachFlowEditor(host, {
           (block.list?.style === "ordered" ?
             "Sıralı liste öğesi " + block.list.ordinal : "Liste öğesi") :
           "Düzenlenebilir " + block.type);
-        editor.setAttribute("aria-multiline", "false");
+        editor.setAttribute("aria-multiline", block.multiline ? "true" : "false");
         editor.spellcheck = true;
         editor.dataset.placeholder = block.type === "callout" ?
           "Bir şey yaz…" : "Yazmaya başla…";
@@ -307,9 +308,10 @@ export function attachFlowEditor(host, {
       const to = command.type === "replaceRange" ? command.to : sel.end;
       const text = command.type === "deleteBackward" ||
         command.type === "deleteForward" ? "" : command.text ?? "";
-      planned = planInlineTextEdit({
-        source: session.snapshot.text, block, from, to, text
-      });
+      planned = block.multiline ?
+        planFlowMultilineEdit({source:session.snapshot.text, document:getStructure(),
+          block, from, to, text}) :
+        planInlineTextEdit({source: session.snapshot.text, block, from, to, text});
     } catch (error) {
       onError("Kaynak korunuyor: " + (error?.message ?? "UNSAFE_EDIT"));
       return false;
@@ -355,9 +357,12 @@ export function attachFlowEditor(host, {
     }
     let planned;
     try {
-      planned = planInlineTextEdit({
-        source: session.snapshot.text, block, from, to, text: replacement
-      });
+      planned = block.multiline ?
+        planFlowMultilineEdit({source:session.snapshot.text, document:getStructure(),
+          block, from, to, text:replacement}) :
+        planInlineTextEdit({
+          source: session.snapshot.text, block, from, to, text: replacement
+        });
     } catch (error) {
       onError("Girdi kaynağı koruyamadı: " + (error?.message ?? "UNSAFE_EDIT"));
       render({ focusAt: from, preferredId: block.id });
@@ -429,10 +434,6 @@ export function attachFlowEditor(host, {
       }
     }
     if (command.type === "flowEnter" || command.type === "softBreak") {
-      if (command.type === "softBreak") {
-        onError("Shift+Enter için satır-içi model henüz hazır değil; kaynak görünümünü kullan.");
-        return;
-      }
       if (!selectedRange(editor, block)) return;
       const range = selectionBounds(session.snapshot.selection);
       if (range.start !== range.end) {
@@ -440,13 +441,18 @@ export function attachFlowEditor(host, {
         return;
       }
       try {
-        const planned = planFlowEnter({
-          source: session.snapshot.text, block, at: range.start
-        });
+        const planned = command.type === "softBreak" ?
+          planFlowSoftBreak({
+            source:session.snapshot.text, document:getStructure(),
+            block, at:range.start
+          }) :
+          planFlowEnter({
+            source: session.snapshot.text, block, at: range.start
+          });
         const result = session.dispatch(planned);
         finish(result, { focusAt: planned.selectionAfter.focus.offset });
       } catch (error) {
-        onError("Blok Enter işlemi korunuyor: " + (error?.message ?? "UNSAFE_ENTER"));
+        onError("Blok satır sonu korunuyor: " + (error?.message ?? "UNSAFE_ENTER"));
       }
       return;
     }

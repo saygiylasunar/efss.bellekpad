@@ -82,6 +82,15 @@ export function projectFlowBlocks(doc) {
         editable: true
       });
     }
+    if (block.type === "paragraph" && EOL.test(line)) {
+      const inline = plainMultilineInline(line);
+      if (inline) return Object.freeze({
+        id: block.id, type: "paragraph", raw, text: line, inline,
+        start: block.start, end: block.end, sourceStart: block.start,
+        sourceEnd: block.end - eol.length, editable: true,
+        multiline: true
+      });
+    }
     if (!TYPES.includes(block.type) || EOL.test(line)) return Object.freeze({
       id: block.id, type: block.type, raw, text: raw,
       start: block.start, end: block.end, editable: false
@@ -169,6 +178,100 @@ export function insertFlowBlock(doc, {
   return reconcileBlockSource(doc, source, { expectedVersion });
 }
 
+
+
+function plainMultilineInline(raw) {
+  if (!EOL.test(raw) || !raw ||
+      raw.split(EOL).some(line => {
+        const part = projectInline(line);
+        return !part.editable || part.regions.length || part.text !== line;
+      })) return null;
+  // A marker spanning lines is not harmless plain prose even when each
+  // individual line looks unmarked. Keep the source parser authoritative.
+  const overall = projectInline(raw);
+  if (overall.regions.length || overall.text !== raw) return null;
+  return Object.freeze({
+    text: raw, sourceLength: raw.length,
+    runs: Object.freeze([Object.freeze({
+      text: raw, from: 0, to: raw.length, marks: Object.freeze([])
+    })]), regions: Object.freeze([]), editable: true
+  });
+}
+
+function validPlainMultilineResult(document, candidate, start) {
+  const projected = projectFlowBlocks(reconcileBlockSource(document, candidate));
+  const paragraph = projected.find(b => b.start === start &&
+    b.type === "paragraph" && b.multiline && b.editable);
+  if (!paragraph || projected.some(b => b.start < paragraph.end &&
+      b.end > paragraph.start && b !== paragraph))
+    fail("FLOW_MULTILINE_REPARSE_FAILED");
+  return paragraph;
+}
+
+/**
+ * G0.6B.6: first safely supported soft-break path. This is a Markdown
+ * softbreak (one local EOL), not Enter's blank paragraph separator. Until
+ * trailing-empty-line placeholders are designed, require surviving text to
+ * the right of the caret. The join of two source lines must reparse as one
+ * independently editable, plain paragraph. No raw CRLF half-boundaries.
+ */
+export function planFlowSoftBreak({ source, document, block, at } = {}) {
+  if (typeof source !== "string" || document?.source !== source ||
+      block?.type !== "paragraph" || !block.editable ||
+      block.inline?.regions.length || !Number.isSafeInteger(at) ||
+      at < block.sourceStart || at >= block.sourceEnd ||
+      !isGraphemeBoundary(source, at) ||
+      source.slice(block.start, block.end) !== block.raw ||
+      source.slice(block.sourceStart, block.sourceEnd) !== block.text)
+    fail("FLOW_SOFT_BREAK_UNSUPPORTED");
+  const eol = trailingEol(block.raw) || ending(source);
+  const candidate = source.slice(0, at) + eol + source.slice(at);
+  const next = validPlainMultilineResult(document, candidate, block.start);
+  if (next.text !== block.text.slice(0, at - block.sourceStart) +
+        eol + block.text.slice(at - block.sourceStart))
+    fail("FLOW_MULTILINE_REPARSE_FAILED");
+  return Object.freeze({
+    type: "replaceRange", from: at, to: at, text: eol,
+    selectionAfter: collapsedSelection(at + eol.length),
+    operation: "flow-soft-break"
+  });
+}
+
+/**
+ * Ordinary typing/deletion within a source-identical multiline plain
+ * paragraph. Inline Markdown's single-line parser cannot authorize this
+ * transaction, so validate against an entire candidate EFSS block instead.
+ */
+export function planFlowMultilineEdit({
+  source, document, block, from, to = from, text = ""
+} = {}) {
+  if (typeof source !== "string" || document?.source !== source ||
+      !block?.editable || !block.multiline || block.type !== "paragraph" ||
+      !Number.isSafeInteger(from) || !Number.isSafeInteger(to) ||
+      from > to || from < block.sourceStart || to > block.sourceEnd ||
+      !isGraphemeBoundary(source, from) || !isGraphemeBoundary(source, to) ||
+      typeof text !== "string" || /[\r\n\0]/.test(text) ||
+      source.slice(block.start, block.end) !== block.raw ||
+      source.slice(block.sourceStart, block.sourceEnd) !== block.text)
+    fail("FLOW_MULTILINE_EDIT_UNSUPPORTED");
+  const candidate = source.slice(0, from) + text + source.slice(to);
+  // Deleting the final soft break may legitimately return to a single-line
+  // editable paragraph. No block outside this original span may change.
+  const projected = projectFlowBlocks(reconcileBlockSource(document, candidate));
+  const next = projected.find(b => b.start === block.start &&
+    b.type === "paragraph" && b.editable);
+  const intended = block.text.slice(0, from - block.sourceStart) + text +
+    block.text.slice(to - block.sourceStart);
+  if (!next || next.text !== intended ||
+      next.sourceEnd !== block.sourceEnd + text.length - (to - from) ||
+      projected.some(b => b.start < next.end && b.end > next.start && b !== next))
+    fail("FLOW_MULTILINE_EDIT_REPARSE_FAILED");
+  return Object.freeze({
+    type: "replaceRange", from, to, text,
+    selectionAfter: collapsedSelection(from + text.length),
+    operation: "flow-multiline-edit"
+  });
+}
 
 /** Normalize inline styles at adjacent run boundaries before split comparison. */
 function flowInlineSignature(runs) {
@@ -454,6 +557,7 @@ export function planFlowParagraphJoin({ source, document, block, at, direction }
       left.end !== blank.start || blank.end !== right.start ||
       left.sourceStart !== left.start || right.sourceStart !== right.start ||
       left.inline?.regions.length || right.inline?.regions.length ||
+      left.multiline || right.multiline ||
       source.slice(left.sourceStart, left.sourceEnd) !== left.text ||
       source.slice(right.sourceStart, right.sourceEnd) !== right.text)
     fail("FLOW_PARAGRAPH_JOIN_UNSUPPORTED");

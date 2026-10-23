@@ -549,6 +549,37 @@ async function run() {
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinciİkinci')"),true);
   assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: intact')"),true);
+
+  // G0.6B.6: Shift+Enter in the middle of an ordinary paragraph creates
+  // a real, editable multiline Flow paragraph instead of a source-only card.
+  await page("document.querySelector('#show-write').click()");
+  const softSource = "Birinciİkinci\n\n:::efss.opaque\nsecret: keep\n:::\n";
+  await page('(() => {const el=document.querySelector("#editor");el.focus();' +
+    'el.textContent=' + JSON.stringify(softSource) + ';' +
+    'el.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("softbreak source set", () =>
+    page("document.querySelector('#editor').textContent.includes('Birinciİkinci')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("softbreak prose rendered", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinciİkinci'"));
+  await page('(() => {const el=document.querySelector(".flow-paragraph .flow-editable");' +
+    'const t=el.querySelector("[data-inline-run]").firstChild;el.focus();' +
+    'document.getSelection().setBaseAndExtent(t,7,t,7);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{' +
+    'bubbles:true,cancelable:true,inputType:"insertLineBreak"}));})()');
+  await retry("softbreak stays editable", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci\\nİkinci'"));
+  assert.equal(await page("document.querySelector('.flow-paragraph .flow-editable').getAttribute('aria-multiline')"), "true");
+  assert.equal(await page("document.querySelector('.flow-readonly')?.textContent.includes('secret: keep')"),true);
+  await page("document.querySelector('#undo').click()");
+  await retry("softbreak undo", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinciİkinci'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("softbreak redo", () =>
+    page("document.querySelector('.flow-paragraph .flow-editable')?.textContent === 'Birinci\\nİkinci'"));
+  await page("document.querySelector('#show-write').click()");
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinci\\nİkinci')"),true);
+  assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: keep')"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.
