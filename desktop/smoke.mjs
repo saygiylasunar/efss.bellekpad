@@ -678,6 +678,6 @@ async function run() {
   app.exit(0);
 }
 run().catch(error => {
-  console.error("DESKTOP GUI SMOKE FAILED:", error.message);
+  console.error("DESKTOP GUI SMOKE FAILED:", error.stack ?? error.message);
   app.exit(1);
 });
