@@ -672,6 +672,26 @@ async function run() {
   assert.ok(savedTableSource.includes("Konya"));
   assert.ok(savedTableSource.includes("42"));
   assert.ok(savedTableSource.includes(":::efss.callout"));
+  // Persist/reopen acceptance: a rendered table must survive the actual
+  // Electron local-vault save boundary, not merely an in-memory GUI render.
+  await page('(() => {const title=document.querySelector("#document-title");' +
+    'title.value="G0.7A Tablo Kaydı";title.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await page("document.querySelector('#save').click()");
+  await retry("table saved to local vault", () =>
+    page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
+  await page("document.querySelector('#new-document').click()");
+  await retry("new document after table save", () =>
+    page("document.querySelector('#document-title').value === 'Adsız sayfa'"));
+  await page('(() => {const saved=Array.from(document.querySelectorAll(".document-item"))' +
+    '.find(x=>x.textContent.includes("G0.7A Tablo Kaydı"));' +
+    'if(!saved)throw new Error("saved table document missing");saved.click();})()');
+  await retry("table reopens from vault", () =>
+    page("document.querySelector('#document-title').value === 'G0.7A Tablo Kaydı' && " +
+      "document.querySelectorAll('.flow-table tr').length === 3"));
+  assert.equal(await page(
+    "document.querySelectorAll('[data-flow-table-cell]')[3].textContent"), "Konya");
+  assert.equal(await page(
+    "document.querySelectorAll('[data-flow-table-cell]')[4].textContent"), "42");
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.
