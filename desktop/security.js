@@ -12,6 +12,7 @@ export const BUNDLED_PATHS = Object.freeze([
   "/src/ast.js", "/src/editor-draft.js",
   "/src/editor-text-engine.js", "/src/editor-input-adapter.js",
   "/src/editor-block-model.js",
+  "/src/pipe-table-parser.js", "/src/editor-table-model.js",
   "/src/editor-flow-model.js", "/src/editor-flow-adapter.js",
   "/src/editor-inline-format.js", "/src/ui-icons.js", "/src/inline-rules.js", "/src/semantics.js",
   "/src/binding-syntax.js", "/src/contract.js"

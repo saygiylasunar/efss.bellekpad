@@ -99,6 +99,8 @@ test("renderer always receives explicit result/error; preload exports no arbitra
 test("bundled protocol is a static allowlist, not a file server", () => {
   assert.ok(BUNDLED_PATHS.includes("/index.html"));
   assert.ok(BUNDLED_PATHS.includes("/app.js"));
+  for(const path of ["/src/pipe-table-parser.js", "/src/editor-table-model.js"])
+    assert.equal(resolveBundledAsset("bellekpad://app"+path)?.endsWith(path.slice(1)),true);
   assert.equal(resolveBundledAsset(APP_HOME, "GET")?.endsWith("desktop/ui/index.html"), true);
   assert.equal(resolveBundledAsset("bellekpad://app/src/editor-draft.js")?.endsWith("src/editor-draft.js"), true);
   const forbidden = [
