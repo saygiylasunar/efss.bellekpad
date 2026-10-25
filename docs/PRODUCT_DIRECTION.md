@@ -1,0 +1,51 @@
+# BellekPad — Ürün Yörüngesi ve Teslim Ölçütleri
+
+Tarih: **25 Ekim 2026** · Kanonik repository: `saygiylasunar/efss.bellekpad` · Dal: `main`
+
+Bu belge **uygulama kapsamını bağlamak** içindir, kullanıcı onayı olmadan özelliklerin son tasarımını kesinleştirmez. Güncel mühendislik ilerlemesi [DEV_HANDOFF](DEV_HANDOFF.md), bloklar [BLOCK_BEHAVIOR_SPEC](BLOCK_BEHAVIOR_SPEC.md).
+
+## Ürün niyeti
+
+BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne düzenlenebilir, bağlantılı bilgi barındıran, ihtiyaç halinde yerel modellerle güçlendirilen kişisel çalışma ortamı**. Oyun arayüzlerindeki açıklık ve durum farkındalığı; Discord/Slack'in arayüz disiplini; Notion'un blokları; Word'ün doğal yazımı; Illustrator'un nesne özellikleri ve Canva'nın boyut/şablon yaklaşımı **ilhamdır, kopya değil**. Sakin, soft, teknik, Türkçe uyumlu, yoğun ama boğmayan bir tasarım.
+
+## Sıfır tavizler
+
+- **Yazmak esastır:** Enter/Tab/Shift+Enter ve karakter seçimi gündelik kullanımda kullanıcıyı sürekli kaynak editörüne sürüklemeyecek. Destek dışı durum net ve kayıpsız reddedilir; içerik gizlice düzleştirilmez.
+- **Her blok davranışlı nesne:** tür/özellik, içerik, klavye, görünüm, Inspector ve veri saklama semantiği ayrı tanımlanır.
+- **Tek yetkili belge:** EFSS Markdown + sürümlü gelişmiş metadata, source roundtrip ve atomik Undo/Redo. DOM ikinci belge deposu değildir.
+- **Kullanıcı kontrolü:** Model önerisi belgeyi otomatik değiştirmez; dosya/görsel/model dizinleri izinsiz taranmaz veya buluta gönderilmez. Belirlenmemiş yerel yollar koda gömülmez.
+- **Özgün editör ve güvenli host:** Üçüncü taraf rich editor framework'ü yok; Electron sandbox + allowlist IPC. DevTools/UI chrome gizliliği tam bir tersine mühendislik koruması olarak vaat edilmez.
+- **Somut ürün:** Test sayısı bir araçtır; tamamlanan özellik, normal UI'dan elle uygulanabilir, kaydedilir, Undo/Redo ile döner ve gerçek Electron testinden geçer.
+
+## Çalışan görünür dilim / 25.10.2026
+
+| Kullanıcı eylemi | Gerçek uygulama | Limit |
+| --- | --- | --- |
+| Görsel olarak yazma ve biçim | B/I/S, heading, liste, quote, temel callout, inline rich işaretler | Karma çok satır ve IME kabulü eksik |
+| Enter/Backspace/Shift+Enter | Temel liste devamı, basit paragraflar, sınırlı Shift+Enter, bazı blok sınırları | Çok bloklu seçim ve trailing softline eksik |
+| **Seçili blok Özellikleri (yeni)** | H1–H6, madde işareti ve callout varyantını **gerçek kaynak üzerinde** değiştirme | Font ölçüleri, tablo, konum, renk yok |
+| Yerel not saklama | Electron kasası, revision kontrol ve kaynak görünümü | Kurtarma/taşınabilir yedek son ürün değil |
+| Modeller için çekirdek | OpenAI-compatible ve ComfyUI provider, dosya envanteri | Masaüstü seçim, sohbet, runtime IPC/inference kanıtı yok |
+| Artboard ve tablo | Tasarım sözleşmesi var | Kullanıcıya sunulmuş çalışan layout/hücre motoru yok |
+
+### Kabul edilen kod
+
+`fbb0ab4956eedcf8bc8b3b588af221cb63c5d6df` — 285/285 Node, Windows + Linux Electron smoke başarılı. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926785) / [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926766).
+
+## Bundan sonra sırayı belirleyen şey: kullanıcıya çalışan yetenek
+
+**1 · Editör güvenilirliği — G0.6C (dar mühendislik kapısı).** Fiziksel klavye/IME, uzun paragraflar, trailing Shift+Enter, çoklu seçim, clipboard, kaynak/Flow roundtrip, kaydet aç. Her seferinde tek kritik hata grubunu bitir, kapsamı gereksiz genişletme.
+
+**2 · Zengin nesneler — G0.7.** Gerçek hücreli 3×3 tablo ekle → hücreyi düzenle → Tab/Shift+Tab → ekle/sil → Undo/Redo → kaydet-aç. Checklist ve callout'u gerçek nesne kontrollere yükselt. Inspector da yeni türü tanısın.
+
+**3 · Yerel modelin masaüstüyle ilk bağlantısı — paralel dikey.** `OpenAICompatibleProvider` için loopback-only, doğrulanmış model listesi + durum; Electron ana süreçte minimal whitelist IPC; sonraki adımda seçili modeli kullanarak isteğe bağlı sohbet/işleme. LM Studio gibi sunucu dışarıda çalışır. Hata/iptal/UI testleri gereklidir, metin yalnız açık onayla belgeye aktarılır. ComfyUI workflow/kuyruk/galeri ayrı sonraki AI dikeyidir. **G0.8/G0.9'un tümü bitmeden ilk LLM bağlanabilir.**
+
+**4 · Artboard / Layout — G0.8.** Sayfa boyutu, TextFrame, vektör ölçüler, snap, grid/row/column, overflow işareti, özgür çakışmada açık niyet ve kalıcı EFSS layout schema.
+
+**5 · Geniş Inspector ve dağıtım — G0.9.** Font boyut/ağırlık/line-height, geometri X/Y/W/H, nesne hizası, layer/asset, kurtarma, import/export; lisanslı font yoksa sahte dropdown yok.
+
+**6 · İleri AI/medya/çıktı — G1+.** ComfyUI görsel stüdyo, bağlamsal RAG, model değerlendirmesi, yüksek kalite PDF/vector/raster dışa aktarma. Temel LLM bağlantısını G1+'a kadar zorunlu bekletme.
+
+## Teslim tanımı
+
+Bir özellik **hazır** yalnız şu koşullarda denebilir: (1) uygulama içinden erişilir, (2) kaynakta veya sürümlü varlıkta saklanır, (3) Undo/Redo varsa doğrulanır, (4) Windows ve Linux gerçek Electron smoke yeşildir, (5) sınırlamalar açıkça yazılmıştır. Pazar/ürün nihai yönü ve tasarım kararlarında son onay kullanıcıya aittir.

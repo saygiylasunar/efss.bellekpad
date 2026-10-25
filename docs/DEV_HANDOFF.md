@@ -1,9 +1,11 @@
 # EFSS BellekPad — Devir README'si ve Uygulama Roadmap'i
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
-> Güncelleme: **23 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan son uygulama durumu: **G0.6B.6 kısmi (kayıpsız basit çok satırlı paragraf + metnin ortasında Shift+Enter) / v0.2.8**. Son doğrulanan kaynak commit'i **af31760f592e16e28a873e135c84bf308d220fe8**. **280/280 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md).
+> Güncelleme: **25 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
+> Doğrulanan durum: **G0.6B.6 kısmi + G0.9 erken görsel Inspector kesiti / v0.2.8**. Son doğrulanan KOD commit'i **fbb0ab4956eedcf8bc8b3b588af221cb63c5d6df**. **285/285 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md) · [Ürün yönü](PRODUCT_DIRECTION.md). G0.9'un bütünü tamamlanmış değildir.
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **25.10.2026 ÜRÜN YÖRÜNGESİ DÜZELTMESİ:** Bir sonraki temel hedef sırf metin motoru testi artırmak değil, kullanıcının doğrudan gördüğü **bağlamsal nesne özellikleri, gerçek tablolar, yerel LLM bağlantısı ve artboard**. Bu nedenle önceden G0.9'a bırakılan Inspector'ın dar, gerçek veri değiştiren ilk kesiti öne alındı. `fbb0ab`: seçili heading H1–H6, bullet `-/+/*` ve callout variant (default title/icon güncellemesi, kişiselleştirilmiş dekorları koruma) kaynak doğrulamalı `replaceRange` ve Undo/Redo ile sağ Inspector'dan yönetiliyor. **285/285 Node + Windows/Linux Electron smoke yeşil.** Geri kalan Inspector özellikleri (font size, renk, artboard geometry) uygulanmış değildir. [Ürün yönü ve kabul kapıları](PRODUCT_DIRECTION.md).
 
 > **G0.6B.6 kısmi çok satırlı editör — 23.10.2026:** Güvenli düz metin paragrafları iki kaynak satırına yayıldığında artık Flow'da tek **editable** metin yüzeyidir; Markdown AST ve aynı TextEditorSession journal korunur. Metnin ortasındaki Shift+Enter tek yerel EOL ekler; sonraki yazma ve Backspace görsel editörde, Undo/Redo ile çalışır. Önceden var olan satır kırığının çevresinde normal Enter atıldığında 3. EOL üretilmez. **Sınır:** Shift+Enter'ın *satır sonunda boş satır açma* davranışı, rich çok satır, çapraz blok seçim ve fiziksel IME henüz desteklenmiyor; güvenle reddediliyor. `af31760`: **280/280 Node + Windows/Linux Electron smoke yeşil**.
 
@@ -151,19 +153,18 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sıradaki gerçek geliştirme görevi (G0.6B.6 tamamlanacak → G0.6C)
+## 5. Sonraki değer teslimleri — bir yerde sonsuz teknik oyalama yok
 
-**Mevcut kabul:** G0.6B.6 ilk kesit `af31760` ile doğrulandı: basit düz çok satırlı Markdown paragrafı Flow'da gerçek içerik olarak çiziliyor, metnin ortasında `insertLineBreak` / Shift+Enter (tek EOL), sonraki yazma, güvenli silme ve Undo/Redo çalışıyor. Yanındaki EFSS opaque veriler bozulmuyor.
+**İlk gerçekleşen görünür teslim:** seçili blok için sağ Inspector, `fbb0ab` üzerinde doğrulandı. Artık yalnızca Markdown motoru değil, **üründe doğrudan çalıştırılan** başlık/list/callout özellikleri var. Bu G0.9'un **erken bir kesiti**, bütün G0.9'un bittiği anlamına gelmez.
 
-**Hemen sıradaki eksikler:**
-1. **Shift+Enter satır sonunda:** Boş ikinci satırı oluştururken editörün source/caret kimliğini ve satır sonu semantiğini karıştırmadan kalıcı/kayıpsız modelle. Bir `\n` eklendiğinde EOF ve son EOL farkını açıkça tanımla. Şimdilik bu vaka bilinçli fail-closed.
-2. **Çok satırlı rich mark:** B/I/S'yi ve görünmeyen kaynak delimiter'larını span boyunca koruyarak kaynak↔DOM pozisyonlarını hesapla. Düz çok satırlı imza ile rich imzayı karıştırma.
-3. **Çok bloklu seçim, IME ve clipboard:** Gerçek klavye/IME kabulü, pasted multiline, Unicode/ZWJ, CRLF/tekil CR ve kaydet-aç geri testlerini tamamla. `G0.6C` kabul kapısı bu işler sonuçlanmadan kapanmaz.
-4. **Flow UX ve bloklar:** Yanlış yerde "Kaynağı düzenle" uyarısı vermeyen doğal yazma, desteklenmeyen formata dokunmayan güvenli fallback; ardından G0.7 tablo/checklist ve bağlamsal Inspector. 
-5. AI runtime bağımsız hatta: `src/model-provider.js`, `src/comfy-provider.js`, `src/model-discovery.js` hazır kısımlar; **Electron GUI IPC / model seçimi / gerçek inference kabulü henüz yok**. Editör kabulünü bozmayacak izole bir entegrasyon seç.
-6. Bütün değişiklikleri yalnızca `saygiylasunar/efss.bellekpad` **main** üzerinde yap. Yeni branch yok. Her şey için kaynak roundtrip + Node ve gerçek Windows/Linux Electron GUI smoke; CI yeşil olmadan "tamam" deme.
+1. **G0.6C editör kabul kapısı (paralel güvenilirlik):** Gerçek fiziksel IME, kaynak↔DOM seçimi, Shift+Enter satır sonu, metin yapıştırma ve kayıt-aç. Kullanıcıyı "Kaynağı düzenle" döngüsüne atan normal akışlar düzeltilmeli. Scope küçük, testleri gerçek; daha geniş G0.6 internalleri için teslimin görünür kısmını durdurma.
+2. **G0.7 gerçek tablo ve checklist (görünür ürün):** Kaynak-safe 3×3 tablo, hücre düzenleme, Tab geçişi, satır/sütun işlemleri, undo ve tekrar açma. Seçili tablo Inspector'ı, aynı belge kaynağı. Uygulanmadan yapılmış sayma.
+3. **Yerel LLM ilk masaüstü dikeyi (paralel AI):** Önce `src/model-provider.js` OpenAICompatibleProvider'ı dar Electron IPC ile bağla; `127.0.0.1`/LM Studio varsayılanı, explicit `models` discovery ve gerçek bağlantı durumu; daha sonra seçili metin sohbet paneli/yanıt; belgeye **otomatik yazma yok**. GUI, kapsamlı iptal/hata ve gerçek runtime kabulü olmadan AI hazır demek yasak. ComfyUI görsel stüdyo sonraki dikey.
+4. **G0.8 artboard / Layout:** Boyut önayarları ve metin çerçeveleri için sürümlü EFSS persistence ve clipping/overlap kabulü; ardından X/Y/W/H, snap, otomatik flow ve Inspector.
+5. **G0.9 Inspector genellemesi ve ürün sağlamlığı:** Gerçek EFSS attrs (font family/size/alignment, spacing ve object geometry), asset licensing, crash recovery, import/export; sahte ayarlar yok.
+6. Doğru repository `saygiylasunar/efss.bellekpad`, doğrudan `main`. Yeni branch, harici editör kütüphanesi veya ikinci veri kaynağı yok; her teslimde Node, real Windows/Linux Electron smoke, Undo/Redo, source roundtrip.
 
-**G0.6B.6'nın birinci kesitiyle G0.6B'nin tamamını karıştırma.** Kullanıcı, görsel editörde günlük yazmanın kaynak sekmesine mecbur bırakmamasını istiyor.
+**Sıra bir duvar değildir:** G0.6C, G0.7 ve ilk yerel LLM bağlantısı teknik bağımsızlık korunarak art arda görünür teslimlere ayrılır. `G1+` bütün yapay zekânın başlamasını engelleyen bir takvim kilidi değildir; **gelişmiş** AI entegrasyonlarının yeridir. [Ürün sözleşmesi](PRODUCT_DIRECTION.md).
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -219,6 +220,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette kullanılacak görev cümlesi
 
-> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden devam ettir. `docs/DEV_HANDOFF.md` ve `docs/BLOCK_BEHAVIOR_SPEC.md`'yi oku. G0.6B.6 ilk kesiti `af31760` ile doğrulandı: tek kaynaklı düz çok satırlı Flow + satır içi Shift+Enter + yazma/silme (280/280, Win/Linux). **Sıradaki somut iş: Shift+Enter satır sonu, çok satırlı rich ve ardından fiziksel IME kabulü.** Kaynak delimiter'ları ile unknown EFSS byte'larını koru, her davranışı gerçek GUI smoke ve Undo/Redo'yla kanıtla. Yeni branch yaratma.”
+> “BellekPad'i `saygiylasunar/efss.bellekpad` / `main` üzerinden geliştir. Önce `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md`, `docs/BLOCK_BEHAVIOR_SPEC.md` ve son CI'yi oku. `fbb0ab` kodunda erken sağ Inspector H1–H6, bullet marker ve callout variant kaynağa bağlı çalışıyor (285 test ve Win/Linux GUI). **Şimdi ilerle: gerçek ürün yeteneklerini görünür teslimlerle ilerlet; sırada G0.7 tablo/checklist ve dar, güvenli yerel LM Studio Electron köprüsü var.** G0.6C fiziksel IME/softbreak eksiklerini güvenilirlik kapısı olarak tut, sonsuza dek motor içi kesit üretme. EFSS bytes/Undo-Redo korunacak, başka repo/branch/harici editör yasak.”
 
-**Ürün hedefi:** Görsel yazım doğal olmalı; kanıtlanmamış çok satırlı ve model/AI yetenekleri tamamlandı gibi gösterilmemeli.
+**Çalışma ilkesi:** Fikir kullanıcıdan; alternatif, uygulama ve mühendislik sorumluluğu asistandan; kapsamı etkileyecek yeni ürün kararlarında son onay kullanıcıdan.

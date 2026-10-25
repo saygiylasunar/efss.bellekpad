@@ -211,3 +211,12 @@ One `replaceRange` command owns both the separator deletion and the new caret; U
 - `planFlowMultilineEdit` supports safe typing/removal within that one paragraph. A Backspace removing the only soft-break EOL restores a plain single-line paragraph; Undo/Redo restores source and caret. Normal Enter next to an existing internal newline inserts only the *missing* separator (not a third newline).
 - **Explicit limitations:** Shift+Enter at end of line / an empty trailing soft line, multi-run rich-styled paragraphs, cross-block selections, paste with embedded newlines, and real physical IME are **not accepted**. Do not advertise all multiline editing as complete.
 
+
+## Early G0.9 slice — real contextual block Inspector (25.10.2026)
+
+**Verified code:** `fbb0ab4956eedcf8bc8b3b588af221cb63c5d6df`; **285/285 Node**, sanity and real Windows/Linux Electron smoke green. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926785) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926766).
+
+New right sidebar responds to selected visual block and currently exposes only three **persistable, source-backed** properties: heading H1–H6, bullet `-/+/*` source marker and callout category (info/tip/warning/success/error). Changes pass through the pure `planFlowBlockAttribute` source rewrite planner, reparse as the intended block type, and enter one Undo/Redo transaction. Unknown EFSS blocks untouched. Callout's default icon/title follow a changed category, but customized icon/title are retained. Source and Preview modes hide this panel; unsupported blocks do not expose fake editable controls.
+
+**Not yet implemented:** arbitrary font family/size/spacing/colors, numbered list starting ordinal, table Inspector, artboard position and geometry, layer styles, persisted custom object attrs. These require versioned EFSS semantics and/or their own renderers, not merely extra HTML sliders.
+
