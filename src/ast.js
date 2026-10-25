@@ -1,5 +1,6 @@
 import { InlineRules } from "./inline-rules.js";
 import { scanSemantics } from "./semantics.js";
+import { tableHeaderColumns, pipeRowColumns } from "./pipe-table-parser.js";
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const HEADING = /^ {0,3}(#{1,6})(?:[ \t]+|$)/;
@@ -133,11 +134,18 @@ export function parseMarkdownAst(source, { rules = createDefaultRules() } = {}) 
 
   while (i < lines.length) {
     const begin = i;
-    const kind = classify(lines[i].text);
+    const candidateColumns = i + 2 < lines.length ?
+      tableHeaderColumns(lines[i].text, lines[i + 1].text) : 0;
+    const kind = candidateColumns && pipeRowColumns(lines[i + 2].text) === candidateColumns ?
+      { type: "table", columns: candidateColumns } : classify(lines[i].text);
     let end = i + 1;
     let closed = true;
 
-    if (kind.type === "code_fence") {
+    if (kind.type === "table") {
+      end = i + 3;
+      while (end < lines.length &&
+        pipeRowColumns(lines[end].text) === kind.columns) end++;
+    } else if (kind.type === "code_fence") {
       const char = kind.marker[0];
       const length = kind.marker.length;
       while (end < lines.length) {
@@ -166,6 +174,7 @@ export function parseMarkdownAst(source, { rules = createDefaultRules() } = {}) 
     const finish = lines[end - 1].end;
     const block = { type: kind.type, start, end: finish, raw: source.slice(start, finish) };
     if (kind.type === "heading") block.level = kind.level;
+    if (kind.type === "table") block.columns = kind.columns;
     if (kind.type === "code_fence") block.info = kind.info;
     if (kind.type === "code_fence" || kind.type === "extension_block") {
       block.closed = closed;

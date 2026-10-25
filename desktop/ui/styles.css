@@ -207,3 +207,21 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .flow-block:focus-within{outline-color:#507e7d}
 @media(max-width:1030px){.editor-stage{grid-template-columns:minmax(0,1fr)}
   .block-inspector{position:static}.document-shell{padding:25px 20px 50px}}
+
+/* G0.7A — real, source-backed table. Each cell is independently editable. */
+.flow-table-viewport{max-width:100%;overflow-x:auto;border:1px solid #41555e;border-radius:8px}
+.flow-table{border-collapse:collapse;width:100%;min-width:390px;table-layout:fixed}
+.flow-table th,.flow-table td{border-bottom:1px solid #344852;border-right:1px solid #344852;
+  padding:0;text-align:left;vertical-align:top}
+.flow-table th:last-child,.flow-table td:last-child{border-right:0}
+.flow-table tr:last-child td{border-bottom:0}
+.flow-table th{background:#253840}
+.flow-table-cell{outline:none;padding:12px 10px;min-height:41px;font:400 13px/1.55 var(--font-document);
+  white-space:pre-wrap;overflow-wrap:anywhere;color:#d7e6eb;caret-color:#b5ddd4}
+.flow-table th .flow-table-cell{font-weight:720;color:#d4efea}
+.flow-table-cell:focus{box-shadow:inset 0 0 0 2px #84aaa4;background:#2b4045}
+.flow-table-cell:empty:before{content:attr(data-placeholder);color:#607b83;pointer-events:none}
+.property-table-count{color:#bad2d4;font-size:12px;margin:2px 0 13px}
+.property-button{width:100%;border:1px solid #4b716b;border-radius:6px;
+  background:#28433e;color:#d7f0e7;padding:9px 8px;text-align:center;font-size:12px}
+.property-button:hover:not(:disabled){background:#335750}

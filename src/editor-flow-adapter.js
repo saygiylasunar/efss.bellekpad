@@ -12,6 +12,7 @@ import {
   planInlineMark, planInlineTextEdit
 } from "./editor-inline-format.js";
 import { makeIcon } from "./ui-icons.js";
+import { planTableCellEdit, planTableAppendRow } from "./editor-table-model.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -178,7 +179,7 @@ export function attachFlowEditor(host, {
   const doc = host.ownerDocument;
 
   function notify() { onChange(session.snapshot.text); }
-  function render({ focusAt = null, preferredId = null, selectionEnd = null } = {}) {
+  function render({ focusAt = null, preferredId = null, selectionEnd = null, focusCell = null } = {}) {
     if (composing) return;
     const blocks = projectFlowBlocks(getStructure());
     const fragment = doc.createDocumentFragment();
@@ -190,9 +191,47 @@ export function attachFlowEditor(host, {
         block.type === "list_item" ?
           (block.list?.style === "ordered" ?
             String(block.list.ordinal) + block.list.delimiter : "•") :
-        block.type === "quote" ? "❝" : "⋮";
+        block.type === "quote" ? "❝" :
+        block.type === "table" ? "▦" : "⋮";
       const card = noteElement(doc, block, label);
-      if (block.type === "callout") {
+      if (block.type === "table" && block.table) {
+        const viewport = doc.createElement("div");
+        viewport.className = "flow-table-viewport";
+        const table = doc.createElement("table");
+        table.className = "flow-table";
+        table.setAttribute("aria-label", "Düzenlenebilir kaynak tablosu");
+        const tbody = doc.createElement("tbody");
+        for (const row of block.table.rows) {
+          const tr = doc.createElement("tr");
+          for (const cell of row.cells) {
+            const td = doc.createElement(row.header ? "th" : "td");
+            const editor = doc.createElement("div");
+            editor.className = "flow-table-cell";
+            editor.contentEditable = "plaintext-only";
+            editor.role = "textbox";
+            editor.setAttribute("aria-label",
+              (row.header ? "Başlık " : "Hücre ") +
+              (row.index + 1) + ", " + (cell.col + 1));
+            editor.dataset.flowTableCell = block.id;
+            editor.dataset.tableRow = String(row.index);
+            editor.dataset.tableCol = String(cell.col);
+            editor.dataset.placeholder = row.header ? "Başlık" : "—";
+            editor.spellcheck = true;
+            editor.textContent = cell.text;
+            editor.addEventListener("focus", () => {
+              activeId = block.id;
+              session.setSelection(collapsedSelection(cell.start));
+              onActiveBlock(block);
+            }, { signal });
+            td.append(editor);
+            tr.append(td);
+          }
+          tbody.append(tr);
+        }
+        table.append(tbody);
+        viewport.append(table);
+        card.append(viewport);
+      } else if (block.type === "callout") {
         const header = doc.createElement("div");
         header.className = "flow-callout-header";
         if (["info", "tip", "warning", "success", "error"].includes(block.variant))
@@ -202,7 +241,10 @@ export function attachFlowEditor(host, {
         header.append(label);
         card.append(header);
       }
-      if (block.editable) {
+      if (block.type === "table" && block.table) {
+        // The table's cells are rendered above. Its contents are edited via
+        // the same source session, not a second table state or rich editor.
+      } else if (block.editable) {
         const editor = doc.createElement("div");
         editor.className = "flow-editable";
         editor.dataset.flowBlock = block.id;
@@ -242,6 +284,20 @@ export function attachFlowEditor(host, {
       fragment.append(card);
     }
     host.replaceChildren(fragment);
+    if (focusCell) {
+      const el = [...host.querySelectorAll("[data-flow-table-cell]")].find(node =>
+        node.dataset.flowTableCell === focusCell.blockId &&
+        Number(node.dataset.tableRow) === focusCell.row &&
+        Number(node.dataset.tableCol) === focusCell.col);
+      if (el) {
+        el.focus();
+        const leaf = el.firstChild || el.appendChild(doc.createTextNode(""));
+        const offset = Math.max(0, Math.min(leaf.textContent.length,
+          focusCell.offset ?? leaf.textContent.length));
+        doc.getSelection()?.setBaseAndExtent(leaf, offset, leaf, offset);
+        return;
+      }
+    }
     // New blocks can reuse neither the previous block's ID nor its source
     // range. Resolve the *post-edit* source offset before the old preferred ID.
     const toFocus = focusAt !== null ? (editors.get(nearest) ??
@@ -383,7 +439,94 @@ export function attachFlowEditor(host, {
   }
 
 
+
+  function tableTarget(editor) {
+    const block = projectFlowBlocks(getStructure()).find(b =>
+      b.id === editor.dataset.flowTableCell && b.type === "table" && b.table);
+    const row = Number(editor.dataset.tableRow),col = Number(editor.dataset.tableCol);
+    const cell = block?.table?.rows[row]?.cells[col];
+    return block && cell ? {block,cell,row,col} : null;
+  }
+  function tableCellInput(editor, type, data = "") {
+    const item = tableTarget(editor);
+    if (!item) return false;
+    const {block,cell,row,col} = item,selection = doc.getSelection();
+    const anchor=domCaret(editor,selection?.anchorNode,selection?.anchorOffset);
+    const focus=domCaret(editor,selection?.focusNode,selection?.focusOffset);
+    if(anchor===null||focus===null||anchor>cell.text.length||focus>cell.text.length)
+      return false;
+    let from=Math.min(anchor,focus),to=Math.max(anchor,focus),text=data;
+    if(type==="deleteContentBackward"||type==="deleteContentForward") {
+      text="";
+      if(from===to) {
+        const bounds=[...new Intl.Segmenter("und",{granularity:"grapheme"})
+          .segment(cell.text)].map(x=>x.index);
+        bounds.push(cell.text.length);
+        const index=bounds.indexOf(from);
+        if(index<0)return false;
+        if(type==="deleteContentBackward" && index>0)from=bounds[index-1];
+        else if(type==="deleteContentForward" && index<bounds.length-1)
+          to=bounds[index+1];
+        else return false;
+      }
+    }
+    try {
+      const plan=planTableCellEdit({
+        source:session.snapshot.text,document:getStructure(),block,row,col,
+        from:cell.start+from,to:cell.start+to,text
+      });
+      const result=session.dispatch(plan);
+      if (!result.changed) return false;
+      notify();
+      const nextBlock=projectFlowBlocks(getStructure()).find(b =>
+        b.type==="table" && b.start===block.start);
+      const nextCell=nextBlock?.table?.rows[row]?.cells[col];
+      const sourceCaret=plan.selectionAfter.focus.offset;
+      const offset=nextCell?sourceCaret-nextCell.start:from+text.length;
+      render({focusCell:{blockId:nextBlock?.id ?? block.id,row,col,offset}});
+      session.setSelection(collapsedSelection(sourceCaret));
+      return true;
+    } catch(error) {
+      onError("Tablo hücresi korunuyor: " + (error?.message ?? "UNSAFE_TABLE_EDIT"));
+      return false;
+    }
+  }
+  function appendTableRow() {
+    if (composing || !activeId) return false;
+    const document=getStructure();
+    const block=projectFlowBlocks(document).find(b=>b.id===activeId&&b.type==="table");
+    if(!block?.table)return false;
+    try {
+      const plan=planTableAppendRow({source:session.snapshot.text,document,block});
+      const result=session.dispatch(plan);
+      if (!result.changed)return false;
+      notify();
+      const next=projectFlowBlocks(getStructure()).find(b=>b.type==="table"&&b.start===block.start);
+      render({focusCell:{blockId:next?.id??block.id,row:plan.focus.row,col:0,offset:0}});
+      return true;
+    } catch(error) {
+      onError("Tablo satırı eklenemedi: " + (error?.message ?? "UNSAFE_TABLE_ROW"));
+      return false;
+    }
+  }
+
   host.addEventListener("beforeinput", event => {
+    const tableEditor = event.target.closest?.("[data-flow-table-cell]");
+    if (tableEditor) {
+      if (!event.cancelable || composing || event.isComposing) return;
+      event.preventDefault();
+      if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+        history(event.inputType === "historyUndo" ? "undo" : "redo");
+        return;
+      }
+      if (event.inputType === "insertText" && typeof event.data === "string") {
+        tableCellInput(tableEditor, event.inputType, event.data);
+      } else if (event.inputType === "deleteContentBackward" ||
+          event.inputType === "deleteContentForward") {
+        tableCellInput(tableEditor,event.inputType);
+      } else onError("Hücre içinde bu işlem henüz desteklenmiyor.");
+      return;
+    }
     const editor = event.target.closest?.("[data-flow-block]");
     if (!editor || composing || event.isComposing || !event.cancelable) return;
     const block = projectFlowBlocks(getStructure()).find(b => b.id === editor.dataset.flowBlock);
@@ -490,6 +633,13 @@ export function attachFlowEditor(host, {
   }, { signal });
 
   host.addEventListener("input", event => {
+    if (event.target.closest?.("[data-flow-table-cell]")) {
+      // A native mutation bypassed source authorization (e.g. an unsupported
+      // IME path). Restore from the canonical document, never persist it.
+      onError("Tablo girdisi güvenli biçimde işlenemedi.");
+      render();
+      return;
+    }
     const editor = event.target.closest?.("[data-flow-block]");
     if (!editor || composing) return;
     const block = projectFlowBlocks(getStructure()).find(b => b.id === editor.dataset.flowBlock);
@@ -527,6 +677,13 @@ export function attachFlowEditor(host, {
   }, { signal });
 
   host.addEventListener("paste", event => {
+    const tableEditor=event.target.closest?.("[data-flow-table-cell]");
+    if(tableEditor) {
+      event.preventDefault();
+      if(!composing && event.clipboardData)
+        tableCellInput(tableEditor,"insertText",event.clipboardData.getData("text/plain"));
+      return;
+    }
     const editor = event.target.closest?.("[data-flow-block]");
     if (!editor || composing || !event.clipboardData) return;
     const block = projectFlowBlocks(getStructure()).find(b => b.id === editor.dataset.flowBlock);
@@ -554,6 +711,20 @@ export function attachFlowEditor(host, {
 
   host.addEventListener("keydown", event => {
     if (composing || event.isComposing) return;
+    const tableCell=event.target.closest?.("[data-flow-table-cell]");
+    if (tableCell && event.key === "Tab" &&
+        !(event.ctrlKey || event.metaKey || event.altKey)) {
+      event.preventDefault();
+      const cells=[...host.querySelectorAll("[data-flow-table-cell]")];
+      const index=cells.indexOf(tableCell),target=index+(event.shiftKey?-1:1);
+      if(target>=0&&target<cells.length&&
+          cells[target].dataset.flowTableCell===tableCell.dataset.flowTableCell) {
+        const next=cells[target];next.focus();
+        const leaf=next.firstChild || next.appendChild(doc.createTextNode(""));
+        doc.getSelection()?.setBaseAndExtent(leaf,0,leaf,0);
+      } else if (target>=cells.length && !event.shiftKey) appendTableRow();
+      return;
+    }
     if (event.key === "Tab" && !(event.ctrlKey || event.metaKey || event.altKey)) {
       const editor = event.target.closest?.("[data-flow-block]");
       const block = editor && projectFlowBlocks(getStructure())
@@ -679,10 +850,16 @@ export function attachFlowEditor(host, {
     const existing = new Set(before.blocks.map(block => block.id));
     const inserted = projectFlowBlocks(next).find(block =>
       !existing.has(block.id) && block.editable);
+    const insertedTable = kind === "table" ? projectFlowBlocks(next).find(block =>
+      !existing.has(block.id) && block.type === "table" && block.table) : null;
     notify();
-    const offset = inserted?.sourceStart ?? session.snapshot.text.length;
+    const cell = insertedTable?.table.rows[1]?.cells[0];
+    const offset = cell?.start ?? inserted?.sourceStart ?? session.snapshot.text.length;
     session.setSelection(collapsedSelection(offset));
-    render({ focusAt: offset, preferredId: inserted?.id });
+    if (cell) render({focusCell:{
+      blockId:insertedTable.id,row:1,col:0,offset:0
+    }});
+    else render({ focusAt: offset, preferredId: inserted?.id });
     return result.changed;
   }
   render();
@@ -693,13 +870,14 @@ export function attachFlowEditor(host, {
     insert,
     format,
     setAttribute,
+    addTableRow:appendTableRow,
     getActiveBlock() {
       return projectFlowBlocks(getStructure()).find(b => b.id === activeId) ?? null;
     },
     undo() { history("undo"); },
     redo() { history("redo"); },
     focus() {
-      const first = host.querySelector("[data-flow-block]");
+      const first = host.querySelector("[data-flow-block], [data-flow-table-cell]");
       first?.focus();
     },
     destroy() { controller.abort(); host.replaceChildren(); }

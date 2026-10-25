@@ -635,6 +635,43 @@ async function run() {
   assert.ok(attributeSource.includes("+ Madde"));
   assert.ok(attributeSource.includes(":::efss.callout type=warning"));
   assert.ok(attributeSource.includes("İçerik"));
+
+  // G0.7A: create a real three-column source table, type into a cell,
+  // navigate with Tab, append a row through Inspector and Undo atomically.
+  await page("document.querySelector('#show-flow').click()");
+  await page('document.querySelector("#insert-kind").value="table";' +
+    'document.querySelector("#insert-block").click()');
+  await retry("real table inserted", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 3 && " +
+      "document.querySelectorAll('[data-flow-table-cell]').length === 9"));
+  assert.equal(await page("!document.querySelector('#inspector-table-group').hidden"),true);
+  await page('(() => {const el=document.querySelectorAll("[data-flow-table-cell]")[3];' +
+    'el.focus();const leaf=el.firstChild||el.appendChild(document.createTextNode(""));' +
+    'document.getSelection().setBaseAndExtent(leaf,leaf.length,leaf,leaf.length);' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{bubbles:true,cancelable:true,' +
+    'inputType:"insertText",data:"Konya"}));})()');
+  await retry("table cell typed", () =>
+    page("document.querySelectorAll('[data-flow-table-cell]')[3]?.textContent === 'Konya'"));
+  await page('document.querySelectorAll("[data-flow-table-cell]")[3]' +
+    '.dispatchEvent(new KeyboardEvent("keydown",{bubbles:true,cancelable:true,key:"Tab"}))');
+  assert.equal(await page("document.activeElement?.dataset.tableCol"),"1");
+  await page('(() => {const el=document.activeElement;' +
+    'el.dispatchEvent(new InputEvent("beforeinput",{bubbles:true,cancelable:true,' +
+    'inputType:"insertText",data:"42"}));})()');
+  await retry("table next cell typed", () =>
+    page("document.querySelectorAll('[data-flow-table-cell]')[4]?.textContent === '42'"));
+  await page("document.querySelector('#inspector-table-add-row').click()");
+  await retry("table row added", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 4"));
+  await page("document.querySelector('#undo').click()");
+  await retry("table row append undo", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 3"));
+  await page("document.querySelector('#show-write').click()");
+  const savedTableSource = await page("document.querySelector('#editor').textContent");
+  assert.ok(savedTableSource.includes("| Başlık 1 | Başlık 2 | Başlık 3 |"));
+  assert.ok(savedTableSource.includes("Konya"));
+  assert.ok(savedTableSource.includes("42"));
+  assert.ok(savedTableSource.includes(":::efss.callout"));
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

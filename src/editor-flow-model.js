@@ -3,12 +3,13 @@
 import { projectInline, mapInlineSourceOffset } from "./editor-inline-format.js";
 import { collapsedSelection, isGraphemeBoundary } from "./editor-text-engine.js";
 import { reconcileBlockSource } from "./editor-block-model.js";
+import { parsePipeTable } from "./pipe-table-parser.js";
 
 const TYPES = Object.freeze(["paragraph", "heading", "list_item", "quote", "blank"]);
 const CALLOUT = /^(info|tip|warning|success|error)$/;
 const MARKERS = Object.freeze({
   paragraph: "", heading: "# ", list_item: "- ", quote: "> ",
-  callout: ""
+  callout: "", table: ""
 });
 const STYLE = Object.freeze({
   info: { icon: "ℹ️", title: "Bilgi" },
@@ -80,6 +81,14 @@ export function projectFlowBlocks(doc) {
         end: block.end, sourceStart: caret, sourceEnd: caret,
         ...(separator ? { separator: true } : {}),
         editable: true
+      });
+    }
+    if (block.type === "table") {
+      const table = parsePipeTable(raw, block.start);
+      return Object.freeze({
+        id: block.id, type: "table", raw, text: "",
+        start: block.start, end: block.end,
+        table, editable: false
       });
     }
     if (block.type === "paragraph" && EOL.test(line)) {
@@ -166,7 +175,12 @@ export function insertFlowBlock(doc, {
   const before = doc.source.slice(0, at);
   const after = doc.source.slice(at);
   const segment = kind === "callout" ? calloutMarkdown(variant, eol) :
-    MARKERS[kind] + eol;
+    kind === "table" ?
+      ["| Başlık 1 | Başlık 2 | Başlık 3 |",
+       "| --- | --- | --- |",
+       "|  |  |  |",
+       "|  |  |  |"].join(eol) + eol :
+      MARKERS[kind] + eol;
   // Blank paragraph is an editable placeholder: its newline is the document
   // separator until the user types, not a hidden nonstandard markup token.
   // Treat CRLF as *one* newline; a regex with \r and \n alternatives can
@@ -175,7 +189,12 @@ export function insertFlowBlock(doc, {
     before.endsWith(eol) ? eol : eol + eol : "";
   const tail = after.length && !/^(\r\n|\r|\n)/.test(after) ? eol : "";
   const source = before + separator + segment + tail + after;
-  return reconcileBlockSource(doc, source, { expectedVersion });
+  const next = reconcileBlockSource(doc, source, { expectedVersion });
+  if (kind === "table" && !next.blocks.some(b =>
+      b.start === before.length + separator.length &&
+      b.type === "table" && parsePipeTable(b.raw, b.start)?.columns === 3))
+    fail("FLOW_TABLE_INSERT_FAILED");
+  return next;
 }
 
 

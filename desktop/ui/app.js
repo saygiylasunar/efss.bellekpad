@@ -21,7 +21,8 @@ const nodes = Object.fromEntries([
   "inspector-block-type", "inspector-block-detail",
   "inspector-heading-group", "inspector-heading-level",
   "inspector-bullet-group", "inspector-bullet-marker",
-  "inspector-callout-group", "inspector-callout-variant"
+  "inspector-callout-group", "inspector-callout-variant",
+  "inspector-table-group","inspector-table-dimensions","inspector-table-add-row"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -49,7 +50,7 @@ const BLOCK_NAMES = Object.freeze({
   heading: "Başlık", paragraph: "Paragraf", blank: "Boşluk",
   list_item: "Liste", quote: "Alıntı", directive: "EFSS komutu",
   code_fence: "Kod", indented_code: "Kod", extension_block: "EFSS bloğu",
-  thematic_break: "Ayraç"
+  thematic_break: "Ayraç", table: "Tablo"
 });
 function showStructure() {
   if (!structure) return;
@@ -87,9 +88,11 @@ function updateInspector(block) {
   const bullet = block?.type === "list_item" && block.editable &&
     block.list?.style === "bullet";
   const callout = block?.type === "callout" && block.editable;
+  const table = block?.type === "table" && !!block.table;
   nodes["inspector-heading-group"].hidden = !heading;
   nodes["inspector-bullet-group"].hidden = !bullet;
   nodes["inspector-callout-group"].hidden = !callout;
+  nodes["inspector-table-group"].hidden = !table;
   nodes["inspector-block-type"].textContent = block ?
     BLOCK_NAMES[block.type] ?? block.type : "Blok seçilmedi";
   if (heading) {
@@ -104,6 +107,12 @@ function updateInspector(block) {
     nodes["inspector-callout-variant"].value = block.variant;
     nodes["inspector-block-detail"].textContent =
       "Başlığı ve içeriği koruyan EFSS bilgi kutusu.";
+  } else if (table) {
+    nodes["inspector-block-detail"].textContent =
+      "Hücreye doğrudan yaz; Tab / Shift+Tab hücreler arasında geçer.";
+    nodes["inspector-table-dimensions"].textContent =
+      block.table.columns + " sütun · " + block.table.rows.length + " satır";
+    nodes["inspector-table-add-row"].disabled = block.table.rows.length >= 100;
   } else nodes["inspector-block-detail"].textContent = !block ?
     "Düzenlemek için görsel alandaki bir bloğu seç." :
     block.editable ? "Bu blok için henüz değiştirilebilir özellik yok." :
@@ -390,6 +399,12 @@ for (const [id, attribute] of [
     updateInspector(flowBinding.getActiveBlock());
   });
 }
+nodes["inspector-table-add-row"].addEventListener("click", () => {
+  if (!flowBinding || blocked || composing) return;
+  flowBinding.addTableRow();
+  updateHistoryButtons();
+  updateInspector(flowBinding.getActiveBlock());
+});
 nodes["insert-block"].addEventListener("click", () => {
   if (!current || composing) return;
   showView("flow");

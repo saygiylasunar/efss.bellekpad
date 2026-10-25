@@ -126,6 +126,22 @@ test("visual prose Enter uses one line of spacing, not an extra rendered row", (
 });
 
 
+test("G0.7A native table surface connects source parser, cell editor, and Inspector", () => {
+  const ast = read("src/ast.js");
+  const flow = read("src/editor-flow-adapter.js");
+  const html = read("desktop/ui/index.html");
+  const app = read("desktop/ui/app.js");
+  const css = read("desktop/ui/styles.css");
+  assert.match(ast,/tableHeaderColumns/);
+  assert.match(flow,/planTableCellEdit/);
+  assert.match(flow,/planTableAppendRow/);
+  assert.match(flow,/data-flow-table-cell/);
+  assert.match(html,/value="table"/);
+  assert.match(html,/id="inspector-table-add-row"/);
+  assert.match(app,/flowBinding\.addTableRow/);
+  assert.match(css,/\.flow-table-viewport/);
+});
+
 test("contextual Inspector surface is real, semantic and source-backed", () => {
   const app = read("desktop/ui/app.js");
   const html = read("desktop/ui/index.html");
