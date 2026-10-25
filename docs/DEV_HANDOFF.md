@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **25 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan durum: **G0.6B.6 kısmi + G0.9 erken görsel Inspector kesiti / v0.2.8**. Son doğrulanan KOD commit'i **fbb0ab4956eedcf8bc8b3b588af221cb63c5d6df**. **285/285 Node, sanity/check ve Windows/Linux gerçek Electron smoke başarılı.** [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md) · [Ürün yönü](PRODUCT_DIRECTION.md). G0.9'un bütünü tamamlanmış değildir.
+> Doğrulanan durum: **G0.7A gerçek 3 sütunlu kaynak tablosu + G0.9 erken Inspector + G0.6B.6 kısmi / v0.2.8**. Son doğrulanan KOD commit'i **7ff3c39382d65d605efa1a4f53ff295dfd9d21a8**. **291/291 Node + sanity/check ve Windows/Linux Electron GUI smoke başarılı (gerçek yerel kasa kaydet/aç dâhil).** [Ürün yönü](PRODUCT_DIRECTION.md) · [Tablo sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). G0.7'nin bütünü tamamlanmış değildir.
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **25.10.2026 G0.7A TABLO KABULÜ:** Inspector'dan/tablodan bağımsız blok ekleme menüsünden gerçek Markdown pipe table ekleme çalışıyor. Üç sütun × üç görünür satır (1 header + 2 body), kaynakta tüm hücreler aynı EFSS belgede. Hücreye doğrudan yazma/silme, hücrelerde Tab/Shift+Tab, son hücreden Tab veya Inspector düğmesiyle yeni satır ve Undo/Redo mevcut. Gerçek Electron kasa kaydet-yeniden aç regresyonu eklendi. Korunan kapsam: yalnız kanonik leading/trailing pipe, kaçışsız sade hücre metni ve header divider; Markdown işaretli hücreler ve karmaşık GFM dialektleri read-only/fail-closed. **291/291 Node + Win/Linux gerçek GUI smoke başarılı, kaynak commit `7ff3c39`.** Satır silme, sütun ekle/sil, çoklu hücre seçimi, paste-grid ve checklist henüz YOK.
 
 > **25.10.2026 ÜRÜN YÖRÜNGESİ DÜZELTMESİ:** Bir sonraki temel hedef sırf metin motoru testi artırmak değil, kullanıcının doğrudan gördüğü **bağlamsal nesne özellikleri, gerçek tablolar, yerel LLM bağlantısı ve artboard**. Bu nedenle önceden G0.9'a bırakılan Inspector'ın dar, gerçek veri değiştiren ilk kesiti öne alındı. `fbb0ab`: seçili heading H1–H6, bullet `-/+/*` ve callout variant (default title/icon güncellemesi, kişiselleştirilmiş dekorları koruma) kaynak doğrulamalı `replaceRange` ve Undo/Redo ile sağ Inspector'dan yönetiliyor. **285/285 Node + Windows/Linux Electron smoke yeşil.** Geri kalan Inspector özellikleri (font size, renk, artboard geometry) uygulanmış değildir. [Ürün yönü ve kabul kapıları](PRODUCT_DIRECTION.md).
 
@@ -153,18 +155,19 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sonraki değer teslimleri — bir yerde sonsuz teknik oyalama yok
+## 5. Sıradaki çalışan ürün teslimleri
 
-**İlk gerçekleşen görünür teslim:** seçili blok için sağ Inspector, `fbb0ab` üzerinde doğrulandı. Artık yalnızca Markdown motoru değil, **üründe doğrudan çalıştırılan** başlık/list/callout özellikleri var. Bu G0.9'un **erken bir kesiti**, bütün G0.9'un bittiği anlamına gelmez.
+**Yeni kabul:** G0.7A ilk gerçek tablo: 3×3 kaynak-backed pipe-table, hücre düzenleme, Tab/Shift+Tab, satır ekle, Inspector boyutları, Undo/Redo ve kasa kaydet-aç. `7ff3c39`, **291/291 + Windows/Linux smoke**. Bunun "tam tablo" olmadığı unutulmamalı.
 
-1. **G0.6C editör kabul kapısı (paralel güvenilirlik):** Gerçek fiziksel IME, kaynak↔DOM seçimi, Shift+Enter satır sonu, metin yapıştırma ve kayıt-aç. Kullanıcıyı "Kaynağı düzenle" döngüsüne atan normal akışlar düzeltilmeli. Scope küçük, testleri gerçek; daha geniş G0.6 internalleri için teslimin görünür kısmını durdurma.
-2. **G0.7 gerçek tablo ve checklist (görünür ürün):** Kaynak-safe 3×3 tablo, hücre düzenleme, Tab geçişi, satır/sütun işlemleri, undo ve tekrar açma. Seçili tablo Inspector'ı, aynı belge kaynağı. Uygulanmadan yapılmış sayma.
-3. **Yerel LLM ilk masaüstü dikeyi (paralel AI):** Önce `src/model-provider.js` OpenAICompatibleProvider'ı dar Electron IPC ile bağla; `127.0.0.1`/LM Studio varsayılanı, explicit `models` discovery ve gerçek bağlantı durumu; daha sonra seçili metin sohbet paneli/yanıt; belgeye **otomatik yazma yok**. GUI, kapsamlı iptal/hata ve gerçek runtime kabulü olmadan AI hazır demek yasak. ComfyUI görsel stüdyo sonraki dikey.
-4. **G0.8 artboard / Layout:** Boyut önayarları ve metin çerçeveleri için sürümlü EFSS persistence ve clipping/overlap kabulü; ardından X/Y/W/H, snap, otomatik flow ve Inspector.
-5. **G0.9 Inspector genellemesi ve ürün sağlamlığı:** Gerçek EFSS attrs (font family/size/alignment, spacing ve object geometry), asset licensing, crash recovery, import/export; sahte ayarlar yok.
-6. Doğru repository `saygiylasunar/efss.bellekpad`, doğrudan `main`. Yeni branch, harici editör kütüphanesi veya ikinci veri kaynağı yok; her teslimde Node, real Windows/Linux Electron smoke, Undo/Redo, source roundtrip.
+**1. G0.7B: tablo/checklist nesne davranışları.** G0.7A'nın konservatif Markdown tablosuna satır **silme**, sütun **ekleme/silme**, hücre clipboard ve seçimi geliştirilmesi; AST strict roundtrip ve özel EFSS koruması. Ayrıca checklist'in tikini görsel blokta değiştirip saklama. Araçlar Inspector'a bağlansın; sadece kaynak elle değiştirerek kabul etmeyiz.
 
-**Sıra bir duvar değildir:** G0.6C, G0.7 ve ilk yerel LLM bağlantısı teknik bağımsızlık korunarak art arda görünür teslimlere ayrılır. `G1+` bütün yapay zekânın başlamasını engelleyen bir takvim kilidi değildir; **gelişmiş** AI entegrasyonlarının yeridir. [Ürün sözleşmesi](PRODUCT_DIRECTION.md).
+**2. Paralel ilk yerel LLM Electron köprüsü.** `src/model-provider.js`'ın mevcut sözleşmesini incele. Main-preload IPC whitelist; loopback-only adresler; seçim ve bağlantı durumunu GUI'da görünür kıl. Modelin yerel olarak *gerçekten çalıştırıldığını* doğrulayan test olmadan inference iddiası yapma. Belge değişikliği **yalnız kullanıcı onayıyla**.
+
+**3. G0.6C editör güvenilirliği.** Fiziksel klavye/IME, satır sonunda Shift+Enter, zengin çok satırlı düzenleme, çok bloklu seçim, clipboard, kaynak↔Flow ve tekrar açma; az ama kritik kabul kesitleriyle ilerle.
+
+**4. G0.8 artboard, ardından geniş G0.9 Inspector ve G1+ ileri medya.** Sayfa/çerçeve geometrisi ve verili/layout modeli kalıcı olmadan sahte X/Y/W/H kontrolü ekleme; yabancı editör/framework gerekmez.
+
+**Değişmezler:** Doğru `saygiylasunar/efss.bellekpad` **main**, yeni branch açma; ikinci belge kaynağı/uydurma veri modeli yaratma; sürümlü EFSS kaynak güvenliği, tek Undo/Redo journal, Windows ve Linux Electron smoke yeşil olmadan özellik bitti deme.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -220,6 +223,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbette kullanılacak görev cümlesi
 
-> “BellekPad'i `saygiylasunar/efss.bellekpad` / `main` üzerinden geliştir. Önce `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md`, `docs/BLOCK_BEHAVIOR_SPEC.md` ve son CI'yi oku. `fbb0ab` kodunda erken sağ Inspector H1–H6, bullet marker ve callout variant kaynağa bağlı çalışıyor (285 test ve Win/Linux GUI). **Şimdi ilerle: gerçek ürün yeteneklerini görünür teslimlerle ilerlet; sırada G0.7 tablo/checklist ve dar, güvenli yerel LM Studio Electron köprüsü var.** G0.6C fiziksel IME/softbreak eksiklerini güvenilirlik kapısı olarak tut, sonsuza dek motor içi kesit üretme. EFSS bytes/Undo-Redo korunacak, başka repo/branch/harici editör yasak.”
+> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden sürdür. Önce `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md` ve son HEAD/CI'yi denetle. G0.7A kanonik Markdown pipe-table, görsel hücre düzenleme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve gerçek kasa kaydet-aç doğrulandı (`7ff3c39`, 291/291 + Win/Linux). Sonraki teslim: **G0.7B tablo hücre/kolon kontrolleri + checklist**, eşzamanlı güvenli yerel LLM Electron bağlantı hattını öne al. İkinci belge deposu, izinsiz branch veya harici editor ekleme; kaynak/opaque bytes korunmalı.”
 
-**Çalışma ilkesi:** Fikir kullanıcıdan; alternatif, uygulama ve mühendislik sorumluluğu asistandan; kapsamı etkileyecek yeni ürün kararlarında son onay kullanıcıdan.
+**Kullanıcı nihai ürün kararını verir.** Bitmeyenleri tamamlanmış gibi gösterme.

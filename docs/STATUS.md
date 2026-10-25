@@ -2,7 +2,7 @@
 
 > **25 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active editor delivery: G0.6B.6 partial + early G0.9 Inspector / v0.2.8 (25.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active editor delivery: G0.7A source-backed pipe table + early G0.9 Inspector + G0.6B.6 partial / v0.2.8 (25.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -123,4 +123,11 @@ Code `af31760`: an EFSS plain Markdown paragraph may span multiple source lines 
 `fbb0ab` adds a real right-hand Inspector for an active visual block. H1–H6 heading level, unordered list `-/+/*` marker and info/tip/warning/success/error callout variant are set by one source-owned, parser-verified `TextEditorSession` transaction. Default callout title/icon follow the type; user-customized title/icon are preserved. Undo/Redo and original opaque EFSS content are preserved. **285/285 Node + Windows/Linux native Electron smoke green.** This is a deliberately early G0.9 vertical slice, not the full Inspector or artboard.
 
 Scope now prioritizes **visible end-to-end capabilities**: real tables/checklist, then first local LLM GUI/IPC, alongside limited G0.6C reliability, followed by artboard/layout. [Product direction](PRODUCT_DIRECTION.md).
+
+
+## G0.7A — native editable pipe tables, saved and reopened (25.10.2026)
+
+`7ff3c39` — **291/291 Node**, privacy/sanity, real Windows/Linux Electron and real local vault save/reopen smoke passed. Menu → Table inserts **3 columns × 3 visible rows** including the header. Each simple cell is a live editable text surface: insertion/deletion, Tab / Shift+Tab navigation, row append after last Tab, and row append in Inspector. Changes are source-reparsed and transactional in the existing journal. Unknown EFSS and unrelated prose retain exact bytes. Static desktop protocol adds only two checked-in table modules, never a general file server. Full GFM escape/markup syntax, complex cells, arbitrary paste-grid, row deletion and column operations remain open.
+
+[Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791607) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791537).
 

@@ -23,20 +23,20 @@ BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne 
 | --- | --- | --- |
 | Görsel olarak yazma ve biçim | B/I/S, heading, liste, quote, temel callout, inline rich işaretler | Karma çok satır ve IME kabulü eksik |
 | Enter/Backspace/Shift+Enter | Temel liste devamı, basit paragraflar, sınırlı Shift+Enter, bazı blok sınırları | Çok bloklu seçim ve trailing softline eksik |
-| **Seçili blok Özellikleri (yeni)** | H1–H6, madde işareti ve callout varyantını **gerçek kaynak üzerinde** değiştirme | Font ölçüleri, tablo, konum, renk yok |
+| **Seçili blok Özellikleri** | H1–H6, madde işareti, callout varyantı ve **tablo satır sayısı + satır ekleme** | Font ölçüleri, tablo sütunları/konum/renk yok |
 | Yerel not saklama | Electron kasası, revision kontrol ve kaynak görünümü | Kurtarma/taşınabilir yedek son ürün değil |
 | Modeller için çekirdek | OpenAI-compatible ve ComfyUI provider, dosya envanteri | Masaüstü seçim, sohbet, runtime IPC/inference kanıtı yok |
-| Artboard ve tablo | Tasarım sözleşmesi var | Kullanıcıya sunulmuş çalışan layout/hücre motoru yok |
+| Artboard ve tablo | **G0.7A:** gerçek 3 sütunlu, hücreleri düzenlenebilir Markdown tablo ve satır ekleme; artboard hâlâ yalnız tasarım | Gelişmiş tablo/kolon/çoklu seçim ve serbest sayfa yerleşimi yok |
 
 ### Kabul edilen kod
 
-`fbb0ab4956eedcf8bc8b3b588af221cb63c5d6df` — 285/285 Node, Windows + Linux Electron smoke başarılı. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926785) / [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926766).
+`7ff3c39382d65d605efa1a4f53ff295dfd9d21a8` — 291/291 Node, Windows + Linux Electron smoke ve tablo kasa save/reopen başarılı. Önceki Inspector kodu: `fbb0ab4`. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926785) / [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40196926766).
 
 ## Bundan sonra sırayı belirleyen şey: kullanıcıya çalışan yetenek
 
 **1 · Editör güvenilirliği — G0.6C (dar mühendislik kapısı).** Fiziksel klavye/IME, uzun paragraflar, trailing Shift+Enter, çoklu seçim, clipboard, kaynak/Flow roundtrip, kaydet aç. Her seferinde tek kritik hata grubunu bitir, kapsamı gereksiz genişletme.
 
-**2 · Zengin nesneler — G0.7.** Gerçek hücreli 3×3 tablo ekle → hücreyi düzenle → Tab/Shift+Tab → ekle/sil → Undo/Redo → kaydet-aç. Checklist ve callout'u gerçek nesne kontrollere yükselt. Inspector da yeni türü tanısın.
+**2 · Zengin nesneler — G0.7.** **G0.7A doğrulandı:** 3×3 kaynak tablosu ekleme, hücreye yazma/silme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve yerel kasa kaydet-aç. **G0.7B sırada:** satır silme, sütun ekle/sil, çoklu hücre seçimi, clipboard, checklist ve gelişmiş Inspector; güvenli GFM sınırları korunacak.
 
 **3 · Yerel modelin masaüstüyle ilk bağlantısı — paralel dikey.** `OpenAICompatibleProvider` için loopback-only, doğrulanmış model listesi + durum; Electron ana süreçte minimal whitelist IPC; sonraki adımda seçili modeli kullanarak isteğe bağlı sohbet/işleme. LM Studio gibi sunucu dışarıda çalışır. Hata/iptal/UI testleri gereklidir, metin yalnız açık onayla belgeye aktarılır. ComfyUI workflow/kuyruk/galeri ayrı sonraki AI dikeyidir. **G0.8/G0.9'un tümü bitmeden ilk LLM bağlanabilir.**
 

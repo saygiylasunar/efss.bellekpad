@@ -220,3 +220,14 @@ New right sidebar responds to selected visual block and currently exposes only t
 
 **Not yet implemented:** arbitrary font family/size/spacing/colors, numbered list starting ordinal, table Inspector, artboard position and geometry, layer styles, persisted custom object attrs. These require versioned EFSS semantics and/or their own renderers, not merely extra HTML sliders.
 
+
+## G0.7A — Editable Markdown pipe table contract (verified)
+
+**Scope:** A source-backed pipe table must have outer `|` boundaries, 2–12 columns, a matching GFM alignment divider (`---`, `:---:`, `---:` accepted), a header, and at least one body row. First insertion uses **three columns and three visible rows** (header + two body). Escaped pipes, nested code and rich inline markers are not rewritten as plain cell values. Unknown/unparseable table dialects remain viewable in source/read-only form rather than silently normalized.
+
+**Data path:** `src/pipe-table-parser.js` is the platform-neutral offset-aware parser; `src/ast.js` recognizes contiguous table rows without a second database. `src/editor-table-model.js` validates candidate cell and appended-row replacements against a new complete EFSS parse; all other cell text must remain equal. Flow DOM creates `contenteditable=plaintext-only` cells only as interaction views. All edits commit to `TextEditorSession` with atomic Undo/Redo. The right Inspector reports row/column count and a real **Add row** button. Tab advances through cells; Tab from final cell appends a new row. Native protocol serves only explicit bundled assets.
+
+**Acceptance:** First step `955ab4f`, allowlist fix `b56c803`, save/reopen GUI regression `7ff3c39`. **291/291 Node + Windows/Linux Electron GUI smoke passed**, including actual vault roundtrip. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791607) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791537).
+
+**Not accepted:** multi-cell selection, spreadsheet-like paste, GFM escaped pipe/content syntax, row/column deletion, column insertion, nested content and mixed rich styling, IME physical acceptance, checklist, rich table inspector, general 3×3 grid resizing. Table is a first reliable object slice, not a finished spreadsheet.
+
