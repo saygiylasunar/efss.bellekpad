@@ -63,6 +63,8 @@
             <span id="block-count" title="Kaynak Markdown blokları">0 blok</span>
             <span id="character-count">0 karakter</span>
           </div>
+          <div class="editor-stage">
+            <div class="editor-canvas">
           <section id="flow-pane" class="flow-pane" aria-label="Görsel blok düzenleyici">
             <p class="flow-support-note">Enter yeni paragraf; Shift+Enter metnin ortasında satır kırımı. Liste için Tab / Shift+Tab: tek seviyelik girinti; Backspace: işareti kaldır. Karmaşık bloklar için Kaynak görünümü kullanılabilir.</p>
           </section>
@@ -70,6 +72,43 @@
             <div id="editor" class="text-surface" contenteditable="plaintext-only" role="textbox" aria-label="Belge metni" aria-multiline="true" spellcheck="true" data-placeholder="Buradan yazmaya başla…"></div>
           </section>
           <section id="preview-pane" class="preview-pane" aria-label="Markdown önizleme" hidden></section>
+            </div>
+            <aside id="block-inspector" class="block-inspector" aria-label="Seçili blok özellikleri">
+              <div class="property-kicker">ÖZELLİKLER <span>BAĞLAMSAL</span></div>
+              <h2 id="inspector-block-type">Blok seçilmedi</h2>
+              <p id="inspector-block-detail" class="property-description" aria-live="polite">Düzenlemek için görsel alandaki bir bloğu seç.</p>
+              <div id="inspector-heading-group" class="property-group" hidden>
+                <label for="inspector-heading-level">Başlık seviyesi</label>
+                <select id="inspector-heading-level" aria-label="Başlık seviyesi">
+                  <option value="1">H1 — Ana başlık</option>
+                  <option value="2">H2 — Bölüm</option>
+                  <option value="3">H3 — Alt bölüm</option>
+                  <option value="4">H4 — Alt başlık</option>
+                  <option value="5">H5 — Küçük başlık</option>
+                  <option value="6">H6 — En alt seviye</option>
+                </select>
+              </div>
+              <div id="inspector-bullet-group" class="property-group" hidden>
+                <label for="inspector-bullet-marker">Madde işareti</label>
+                <select id="inspector-bullet-marker" aria-label="Madde işareti">
+                  <option value="-">• Çizgi (−)</option>
+                  <option value="+">+ Artı (+)</option>
+                  <option value="*">✳ Yıldız (*)</option>
+                </select>
+              </div>
+              <div id="inspector-callout-group" class="property-group" hidden>
+                <label for="inspector-callout-variant">Bilgi kutusu türü</label>
+                <select id="inspector-callout-variant" aria-label="Bilgi kutusu türü">
+                  <option value="info">Bilgi</option>
+                  <option value="tip">İpucu</option>
+                  <option value="warning">Uyarı</option>
+                  <option value="success">Başarılı</option>
+                  <option value="error">Hata</option>
+                </select>
+              </div>
+              <p class="property-footnote">Blok türüne uygun alanlar gösterilir. Değişiklikler belgeye yazılır, geri alınabilir.</p>
+            </aside>
+          </div>
           <details class="structure-inspector">
             <summary>Belge yapısı <span class="inspector-hint">Kaynak bloklar · G0.3</span></summary>
             <ol id="block-outline" class="block-outline" aria-label="Belgedeki Markdown blokları"></ol>

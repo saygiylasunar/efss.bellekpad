@@ -17,7 +17,11 @@ const nodes = Object.fromEntries([
   "crumb-title", "save-state", "save", "editor", "write-pane", "preview-pane",
   "show-flow", "show-write", "show-preview", "flow-pane", "character-count", "undo", "redo",
   "insert-kind", "insert-block", "format-bold", "format-italic", "format-strike",
-  "block-count", "block-outline"
+  "block-count", "block-outline", "block-inspector",
+  "inspector-block-type", "inspector-block-detail",
+  "inspector-heading-group", "inspector-heading-level",
+  "inspector-bullet-group", "inspector-bullet-marker",
+  "inspector-callout-group", "inspector-callout-variant"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -71,6 +75,39 @@ function showStructure() {
     item.append(button);
     nodes["block-outline"].append(item);
   }
+}
+
+
+/**
+ * One selected source-backed block, one relevant property group.
+ * Never fabricate custom typography/geometry data that EFSS cannot yet store.
+ */
+function updateInspector(block) {
+  const heading = block?.type === "heading" && block.editable;
+  const bullet = block?.type === "list_item" && block.editable &&
+    block.list?.style === "bullet";
+  const callout = block?.type === "callout" && block.editable;
+  nodes["inspector-heading-group"].hidden = !heading;
+  nodes["inspector-bullet-group"].hidden = !bullet;
+  nodes["inspector-callout-group"].hidden = !callout;
+  nodes["inspector-block-type"].textContent = block ?
+    BLOCK_NAMES[block.type] ?? block.type : "Blok seçilmedi";
+  if (heading) {
+    nodes["inspector-heading-level"].value = String(block.level);
+    nodes["inspector-block-detail"].textContent =
+      "H" + block.level + " · Kaynağı ve metni koruyarak seviye değiştir.";
+  } else if (bullet) {
+    nodes["inspector-bullet-marker"].value = block.list.token;
+    nodes["inspector-block-detail"].textContent =
+      "Madde işaretli liste · Seviye " + (block.list.depth + 1);
+  } else if (callout) {
+    nodes["inspector-callout-variant"].value = block.variant;
+    nodes["inspector-block-detail"].textContent =
+      "Başlığı ve içeriği koruyan EFSS bilgi kutusu.";
+  } else nodes["inspector-block-detail"].textContent = !block ?
+    "Düzenlemek için görsel alandaki bir bloğu seç." :
+    block.editable ? "Bu blok için henüz değiştirilebilir özellik yok." :
+      "Özel kaynak korunuyor; bu blok salt okunur.";
 }
 
 function updateHistoryButtons() {
@@ -278,6 +315,8 @@ function showView(view) {
   flowBinding = null;
   activeMode = view;
   const flow = view === "flow", source = view === "write", preview = view === "preview";
+  nodes["block-inspector"].hidden = !flow;
+  if (!flow) updateInspector(null);
   nodes["flow-pane"].hidden = !flow;
   nodes["write-pane"].hidden = !source;
   nodes["preview-pane"].hidden = !preview;
@@ -298,6 +337,7 @@ function showView(view) {
     flowBinding = attachFlowEditor(nodes["flow-pane"], {
       session: sharedTextSession, getStructure: () => structure,
       onChange: onTextChanged, onCompositionChange,
+      onActiveBlock: updateInspector,
       onNavigateSource(offset) {
         showView("write");
         editorBinding?.selectSourceRange(offset);
@@ -336,6 +376,18 @@ for (const [id, mark] of [
   button.addEventListener("click", () => {
     if (flowBinding) flowBinding.format(mark);
     updateHistoryButtons();
+  });
+}
+for (const [id, attribute] of [
+  ["inspector-heading-level", "headingLevel"],
+  ["inspector-bullet-marker", "bulletMarker"],
+  ["inspector-callout-variant", "calloutVariant"]
+]) {
+  nodes[id].addEventListener("change", () => {
+    if (!flowBinding || blocked || composing) return;
+    flowBinding.setAttribute(attribute, nodes[id].value);
+    updateHistoryButtons();
+    updateInspector(flowBinding.getActiveBlock());
   });
 }
 nodes["insert-block"].addEventListener("click", () => {

@@ -7,7 +7,7 @@ import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
   calloutMarkdown, slashFlowCommand, planFlowEnter,
   planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
-  planFlowSoftBreak, planFlowMultilineEdit
+  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
@@ -38,6 +38,102 @@ test("Flow hides only the implicit prose separator, not intentional blank lines"
 
 
 
+
+
+test("early G0.9 Inspector edits heading levels with source-precise undo", () => {
+  for (const eol of ["\n", "\r\n", "\r"]) {
+    const source = "## Başlık" + eol + eol + ":::efss.hidden" + eol +
+      "secret: unchanged" + eol + ":::" + eol;
+    const document = createBlockDocument(source);
+    const block = projectFlowBlocks(document).find(b => b.type === "heading");
+    const at = block.sourceStart + 2;
+    const op = planFlowBlockAttribute({
+      source, document, block, attribute: "headingLevel", value: "5", at
+    });
+    const session = new TextEditorSession({text:source,
+      selection:collapsedSelection(at)});
+    session.dispatch(op);
+    const expected = "##### Başlık" + source.slice(block.sourceEnd);
+    assert.equal(session.snapshot.text,expected);
+    assert.equal(session.snapshot.selection.focus.offset,at + 3);
+    const altered = projectFlowBlocks(createBlockDocument(expected))[0];
+    assert.equal(altered.level,5);
+    assert.equal(altered.text,block.text);
+    assert.equal(expected.slice(expected.indexOf(":::efss.hidden")),
+      source.slice(source.indexOf(":::efss.hidden")));
+    session.undo(); assert.equal(session.snapshot.text,source);
+    session.redo(); assert.equal(session.snapshot.text,expected);
+    assert.equal(planFlowBlockAttribute({
+      source:expected,document:createBlockDocument(expected),block:altered,
+      attribute:"headingLevel",value:5,at:altered.sourceStart
+    }),null);
+  }
+});
+test("early G0.9 Inspector changes only one bullet marker, retaining indentation", () => {
+  const source = "- Parent\n  - Çocuk\n\n:::efss.other\nsecret: 1\n:::\n";
+  const doc = createBlockDocument(source);
+  const block = projectFlowBlocks(doc).find(b => b.type === "list_item" &&
+    b.list?.indent === 2);
+  for (const marker of ["+", "*"]) {
+    const op = planFlowBlockAttribute({
+      source, document:doc, block, attribute:"bulletMarker",
+      value:marker, at:block.sourceStart
+    });
+    const changed = source.slice(0,op.from) + op.text + source.slice(op.to);
+    assert.equal(changed,"- Parent\n  " + marker + " Çocuk\n\n:::efss.other\nsecret: 1\n:::\n");
+    const projected = projectFlowBlocks(createBlockDocument(changed));
+    assert.equal(projected.find(b => b.text === "Çocuk")?.list?.token,marker);
+    assert.equal(projected.find(b => b.text === "Çocuk")?.list?.depth,1);
+  }
+});
+test("early G0.9 Inspector changes callout category, preserving its user-written content", () => {
+  const source = calloutMarkdown("info", "\r\n").replace(
+    "\r\n\r\n:::", "\r\nİçerik **zengin**\r\n:::");
+  const document = createBlockDocument(source);
+  const block = projectFlowBlocks(document).find(b => b.type === "callout");
+  assert.equal(block?.editable,true);
+  const op = planFlowBlockAttribute({ source,document,block,at:block.sourceStart,
+    attribute:"calloutVariant",value:"warning" });
+  const session = new TextEditorSession({text:source});
+  session.dispatch(op);
+  assert.ok(session.snapshot.text.startsWith(
+    ":::efss.callout type=warning icon="));
+  assert.ok(session.snapshot.text.includes('title="Uyarı"'));
+  assert.ok(session.snapshot.text.includes("İçerik **zengin**"));
+  assert.equal(projectFlowBlocks(createBlockDocument(session.snapshot.text))
+    .find(b => b.type === "callout")?.variant,"warning");
+  session.undo(); assert.equal(session.snapshot.text,source);
+  const custom = source.replace('icon="ℹ️"','icon="custom"')
+    .replace('title="Bilgi"','title="Kişisel başlık"');
+  const current = createBlockDocument(custom);
+  const card = projectFlowBlocks(current)[0];
+  const change = planFlowBlockAttribute({
+    source:custom,document:current,block:card,
+    at:card.sourceStart,attribute:"calloutVariant",value:"tip"
+  });
+  const next = custom.slice(0,change.from)+change.text+custom.slice(change.to);
+  assert.ok(next.includes('type=tip icon="custom" title="Kişisel başlık"'));
+});
+test("early G0.9 Inspector blocks invalid attrs, stale projections and opaque edits", () => {
+  const source = "## Başlık\n\n- Madde\n\n:::efss.private\nsecret: one\n:::\n";
+  const document = createBlockDocument(source);
+  const blocks = projectFlowBlocks(document);
+  const heading = blocks.find(b => b.type==="heading");
+  const list = blocks.find(b => b.type==="list_item");
+  const opaque = blocks.find(b => b.type==="extension_block");
+  const attempt = (block,attribute,value) => planFlowBlockAttribute({
+    source,document,block,attribute,value,at:block?.sourceStart
+  });
+  assert.throws(()=>attempt(heading,"headingLevel","7"),/FLOW_ATTRIBUTE_INVALID_VALUE/);
+  assert.throws(()=>attempt(heading,"bulletMarker","*"),/FLOW_ATTRIBUTE_UNSUPPORTED/);
+  assert.throws(()=>attempt(list,"bulletMarker","!"),/FLOW_ATTRIBUTE_INVALID_VALUE/);
+  assert.throws(()=>attempt(opaque,"headingLevel","1"),/INVALID_FLOW_BLOCK_ATTRIBUTE/);
+  assert.throws(()=>planFlowBlockAttribute({
+    source:source.replace("Madde","Başka"),document,block:list,
+    attribute:"bulletMarker",value:"*",at:list.sourceStart
+  }),/INVALID_FLOW_BLOCK_ATTRIBUTE/);
+  assert.equal(document.source,source);
+});
 
 test("G0.6B.6 ordinary Enter on an existing soft break never inserts a third EOL",()=>{
   for(const eol of ["\n","\r\n","\r"]) {

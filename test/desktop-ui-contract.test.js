@@ -125,6 +125,21 @@ test("visual prose Enter uses one line of spacing, not an extra rendered row", (
   assert.match(css, /\.flow-block\.flow-syntax-separator\{display:none\}/);
 });
 
+
+test("contextual Inspector surface is real, semantic and source-backed", () => {
+  const app = read("desktop/ui/app.js");
+  const html = read("desktop/ui/index.html");
+  const styles = read("desktop/ui/styles.css");
+  const adapter = read("src/editor-flow-adapter.js");
+  for (const id of [
+    "block-inspector","inspector-heading-level","inspector-bullet-marker",
+    "inspector-callout-variant"
+  ]) assert.ok(html.includes('id="' + id + '"'));
+  assert.match(app,/setAttribute\(attribute, nodes\[id\]\.value\)/);
+  assert.match(adapter,/planFlowBlockAttribute/);
+  assert.match(styles,/\.editor-stage\{display:grid/);
+});
+
 test("G0.6B.3 single-depth bullet keyboard actions stay local and source-aware", () => {
   const flow = read("src/editor-flow-model.js");
   const adapter = read("src/editor-flow-adapter.js");

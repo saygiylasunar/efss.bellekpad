@@ -593,6 +593,48 @@ async function run() {
   await page("document.querySelector('#show-write').click()");
   assert.equal(await page("document.querySelector('#editor').textContent.includes('Birinci\\nİkinci')"),true);
   assert.equal(await page("document.querySelector('#editor').textContent.includes('secret: keep')"),true);
+
+  // Early G0.9 semantic Inspector acceptance. All operations are real
+  // Markdown source transactions, not just decorative select controls.
+  await page("document.querySelector('#show-write').click()");
+  const propertySource = "# Başlık\n\n- Madde\n\n:::efss.callout type=info icon=\"ℹ️\" title=\"Bilgi\"\nİçerik\n:::\n";
+  await page('(() => {const el=document.querySelector("#editor");el.focus();' +
+    'el.textContent=' + JSON.stringify(propertySource) + ';' +
+    'el.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("Inspector source loaded", () =>
+    page("document.querySelector('#editor').textContent.includes('# Başlık')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("Inspector heading available", () =>
+    page("document.querySelector('.flow-heading .flow-editable')?.textContent === 'Başlık'"));
+  await page("document.querySelector('.flow-heading .flow-editable').focus()");
+  assert.equal(await page("!document.querySelector('#inspector-heading-group').hidden"),true);
+  await page('(() => {const s=document.querySelector("#inspector-heading-level");' +
+    's.value="3";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
+  await retry("Inspector heading level changed", () =>
+    page("document.querySelector('.flow-heading')?.dataset.headingLevel === '3'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("Inspector heading Undo", () =>
+    page("document.querySelector('.flow-heading')?.dataset.headingLevel === '1'"));
+  await page("document.querySelector('.flow-list_item .flow-editable').focus()");
+  assert.equal(await page("!document.querySelector('#inspector-bullet-group').hidden"),true);
+  await page('(() => {const s=document.querySelector("#inspector-bullet-marker");' +
+    's.value="+";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
+  await retry("Inspector bullet style changed", () =>
+    page("document.querySelector('.flow-list_item')?.dataset.listStyle === 'bullet' && " +
+      "document.querySelector('#inspector-bullet-marker').value === '+'"));
+  await page("document.querySelector('.flow-callout .flow-editable').focus()");
+  assert.equal(await page("!document.querySelector('#inspector-callout-group').hidden"),true);
+  await page('(() => {const s=document.querySelector("#inspector-callout-variant");' +
+    's.value="warning";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
+  await retry("Inspector callout type changed", () =>
+    page("document.querySelector('.flow-callout')?.dataset.variant === 'warning'"));
+  assert.equal(await page("document.querySelector('.flow-callout .flow-editable')?.textContent"),"İçerik");
+  await page("document.querySelector('#show-write').click()");
+  const attributeSource = await page("document.querySelector('#editor').textContent");
+  assert.ok(attributeSource.includes("# Başlık"));
+  assert.ok(attributeSource.includes("+ Madde"));
+  assert.ok(attributeSource.includes(":::efss.callout type=warning"));
+  assert.ok(attributeSource.includes("İçerik"));
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

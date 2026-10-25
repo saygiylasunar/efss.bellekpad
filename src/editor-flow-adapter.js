@@ -5,7 +5,7 @@ import {
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter,
   planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
-  planFlowSoftBreak, planFlowMultilineEdit
+  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -166,10 +166,12 @@ function editPayload(event) {
 }
 export function attachFlowEditor(host, {
   session, getStructure, onChange, onCompositionChange = () => {},
-  onNavigateSource = () => {}, onError = () => {}
+  onNavigateSource = () => {}, onError = () => {},
+  onActiveBlock = () => {}
 } = {}) {
   if (!host || !(session instanceof TextEditorSession) ||
-      typeof getStructure !== "function" || typeof onChange !== "function")
+      typeof getStructure !== "function" || typeof onChange !== "function" ||
+      typeof onActiveBlock !== "function")
     throw new TypeError("INVALID_FLOW_EDITOR");
   const controller = new AbortController(), signal = controller.signal;
   let composing = false, activeId = null;
@@ -218,7 +220,10 @@ export function attachFlowEditor(host, {
         renderInlineRuns(doc, editor, block);
         card.append(editor);
         editors.set(block.id, { editor, block });
-        editor.addEventListener("focus", () => { activeId = block.id; }, { signal });
+        editor.addEventListener("focus", () => {
+          activeId = block.id;
+          onActiveBlock(block);
+        }, { signal });
         if (focusAt !== null &&
             block.sourceStart <= focusAt && focusAt <= block.sourceEnd) nearest = block.id;
       } else {
@@ -245,7 +250,9 @@ export function attachFlowEditor(host, {
       activeId = toFocus.block.id;
       focusOffset(toFocus.editor, focusAt - toFocus.block.sourceStart, toFocus.block,
         selectionEnd === null ? null : selectionEnd - toFocus.block.sourceStart);
-    }
+    } else if (activeId) {
+      onActiveBlock(blocks.find(b => b.id === activeId) ?? null);
+    } else onActiveBlock(null);
   }
 
   function selectedRange(editor, block) {
@@ -629,6 +636,35 @@ export function attachFlowEditor(host, {
     return true;
   }
 
+  function setAttribute(attribute, value) {
+    if (composing || !activeId) return false;
+    const document = getStructure();
+    const block = projectFlowBlocks(document).find(b => b.id === activeId);
+    if (!block?.editable) { onError("Özelliği değiştirmek için bir blok seç."); return false; }
+    const before = session.snapshot.selection;
+    const caret = before.focus.offset >= block.sourceStart &&
+      before.focus.offset <= block.sourceEnd ? before.focus.offset : block.sourceStart;
+    let operation;
+    try {
+      operation = planFlowBlockAttribute({
+        source: session.snapshot.text, document, block, attribute, value, at: caret
+      });
+    } catch (error) {
+      onError("Blok özelliği korunuyor: " + (error?.message ?? "UNSAFE_ATTRIBUTE"));
+      return false;
+    }
+    if (!operation) return false;
+    try {
+      const result = session.dispatch(operation);
+      finish(result, { focusAt: operation.selectionAfter.focus.offset,
+        preferredId: block.id });
+      return result.changed;
+    } catch (error) {
+      onError("Blok özelliği kaydedilemedi: " + (error?.message ?? "UNSAFE_ATTRIBUTE"));
+      return false;
+    }
+  }
+
   function insert(kind, variant = "info") {
     if (composing) return false;
     const before = getStructure();
@@ -656,6 +692,10 @@ export function attachFlowEditor(host, {
     refresh() { render(); },
     insert,
     format,
+    setAttribute,
+    getActiveBlock() {
+      return projectFlowBlocks(getStructure()).find(b => b.id === activeId) ?? null;
+    },
     undo() { history("undo"); },
     redo() { history("redo"); },
     focus() {

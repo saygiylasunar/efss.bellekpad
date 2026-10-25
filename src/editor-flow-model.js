@@ -590,6 +590,84 @@ export function planFlowParagraphJoin({ source, document, block, at, direction }
   });
 }
 
+
+/**
+ * G0.9 early slice: first *real* contextual Inspector block attributes.
+ * Every change goes through one source transaction, then reparses through
+ * the canonical EFSS grammar. Pure view-level properties do not create
+ * shadow metadata or alter the original content/unknown extensions.
+ */
+export function planFlowBlockAttribute({
+  source, document, block, attribute, value, at
+} = {}) {
+  if (typeof source !== "string" || document?.source !== source ||
+      !Array.isArray(document?.blocks) || !block?.editable ||
+      source.slice(block.start, block.end) !== block.raw)
+    fail("INVALID_FLOW_BLOCK_ATTRIBUTE");
+  const current = projectFlowBlocks(document).find(b => b.id === block.id);
+  if (!current || current.start !== block.start || current.raw !== block.raw)
+    fail("FLOW_ATTRIBUTE_STALE_BLOCK");
+  let from, to, text, expectedType = block.type;
+  if (attribute === "headingLevel" && block.type === "heading") {
+    const level = Number(value);
+    if (!Number.isInteger(level) || level < 1 || level > 6 ||
+        String(level) !== String(value)) fail("FLOW_ATTRIBUTE_INVALID_VALUE");
+    const prefix = source.slice(block.start, block.sourceStart);
+    const match = /^( {0,3})#{1,6}([ \t]+)$/.exec(prefix);
+    if (!match) fail("FLOW_ATTRIBUTE_PREFIX_UNSUPPORTED");
+    from = block.start;
+    to = block.sourceStart;
+    text = match[1] + "#".repeat(level) + match[2];
+  } else if (attribute === "bulletMarker" && block.type === "list_item" &&
+      block.list?.style === "bullet") {
+    if (!["-", "+", "*"].includes(value))
+      fail("FLOW_ATTRIBUTE_INVALID_VALUE");
+    const prefix = source.slice(block.start, block.sourceStart);
+    const match = /^( {0,3})([-+*])([ \t]+)$/.exec(prefix);
+    if (!match) fail("FLOW_ATTRIBUTE_PREFIX_UNSUPPORTED");
+    from = block.start;
+    to = block.sourceStart;
+    text = match[1] + value + match[3];
+  } else if (attribute === "calloutVariant" && block.type === "callout") {
+    if (!CALLOUT.test(value)) fail("FLOW_ATTRIBUTE_INVALID_VALUE");
+    const prefix = source.slice(block.start, block.sourceStart);
+    const match = /^(:::efss\.callout type=)(info|tip|warning|success|error)( icon=)("(?:\\.|[^"\\])*")( title=)("(?:\\.|[^"\\])*")(\r\n|\r|\n)$/.exec(prefix);
+    if (!match) fail("FLOW_ATTRIBUTE_PREFIX_UNSUPPORTED");
+    let icon, title;
+    try {
+      icon = JSON.parse(match[4]); title = JSON.parse(match[6]);
+    } catch { fail("FLOW_ATTRIBUTE_PREFIX_UNSUPPORTED"); }
+    const previous = STYLE[match[2]];
+    // Only default decorations are changed. User-supplied icons/titles are
+    // properties, not disposable side effects of switching the box category.
+    const nextIcon = icon === previous.icon ? STYLE[value].icon : icon;
+    const nextTitle = title === previous.title ? STYLE[value].title : title;
+    from = block.start;
+    to = block.sourceStart;
+    text = match[1] + value + match[3] + JSON.stringify(nextIcon) +
+      match[5] + JSON.stringify(nextTitle) + match[7];
+  } else fail("FLOW_ATTRIBUTE_UNSUPPORTED");
+  if (source.slice(from, to) === text) return null;
+  if (!Number.isSafeInteger(at) || at < block.sourceStart ||
+      at > block.sourceEnd || !isGraphemeBoundary(source, at))
+    fail("FLOW_ATTRIBUTE_INVALID_CARET");
+  const candidate = source.slice(0, from) + text + source.slice(to);
+  const checked = projectFlowBlocks(reconcileBlockSource(document, candidate));
+  const output = checked.find(b => b.start === block.start && b.type === expectedType);
+  if (!output?.editable || output.text !== block.text ||
+      output.sourceStart !== block.sourceStart + text.length - (to - from) ||
+      output.sourceEnd !== block.sourceEnd + text.length - (to - from) ||
+      (attribute === "headingLevel" && output.level !== Number(value)) ||
+      (attribute === "bulletMarker" && output.list?.token !== value) ||
+      (attribute === "calloutVariant" && output.variant !== value))
+    fail("FLOW_ATTRIBUTE_REPARSE_FAILED");
+  return Object.freeze({
+    type: "replaceRange", from, to, text,
+    selectionAfter: collapsedSelection(at + text.length - (to - from)),
+    operation: "flow-attribute-" + attribute
+  });
+}
+
 export function slashFlowCommand(text) {
   if (typeof text !== "string") return null;
   const commands = {
