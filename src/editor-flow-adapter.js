@@ -5,7 +5,8 @@ import {
 import {
   projectFlowBlocks, insertFlowBlock, calloutMarkdown, slashFlowCommand, planFlowEnter,
   planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
-  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute
+  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute,
+  planFlowChecklistToggle
 } from "./editor-flow-model.js";
 import {
   mapInlineVisibleOffset, mapInlineSourceOffset,
@@ -143,6 +144,7 @@ function noteElement(doc, block, kind) {
   if (block.type === "list_item" && block.list) {
     card.dataset.listStyle = block.list.style;
     card.dataset.listDepth = String(block.list.depth);
+    if (block.checklist) card.dataset.checklist = block.checklist.checked ? "done" : "todo";
   }
   const gutter = doc.createElement("span");
   gutter.className = "flow-gutter";
@@ -193,7 +195,34 @@ export function attachFlowEditor(host, {
             String(block.list.ordinal) + block.list.delimiter : "•") :
         block.type === "quote" ? "❝" :
         block.type === "table" ? "▦" : "⋮";
-      const card = noteElement(doc, block, label);
+      const card = noteElement(doc, block, block.checklist ? "" : label);
+      if (block.checklist) {
+        const toggle = doc.createElement("button");
+        toggle.className = "flow-check-toggle";
+        toggle.type = "button";
+        toggle.setAttribute("aria-pressed", String(block.checklist.checked));
+        toggle.setAttribute("aria-label", block.checklist.checked ?
+          "Görevi tamamlanmadı olarak işaretle" : "Görevi tamamlandı olarak işaretle");
+        toggle.textContent = block.checklist.checked ? "✓" : "";
+        toggle.addEventListener("click", () => {
+          if (composing) return;
+          try {
+            const current = projectFlowBlocks(getStructure())
+              .find(b => b.id === block.id);
+            const planned = planFlowChecklistToggle({
+              source:session.snapshot.text,document:getStructure(),
+              block:current,checked:!current?.checklist?.checked
+            });
+            if (!planned) return;
+            activeId = block.id;
+            const result = session.dispatch(planned);
+            finish(result,{focusAt:planned.selectionAfter.focus.offset,preferredId:block.id});
+          } catch(error) {
+            onError("Görev durumu korunuyor: " + (error?.message ?? "UNSAFE_CHECKLIST"));
+          }
+        }, { signal });
+        card.append(toggle);
+      }
       if (block.type === "table" && block.table) {
         const viewport = doc.createElement("div");
         viewport.className = "flow-table-viewport";

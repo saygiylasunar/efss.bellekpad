@@ -86,7 +86,7 @@ function showStructure() {
 function updateInspector(block) {
   const heading = block?.type === "heading" && block.editable;
   const bullet = block?.type === "list_item" && block.editable &&
-    block.list?.style === "bullet";
+    block.list?.style === "bullet" && !block.checklist;
   const callout = block?.type === "callout" && block.editable;
   const table = block?.type === "table" && !!block.table;
   nodes["inspector-heading-group"].hidden = !heading;

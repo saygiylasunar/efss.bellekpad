@@ -225,3 +225,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .property-button{width:100%;border:1px solid #4b716b;border-radius:6px;
   background:#28433e;color:#d7f0e7;padding:9px 8px;text-align:center;font-size:12px}
 .property-button:hover:not(:disabled){background:#335750}
+
+/* G0.7B — checkbox is a visible interactive property, never a DOM-only state */
+.flow-list_item[data-checklist] .flow-gutter{display:none}
+.flow-check-toggle{position:absolute;top:12px;left:13px;width:20px;height:20px;
+  border:1px solid #739c9b;border-radius:5px;background:#22363d;
+  display:grid;place-items:center;color:#e2f7e9;font:700 14px/1 var(--font-ui);
+  padding:0;cursor:pointer}
+.flow-check-toggle:hover{background:#355452}
+.flow-check-toggle:focus-visible{outline:2px solid #a2d7bd;outline-offset:2px}
+.flow-list_item[data-checklist="done"] .flow-check-toggle{background:#376c5e;border-color:#a1d2ae}
+.flow-list_item[data-checklist="done"] .flow-editable{color:#91a69e;
+  text-decoration:line-through;text-decoration-thickness:1px}

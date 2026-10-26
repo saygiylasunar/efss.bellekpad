@@ -7,7 +7,7 @@ import {
   projectFlowBlocks, flowBlockAt, editFlowText, insertFlowBlock,
   calloutMarkdown, slashFlowCommand, planFlowEnter,
   planFlowListIndent, planFlowBackspaceAtStart, planFlowParagraphJoin,
-  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute
+  planFlowSoftBreak, planFlowMultilineEdit, planFlowBlockAttribute, planFlowChecklistToggle
 } from "../src/editor-flow-model.js";
 
 const editable = source => projectFlowBlocks(createBlockDocument(source)).filter(b => b.editable);
@@ -16,6 +16,117 @@ const editable = source => projectFlowBlocks(createBlockDocument(source)).filter
 
 
 
+
+
+test("G0.7B inserting a checklist keeps EFSS blocks intact and creates an editable task", () => {
+  const source = "# Proje\n\n:::efss.opaque\nprivate: X\n:::\n";
+  const original = createBlockDocument(source);
+  const head = original.blocks.find(b => b.type === "heading");
+  const updated = insertFlowBlock(original, {afterId:head.id,kind:"checklist"});
+  const checkbox = projectFlowBlocks(updated).find(b => b.checklist);
+  assert.equal(checkbox.type,"list_item");
+  assert.equal(checkbox.checklist.checked,false);
+  assert.equal(checkbox.text,"");
+  assert.equal(checkbox.editable,true);
+  assert.equal(updated.source.includes("- [ ] \n"),true);
+  assert.equal(updated.source.slice(updated.source.indexOf(":::efss.opaque")),
+    source.slice(source.indexOf(":::efss.opaque")));
+});
+test("G0.7B checklist click is one source-character edit with Undo/Redo", () => {
+  for(const eol of ["\n","\r\n","\r"]) {
+    const source="- [ ] Görüşme 👩‍👧"+eol+eol+":::efss.future"+eol+
+      "unreadable: ✅"+eol+":::"+eol;
+    const document=createBlockDocument(source);
+    const item=projectFlowBlocks(document).find(b=>b.checklist);
+    assert.equal(item.text,"Görüşme 👩‍👧");
+    assert.equal(item.sourceStart,6);
+    assert.equal(item.checklist.offset,3);
+    const op=planFlowChecklistToggle({
+      source,document,block:item,checked:true
+    });
+    assert.equal(op.text,"x");
+    assert.equal(op.to-op.from,1);
+    const session=new TextEditorSession({text:source});
+    session.dispatch(op);
+    const expected=source.replace("- [ ] ","- [x] ");
+    assert.equal(session.snapshot.text,expected);
+    const checked=projectFlowBlocks(createBlockDocument(expected))[0];
+    assert.equal(checked.checklist.checked,true);
+    assert.equal(checked.text,item.text);
+    assert.equal(checked.sourceStart,item.sourceStart);
+    assert.equal(expected.slice(expected.indexOf(":::efss.future")),
+      source.slice(source.indexOf(":::efss.future")));
+    session.undo();
+    assert.equal(session.snapshot.text,source);
+    session.redo();
+    assert.equal(session.snapshot.text,expected);
+    const uncheck=planFlowChecklistToggle({
+      source:expected,document:createBlockDocument(expected),
+      block:checked,checked:false
+    });
+    session.dispatch(uncheck);
+    assert.equal(session.snapshot.text,source);
+    assert.equal(planFlowChecklistToggle({
+      source,document,block:item,checked:false
+    }),null);
+  }
+});
+test("G0.7B Enter in a finished checklist continues as an unchecked task", () => {
+  for(const eol of ["\n","\r\n","\r"]) {
+    const source="- [x] Bitmiş"+eol+eol+":::efss.opaque"+eol+"keep: 1"+eol+":::"+eol;
+    const block=projectFlowBlocks(createBlockDocument(source))[0];
+    const op=planFlowEnter({source,block,at:block.sourceEnd});
+    const changed=source.slice(0,op.from)+op.text+source.slice(op.to);
+    assert.ok(changed.startsWith("- [x] Bitmiş"+eol+"- [ ] "+eol+eol));
+    const items=projectFlowBlocks(createBlockDocument(changed))
+      .filter(b=>b.checklist);
+    assert.equal(items.length,2);
+    assert.equal(items[0].checklist.checked,true);
+    assert.equal(items[1].checklist.checked,false);
+    assert.equal(items[1].text,"");
+    const empty=planFlowEnter({
+      source:changed,block:items[1],at:items[1].sourceStart
+    });
+    const exited=changed.slice(0,empty.from)+empty.text+changed.slice(empty.to);
+    assert.ok(exited.startsWith("- [x] Bitmiş"+eol+eol+eol));
+    assert.ok(exited.endsWith(":::efss.opaque"+eol+"keep: 1"+eol+":::"+eol));
+  }
+});
+test("G0.7B checklist supports a single nested bullet level without consuming marker", () => {
+  const source="- Parent\n- [ ] Child\n";
+  const child=projectFlowBlocks(createBlockDocument(source))[1];
+  const op=planFlowListIndent({
+    source,block:child,at:child.sourceStart,direction:"indent"
+  });
+  const nested=source.slice(0,op.from)+op.text+source.slice(op.to);
+  assert.equal(nested,"- Parent\n  - [ ] Child\n");
+  const inner=projectFlowBlocks(createBlockDocument(nested))[1];
+  assert.equal(inner.list.depth,1);
+  assert.equal(inner.checklist.checked,false);
+  const out=planFlowListIndent({
+    source:nested,block:inner,at:inner.sourceStart,direction:"outdent"
+  });
+  assert.equal(nested.slice(0,out.from)+out.text+nested.slice(out.to),source);
+});
+test("G0.7B refuses stale, non-task and unknown-EFSS task mutation", () => {
+  const source="- [ ] Valid\n\n:::efss.hidden\n- [ ] Fake\n:::\n";
+  const doc=createBlockDocument(source), blocks=projectFlowBlocks(doc);
+  assert.equal(blocks.filter(b=>b.checklist).length,1);
+  assert.throws(()=>planFlowChecklistToggle({
+    source,document:doc,block:blocks.find(b=>b.type==="extension_block"),checked:true
+  }),/FLOW_CHECKLIST_UNSUPPORTED/);
+  assert.throws(()=>planFlowChecklistToggle({
+    source:source.replace("Valid","Changed"),
+    document:doc,block:blocks[0],checked:true
+  }),/FLOW_CHECKLIST_UNSUPPORTED/);
+  const ordered="1. [ ] Not a task\n";
+  const orderedBlock=projectFlowBlocks(createBlockDocument(ordered))[0];
+  assert.equal(orderedBlock.checklist,undefined);
+  assert.throws(()=>planFlowChecklistToggle({
+    source:ordered,document:createBlockDocument(ordered),
+    block:orderedBlock,checked:true
+  }),/FLOW_CHECKLIST_UNSUPPORTED/);
+});
 
 test("Flow hides only the implicit prose separator, not intentional blank lines", () => {
   const cases = [

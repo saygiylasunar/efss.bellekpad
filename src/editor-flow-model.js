@@ -9,7 +9,7 @@ const TYPES = Object.freeze(["paragraph", "heading", "list_item", "quote", "blan
 const CALLOUT = /^(info|tip|warning|success|error)$/;
 const MARKERS = Object.freeze({
   paragraph: "", heading: "# ", list_item: "- ", quote: "> ",
-  callout: "", table: ""
+  callout: "", table: "", checklist: "- [ ] "
 });
 const STYLE = Object.freeze({
   info: { icon: "ℹ️", title: "Bilgi" },
@@ -112,7 +112,12 @@ export function projectFlowBlocks(doc) {
       id: block.id, type: block.type, raw, text: raw,
       start: block.start, end: block.end, editable: false
     });
-    const rawText = line.slice(prefix.length);
+    // A GFM task marker is semantic state, not four visible characters.
+    // Keep it in the *same* list_item AST and source transaction journal.
+    const listTask = block.type === "list_item" && /^ {0,3}[-+*][ \t]+/.test(prefix) ?
+      /^(\[(?: |x|X)\][ \t]+)/.exec(line.slice(prefix.length)) : null;
+    const checkboxPrefix = listTask?.[0] ?? "";
+    const rawText = line.slice(prefix.length + checkboxPrefix.length);
     const inline = projectInline(rawText);
     const listMatch = block.type === "list_item" ?
       /^( {0,3})([-+*]|([0-9]{1,9})([.)]))([ \t]+)$/.exec(prefix) : null;
@@ -127,9 +132,13 @@ export function projectFlowBlocks(doc) {
     return Object.freeze({
       id: block.id, type: block.type, level: block.level,
       ...(list ? { list } : {}),
+      ...(listTask ? { checklist: Object.freeze({
+        checked: /\[[xX]\]/.test(checkboxPrefix),
+        offset: block.start + prefix.length + 1
+      }) } : {}),
       raw, text: inline.text, inline, start: block.start, end: block.end,
-      sourceStart: block.start + prefix.length,
-      sourceEnd: block.start + prefix.length + rawText.length,
+      sourceStart: block.start + prefix.length + checkboxPrefix.length,
+      sourceEnd: block.start + prefix.length + checkboxPrefix.length + rawText.length,
       editable: singleLineContent(rawText)
     });
   });
@@ -194,6 +203,10 @@ export function insertFlowBlock(doc, {
       b.start === before.length + separator.length &&
       b.type === "table" && parsePipeTable(b.raw, b.start)?.columns === 3))
     fail("FLOW_TABLE_INSERT_FAILED");
+  if (kind === "checklist" && !projectFlowBlocks(next).some(b =>
+      b.start === before.length + separator.length &&
+      b.type === "list_item" && b.checklist?.checked === false))
+    fail("FLOW_CHECKLIST_INSERT_FAILED");
   return next;
 }
 
@@ -410,7 +423,7 @@ export function planFlowEnter({ source, block, at } = {}) {
       (/^ {0,3}/.exec(prefix)?.[0] ?? "") : "";
     const continuation = block.type === "quote" ? prefix :
       block.type === "list_item" && block.list?.style === "bullet" ?
-        indent + block.list.token + " " : "";
+        indent + block.list.token + (block.checklist ? " [ ] " : " ") : "";
     return planRichFlowEnter({ source, block, at, eol: localEol, continuation });
   }
   let continuation = "", to = at, tail = "", operation = "flow-enter";
@@ -454,7 +467,8 @@ export function planFlowEnter({ source, block, at } = {}) {
         to = cursor;
         operation = "flow-enter-ordered-renumber";
       }
-    } else continuation = indent + block.list.token + " ";
+    } else continuation = indent + block.list.token +
+      (block.checklist ? " [ ] " : " ");
   } else if (block.type === "quote") continuation = prefix;
   // A trailing EOL already supplies the following paragraph separator.
   const endsWithEol = at === block.sourceEnd && !!trailingEol(block.raw);
@@ -497,7 +511,9 @@ export function planFlowListIndent({ source, block, at, direction } = {}) {
   if (source.slice(block.start, block.end) !== block.raw)
     fail("FLOW_INDENT_STALE_BLOCK");
   const prefix = source.slice(block.start, block.sourceStart);
-  const match = /^( *)([-+*])([ \t]+)$/.exec(prefix);
+  const match = /^( *)([-+*])([ \t]+)(?:\[(?: |x|X)\]([ \t]+))?$/.exec(prefix);
+  if (!!match?.[4] !== !!block.checklist)
+    fail("FLOW_INDENT_PREFIX_UNSUPPORTED");
   if (!match || match[1].length !== block.list.indent)
     fail("FLOW_INDENT_PREFIX_UNSUPPORTED");
   const indent = match[1].length;
@@ -638,7 +654,7 @@ export function planFlowBlockAttribute({
     to = block.sourceStart;
     text = match[1] + "#".repeat(level) + match[2];
   } else if (attribute === "bulletMarker" && block.type === "list_item" &&
-      block.list?.style === "bullet") {
+      block.list?.style === "bullet" && !block.checklist) {
     if (!["-", "+", "*"].includes(value))
       fail("FLOW_ATTRIBUTE_INVALID_VALUE");
     const prefix = source.slice(block.start, block.sourceStart);
@@ -684,6 +700,44 @@ export function planFlowBlockAttribute({
     type: "replaceRange", from, to, text,
     selectionAfter: collapsedSelection(at + text.length - (to - from)),
     operation: "flow-attribute-" + attribute
+  });
+}
+
+
+/**
+ * Toggle only the one-character GFM task marker, keeping all user-written
+ * markdown and neighbouring opaque EFSS bytes source-identical.
+ */
+export function planFlowChecklistToggle({
+  source, document, block, checked
+} = {}) {
+  if (typeof source !== "string" || document?.source !== source ||
+      !Array.isArray(document?.blocks) || block?.type !== "list_item" ||
+      !block.editable || !block.checklist || typeof checked !== "boolean" ||
+      source.slice(block.start, block.end) !== block.raw)
+    fail("FLOW_CHECKLIST_UNSUPPORTED");
+  const now = projectFlowBlocks(document).find(b => b.id === block.id);
+  if (!now?.checklist || now.start !== block.start ||
+      now.raw !== block.raw || now.checklist.offset !== block.checklist.offset)
+    fail("FLOW_CHECKLIST_STALE_BLOCK");
+  const from = block.checklist.offset, current = source[from];
+  if (![" ", "x", "X"].includes(current) ||
+      source[from - 1] !== "[" || source[from + 1] !== "]")
+    fail("FLOW_CHECKLIST_STALE_MARKER");
+  if (block.checklist.checked === checked) return null;
+  const replacement = checked ? "x" : " ";
+  const candidate = source.slice(0, from) + replacement + source.slice(from + 1);
+  const after = projectFlowBlocks(reconcileBlockSource(document, candidate))
+    .find(b => b.start === block.start && b.type === "list_item");
+  if (!after?.editable || !after.checklist ||
+      after.checklist.checked !== checked ||
+      after.text !== block.text || after.sourceStart !== block.sourceStart ||
+      after.sourceEnd !== block.sourceEnd || after.end !== block.end)
+    fail("FLOW_CHECKLIST_REPARSE_FAILED");
+  return Object.freeze({
+    type: "replaceRange", from, to: from + 1, text: replacement,
+    selectionAfter: collapsedSelection(block.sourceStart),
+    operation: "flow-checklist-toggle"
   });
 }
 

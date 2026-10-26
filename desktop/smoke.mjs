@@ -692,6 +692,55 @@ async function run() {
     "document.querySelectorAll('[data-flow-table-cell]')[3].textContent"), "Konya");
   assert.equal(await page(
     "document.querySelectorAll('[data-flow-table-cell]')[4].textContent"), "42");
+
+  // G0.7B checkbox is a live source transaction. Clicking changes exactly
+  // the bracket marker, Undo/Redo restores it, Enter continues unchecked.
+  await page("document.querySelector('#show-write').click()");
+  const taskSource="- [ ] İlk görev\n\n:::efss.opaque\nprivate: unchanged\n:::\n";
+  await page('(() => {const e=document.querySelector("#editor");e.focus();' +
+    'e.textContent='+JSON.stringify(taskSource)+';' +
+    'e.dispatchEvent(new InputEvent("input",{bubbles:true,inputType:"insertText"}));})()');
+  await retry("checklist source loaded",()=>
+    page("document.querySelector('#editor').textContent.includes('- [ ] İlk görev')"));
+  await page("document.querySelector('#show-flow').click()");
+  await retry("checklist visual control",()=>
+    page("document.querySelector('.flow-check-toggle')?.getAttribute('aria-pressed') === 'false'"));
+  assert.equal(await page("document.querySelector('.flow-list_item .flow-editable')?.textContent"),"İlk görev");
+  await page("document.querySelector('.flow-check-toggle').click()");
+  await retry("checklist marked done",()=>
+    page("document.querySelector('.flow-check-toggle')?.getAttribute('aria-pressed') === 'true'"));
+  await page("document.querySelector('#undo').click()");
+  await retry("checklist undo",()=>
+    page("document.querySelector('.flow-check-toggle')?.getAttribute('aria-pressed') === 'false'"));
+  await page("document.querySelector('#redo').click()");
+  await retry("checklist redo",()=>
+    page("document.querySelector('.flow-check-toggle')?.getAttribute('aria-pressed') === 'true'"));
+  await page('(() => {const e=document.querySelector(".flow-list_item .flow-editable");' +
+    'e.focus();const t=e.querySelector("[data-inline-run]").firstChild;' +
+    'document.getSelection().setBaseAndExtent(t,t.length,t,t.length);' +
+    'e.dispatchEvent(new InputEvent("beforeinput",{bubbles:true,' +
+    'cancelable:true,inputType:"insertParagraph"}));})()');
+  await retry("checklist Enter continues unchecked",()=>
+    page("document.querySelectorAll('.flow-check-toggle').length === 2 && " +
+      "document.querySelectorAll('.flow-check-toggle')[1].getAttribute('aria-pressed') === 'false'"));
+  await page("document.querySelector('#show-write').click()");
+  const checklistMarkdown=await page("document.querySelector('#editor').textContent");
+  assert.ok(checklistMarkdown.includes("- [x] İlk görev\n- [ ] "));
+  assert.ok(checklistMarkdown.includes("private: unchanged"));
+  await page('(() => {const title=document.querySelector("#document-title");' +
+    'title.value="G0.7B Görev Kontrol";title.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await page("document.querySelector('#save').click()");
+  await retry("checklist persisted to vault",()=>
+    page("document.querySelector('#save-state').textContent === 'Kaydedildi'"));
+  await page("document.querySelector('#new-document').click()");
+  await retry("new document after checklist save",()=>
+    page("document.querySelector('#document-title').value === 'Adsız sayfa'"));
+  await page('(() => {const item=Array.from(document.querySelectorAll(".document-item"))' +
+    '.find(x=>x.textContent.includes("G0.7B Görev Kontrol"));' +
+    'if(!item)throw new Error("saved checklist missing");item.click();})()');
+  await retry("checklist reopened from local vault",()=>
+    page("document.querySelectorAll('.flow-check-toggle').length === 2 && " +
+      "document.querySelector('.flow-check-toggle').getAttribute('aria-pressed') === 'true'"));
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

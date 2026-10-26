@@ -126,6 +126,18 @@ test("visual prose Enter uses one line of spacing, not an extra rendered row", (
 });
 
 
+test("G0.7B checklist is source-authored and rendered as interactive checkbox", () => {
+  const flow=read("src/editor-flow-adapter.js");
+  const model=read("src/editor-flow-model.js");
+  const html=read("desktop/ui/index.html");
+  const css=read("desktop/ui/styles.css");
+  assert.match(model,/planFlowChecklistToggle/);
+  assert.match(flow,/flow-check-toggle/);
+  assert.match(flow,/planFlowChecklistToggle/);
+  assert.match(html,/value="checklist"/);
+  assert.match(css,/data-checklist="done"/);
+});
+
 test("G0.7A native table surface connects source parser, cell editor, and Inspector", () => {
   const ast = read("src/ast.js");
   const flow = read("src/editor-flow-adapter.js");
