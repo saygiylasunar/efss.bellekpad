@@ -1,9 +1,11 @@
 # EFSS BellekPad — Devir README'si ve Uygulama Roadmap'i
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
-> Güncelleme: **25 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan durum: **G0.7A gerçek 3 sütunlu kaynak tablosu + G0.9 erken Inspector + G0.6B.6 kısmi / v0.2.8**. Son doğrulanan KOD commit'i **7ff3c39382d65d605efa1a4f53ff295dfd9d21a8**. **291/291 Node + sanity/check ve Windows/Linux Electron GUI smoke başarılı (gerçek yerel kasa kaydet/aç dâhil).** [Ürün yönü](PRODUCT_DIRECTION.md) · [Tablo sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). G0.7'nin bütünü tamamlanmış değildir.
+> Güncelleme: **26 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
+> Doğrulanan durum: **G0.7B kısmi — tıklanabilir checklist + kontrollü son tablo satırını silme**, G0.9 erken Inspector ve G0.6B.6 kısmi / v0.2.8. Son doğrulanan KOD commit'i **d452657c04ebd3ba200d1ca97ceb8727e669ddb0**. **299/299 Node, sanity/check ve Windows/Linux gerçek Electron GUI smoke başarılı; checklist için gerçek kasa kaydet/aç doğrulandı.** [Ürün yönü](PRODUCT_DIRECTION.md) · [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). G0.7'nin tamamı bitmedi.
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **26.10.2026 G0.7B İLK TESLİM:** Menüde “Yapılacak görev” bloğu (`- [ ] `) ve doğrudan tıklanabilir görsel checkbox var. `- [x]` ↔ `- [ ]` değişikliği yalnız tek karakter kaynak işlemi; Undo/Redo, tamamlanmış görevden Enter ile yeni boş görev, tek seviye Tab/Shift+Tab, Backspace ve kaydet-aç GUI regresyonlarından geçti. Tablo Inspector'ına **“Son satırı sil”** geldi: yalnız son veri satırını ve en az bir veri satırının korunmasını destekler. Silme tek Undo/Redo işlemi, tekrar parse ve opaque EFSS byte denetimli. **`62e7a6a` (checklist) → `d452657` (satır silme), 299/299 Node + gerçek Win/Linux Electron smoke yeşil.** G0.7B'nin tümü **bitmedi**: seçili herhangi satırı silme, sütun ekle/sil, grid paste, tüm GFM biçimleri/IME yok.
 
 > **25.10.2026 G0.7A TABLO KABULÜ:** Inspector'dan/tablodan bağımsız blok ekleme menüsünden gerçek Markdown pipe table ekleme çalışıyor. Üç sütun × üç görünür satır (1 header + 2 body), kaynakta tüm hücreler aynı EFSS belgede. Hücreye doğrudan yazma/silme, hücrelerde Tab/Shift+Tab, son hücreden Tab veya Inspector düğmesiyle yeni satır ve Undo/Redo mevcut. Gerçek Electron kasa kaydet-yeniden aç regresyonu eklendi. Korunan kapsam: yalnız kanonik leading/trailing pipe, kaçışsız sade hücre metni ve header divider; Markdown işaretli hücreler ve karmaşık GFM dialektleri read-only/fail-closed. **291/291 Node + Win/Linux gerçek GUI smoke başarılı, kaynak commit `7ff3c39`.** Satır silme, sütun ekle/sil, çoklu hücre seçimi, paste-grid ve checklist henüz YOK.
 
@@ -155,19 +157,16 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sıradaki çalışan ürün teslimleri
+## 5. Somut sıradaki değer teslimleri
 
-**Yeni kabul:** G0.7A ilk gerçek tablo: 3×3 kaynak-backed pipe-table, hücre düzenleme, Tab/Shift+Tab, satır ekle, Inspector boyutları, Undo/Redo ve kasa kaydet-aç. `7ff3c39`, **291/291 + Windows/Linux smoke**. Bunun "tam tablo" olmadığı unutulmamalı.
+**G0.7B ilk kesit doğrulandı (`d452657`):** Checklist ekle → metnini görsel yaz → işaretle/işareti kaldır → Enter ile yeni boş görev → Undo/Redo → gerçek yerel kasada kaydet/aç. Tabloda *yalnız son veri satırını* Inspector ile silme, güvenli minimum bir veri satırı sınırı. **299/299 Node + Windows/Linux Electron smoke yeşil.**
 
-**1. G0.7B: tablo/checklist nesne davranışları.** G0.7A'nın konservatif Markdown tablosuna satır **silme**, sütun **ekleme/silme**, hücre clipboard ve seçimi geliştirilmesi; AST strict roundtrip ve özel EFSS koruması. Ayrıca checklist'in tikini görsel blokta değiştirip saklama. Araçlar Inspector'a bağlansın; sadece kaynak elle değiştirerek kabul etmeyiz.
+1. **Şimdi ilk yerel LLM masaüstü bağlantısı (AI-0.1) en yakın öncelik.** `src/model-provider.js`'de `OpenAICompatibleProvider` var. Electron main-preload IPC yalnız **127.0.0.1 / loopback** için sınırlı ve açık kullanıcı tetiklemesiyle `/v1/models` durum/isimlerini listelemeli. Aşağıdaki kabul kapıları: trusted frame whitelist, `redirect:"error"`, timeout, response limit, ağ/gizlilik hatalarını kaynaksız söylememe, fake response ile Node ve gerçek GUI smoke. **Gerçek LM Studio inference'i kullanıcı ortamında bağlanmadan gerçekleşti diye sunma.** Sohbet ve kullanıcının belgeye açık onayla aktarımı sonraki ayrı dilimdir. ComfyUI model taramasını otomatik başlatma.
+2. **G0.7B devam:** Mevcut `planTableDeleteLastRow` yeterli değil; bilinçli seçili satırı silme, sütun ekle/sil, hücre paste-grid/selection, daha geniş tablo Inspector semantiği, checklist'in richer marker/caret edge vakaları. Her özellik tek EFSS source ve Undo/Redo üzerinden.
+3. **G0.6C güvenilirlik:** Fiziksel IME, trailing Shift+Enter, çoklu seçim, rich multiline, clipboard, kaydet/aç. Gündelik yazmayı Kaynak sekmesine gönderen kusurları izole edip onar.
+4. **Sonra G0.8 artboard; geniş G0.9 Inspector; G1+ ComfyUI ve gelişmiş AI.** Kalıcı schema olmadan X/Y/W/H veya font dosyası uydurma.
 
-**2. Paralel ilk yerel LLM Electron köprüsü.** `src/model-provider.js`'ın mevcut sözleşmesini incele. Main-preload IPC whitelist; loopback-only adresler; seçim ve bağlantı durumunu GUI'da görünür kıl. Modelin yerel olarak *gerçekten çalıştırıldığını* doğrulayan test olmadan inference iddiası yapma. Belge değişikliği **yalnız kullanıcı onayıyla**.
-
-**3. G0.6C editör güvenilirliği.** Fiziksel klavye/IME, satır sonunda Shift+Enter, zengin çok satırlı düzenleme, çok bloklu seçim, clipboard, kaynak↔Flow ve tekrar açma; az ama kritik kabul kesitleriyle ilerle.
-
-**4. G0.8 artboard, ardından geniş G0.9 Inspector ve G1+ ileri medya.** Sayfa/çerçeve geometrisi ve verili/layout modeli kalıcı olmadan sahte X/Y/W/H kontrolü ekleme; yabancı editör/framework gerekmez.
-
-**Değişmezler:** Doğru `saygiylasunar/efss.bellekpad` **main**, yeni branch açma; ikinci belge kaynağı/uydurma veri modeli yaratma; sürümlü EFSS kaynak güvenliği, tek Undo/Redo journal, Windows ve Linux Electron smoke yeşil olmadan özellik bitti deme.
+**Kısıtlar:** Sadece `saygiylasunar/efss.bellekpad` **main**. Yeni branch yok. Dış kütüphane/editor bağlama veya kullanıcı model klasörlerini izinsiz tarama yok. Her kabulde Node, Windows/Linux Electron, kaynak roundtrip, unknown EFSS ve Undo/Redo.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -221,8 +220,8 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 - DevTools gizliliği DRM değildir. Original rights notice bir telif bildirimi; mutlak teknik engelleme değildir.
 - **Henüz yok:** tam görsel tablolar, çok satırlı/nested callout, çoklu artboard, inspector, vector text outlines, PDF/DPI/compression, imzalı installer.
 
-## 9. Yeni sohbette kullanılacak görev cümlesi
+## 9. Yeni sohbet devri
 
-> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden sürdür. Önce `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md` ve son HEAD/CI'yi denetle. G0.7A kanonik Markdown pipe-table, görsel hücre düzenleme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve gerçek kasa kaydet-aç doğrulandı (`7ff3c39`, 291/291 + Win/Linux). Sonraki teslim: **G0.7B tablo hücre/kolon kontrolleri + checklist**, eşzamanlı güvenli yerel LLM Electron bağlantı hattını öne al. İkinci belge deposu, izinsiz branch veya harici editor ekleme; kaynak/opaque bytes korunmalı.”
+> “BellekPad'i `saygiylasunar/efss.bellekpad` / `main` üzerinden geliştir. `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md` ve güncel HEAD/CI'yi oku. **G0.7B kısmi** `d452657`: tıklanabilir Markdown checklist, Enter, Undo/Redo, gerçek kasa kaydet/aç; tabloda Inspector'dan yalnız **son veri satırını** atomik silme; **299/299 test ve gerçek Windows/Linux Electron yeşil**. Şimdi **dar güvenli yerel LLM modellerini listeleme IPC + UI kesitine** geç; asla internet endpoint'i veya kullanıcı dosyası taramayı varsayılan etkinleştirme. Tam sohbet/inference/ComfyUI'ı doğrulanmadan tamamlandı diye ilan etme. Sonra kalan tablo/IME/artboard görevlerini ilerlet. Yeni branch/repo/harici editör açma.”
 
-**Kullanıcı nihai ürün kararını verir.** Bitmeyenleri tamamlanmış gibi gösterme.
+**Nihai ürün ve kullanım kararları kullanıcıda.**

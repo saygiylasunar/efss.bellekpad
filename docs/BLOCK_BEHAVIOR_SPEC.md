@@ -231,3 +231,12 @@ New right sidebar responds to selected visual block and currently exposes only t
 
 **Not accepted:** multi-cell selection, spreadsheet-like paste, GFM escaped pipe/content syntax, row/column deletion, column insertion, nested content and mixed rich styling, IME physical acceptance, checklist, rich table inspector, general 3×3 grid resizing. Table is a first reliable object slice, not a finished spreadsheet.
 
+
+## G0.7B partial — Checklist + safe last table row (verified 26.10.2026)
+
+**Checklist:** Canonical GFM syntax `- [ ] label`, `- [x] label` (also `+` and `*` and one allowed two-space indent). AST remains `list_item`; the Flow projection exposes a source-offset-aware `checklist` attribute. The editor shows a real checkbox button; click changes *only the single byte/code unit inside square brackets*, reparses the complete EFSS document and verifies text/source offsets. Undo/Redo journal, LF/CRLF/lone CR and unknown opaque extensions are protected. Enter after a checked task creates a new *unchecked* task; empty Enter unwraps to paragraph, one-level Tab/Shift+Tab works. Styled cross-line and multi-block selected checklist editing are not generalized.
+
+**Table:** `planTableDeleteLastRow` is a deliberate restricted operation: remove *only the last body row* if at least one other body row remains. The header and final body row cannot be deleted. All earlier table cells are compared with reparsed source to avoid data shifts or accidental EFSS edits. A real Inspector button performs one Undo/Redo transaction. Arbitrary row deletion, columns, complex GFM escaped-pipe markup, grid clipboard, physical IME are not implemented.
+
+**Verified:** Checklist commit `62e7a6a`, table addition `d452657`; **299/299 Node + Windows/Linux real Electron smoke**. Checklist persistence tested with native local-vault save/reopen. [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228052) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228049).
+

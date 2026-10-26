@@ -2,7 +2,7 @@
 
 > **25 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active editor delivery: G0.7A source-backed pipe table + early G0.9 Inspector + G0.6B.6 partial / v0.2.8 (25.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active editor delivery: G0.7B partial checklist + safe last-table-row delete; early G0.9 Inspector / v0.2.8 (26.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -130,4 +130,11 @@ Scope now prioritizes **visible end-to-end capabilities**: real tables/checklist
 `7ff3c39` — **291/291 Node**, privacy/sanity, real Windows/Linux Electron and real local vault save/reopen smoke passed. Menu → Table inserts **3 columns × 3 visible rows** including the header. Each simple cell is a live editable text surface: insertion/deletion, Tab / Shift+Tab navigation, row append after last Tab, and row append in Inspector. Changes are source-reparsed and transactional in the existing journal. Unknown EFSS and unrelated prose retain exact bytes. Static desktop protocol adds only two checked-in table modules, never a general file server. Full GFM escape/markup syntax, complex cells, arbitrary paste-grid, row deletion and column operations remain open.
 
 [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791607) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40234791537).
+
+
+## G0.7B partial — click-to-toggle checklist and last-row removal (26.10.2026)
+
+Source commit `d452657c04ebd3ba200d1ca97ceb8727e669ddb0` — **299/299 Node, privacy gate and real Windows/Linux Electron GUI smoke passed**. Checklist insertion (`- [ ]`), source-owned toggle (`[ ]` ↔ `[x]`), checked Enter→new unchecked task, one-level Tab/Shift+Tab, Undo/Redo, unknown EFSS preservation and actual desktop-vault save/reopen verified. Table Inspector now offers **Delete last row** (only the last body row, while protecting the header and last remaining data row), using parser-verified single replacement + Undo/Redo. User-selected arbitrary row deletion, column editing, spreadsheet paste, physical IME and model GUI IPC are **not shipped**.
+
+[Core CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228052) · [Desktop CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228049).
 

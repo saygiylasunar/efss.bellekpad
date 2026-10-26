@@ -1,6 +1,6 @@
 # BellekPad — Ürün Yörüngesi ve Teslim Ölçütleri
 
-Tarih: **25 Ekim 2026** · Kanonik repository: `saygiylasunar/efss.bellekpad` · Dal: `main`
+Tarih: **26 Ekim 2026** · Kanonik repository: `saygiylasunar/efss.bellekpad` · Dal: `main`
 
 Bu belge **uygulama kapsamını bağlamak** içindir, kullanıcı onayı olmadan özelliklerin son tasarımını kesinleştirmez. Güncel mühendislik ilerlemesi [DEV_HANDOFF](DEV_HANDOFF.md), bloklar [BLOCK_BEHAVIOR_SPEC](BLOCK_BEHAVIOR_SPEC.md).
 
@@ -26,7 +26,7 @@ BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne 
 | **Seçili blok Özellikleri** | H1–H6, madde işareti, callout varyantı ve **tablo satır sayısı + satır ekleme** | Font ölçüleri, tablo sütunları/konum/renk yok |
 | Yerel not saklama | Electron kasası, revision kontrol ve kaynak görünümü | Kurtarma/taşınabilir yedek son ürün değil |
 | Modeller için çekirdek | OpenAI-compatible ve ComfyUI provider, dosya envanteri | Masaüstü seçim, sohbet, runtime IPC/inference kanıtı yok |
-| Artboard ve tablo | **G0.7A:** gerçek 3 sütunlu, hücreleri düzenlenebilir Markdown tablo ve satır ekleme; artboard hâlâ yalnız tasarım | Gelişmiş tablo/kolon/çoklu seçim ve serbest sayfa yerleşimi yok |
+| Artboard / tablo / checklist | **G0.7B kısmi:** düzenlenebilir tablo, satır ekle/son satırı sil ve tıklanabilir görev checkbox'ları; artboard hâlâ tasarım | Serbest sayfa, sütun ve çoklu hücre seçimleri yok |
 
 ### Kabul edilen kod
 
@@ -36,7 +36,7 @@ BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne 
 
 **1 · Editör güvenilirliği — G0.6C (dar mühendislik kapısı).** Fiziksel klavye/IME, uzun paragraflar, trailing Shift+Enter, çoklu seçim, clipboard, kaynak/Flow roundtrip, kaydet aç. Her seferinde tek kritik hata grubunu bitir, kapsamı gereksiz genişletme.
 
-**2 · Zengin nesneler — G0.7.** **G0.7A doğrulandı:** 3×3 kaynak tablosu ekleme, hücreye yazma/silme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve yerel kasa kaydet-aç. **G0.7B sırada:** satır silme, sütun ekle/sil, çoklu hücre seçimi, clipboard, checklist ve gelişmiş Inspector; güvenli GFM sınırları korunacak.
+**2 · Zengin nesneler — G0.7.** **G0.7A doğrulandı:** 3×3 kaynak tablosu ekleme, hücreye yazma/silme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve yerel kasa kaydet-aç. **G0.7B ilk kesit tamamlandı:** görsel checkbox kontrolü, tamamlanmış görevden Enter ile yeni boş görev, Undo/Redo/kasa kaydet-aç ve Inspector'dan **yalnız son tablo veri satırını silme**. **Kalanlar:** seçili herhangi satır, sütun ekleme/silme, çoklu hücre seçimi, spreadsheet clipboard, gelişmiş Inspector ve fiziksel IME. Güvenli GFM sınırları korunacak.
 
 **3 · Yerel modelin masaüstüyle ilk bağlantısı — paralel dikey.** `OpenAICompatibleProvider` için loopback-only, doğrulanmış model listesi + durum; Electron ana süreçte minimal whitelist IPC; sonraki adımda seçili modeli kullanarak isteğe bağlı sohbet/işleme. LM Studio gibi sunucu dışarıda çalışır. Hata/iptal/UI testleri gereklidir, metin yalnız açık onayla belgeye aktarılır. ComfyUI workflow/kuyruk/galeri ayrı sonraki AI dikeyidir. **G0.8/G0.9'un tümü bitmeden ilk LLM bağlanabilir.**
 
