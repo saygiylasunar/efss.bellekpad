@@ -66,3 +66,35 @@ export function planTableAppendRow({source,document,block}={}) {
     operation:"table-append-row",
     focus:Object.freeze({row:parsed.rows.length-1,col:0})});
 }
+
+/**
+ * G0.7B: explicit, lossless deletion of the last *body* row.
+ * Header and the final body row are structurally protected. A whole source
+ * line is removed atomically; all remaining cells must reparse identically.
+ */
+export function planTableDeleteLastRow({source,document,block}={}) {
+  const model=checkActive(source,document,block);
+  if(model.rows.length<=2)fail("TABLE_LAST_BODY_ROW_REQUIRED");
+  const last=model.rows.at(-1);
+  if(last.header || last.start < block.start || last.end > block.end)
+    fail("TABLE_DELETE_ROW_INVALID_BOUNDARY");
+  const from=last.start,to=last.end,text="";
+  const candidate=source.slice(0,from)+source.slice(to);
+  const next=reconcileBlockSource(document,candidate);
+  const target=next.blocks.find(b=>b.type==="table"&&b.start===block.start);
+  const parsed=target&&parsePipeTable(target.raw,target.start);
+  if(!parsed || parsed.columns!==model.columns ||
+      parsed.rows.length!==model.rows.length-1 ||
+      target.end!==block.end-(to-from))
+    fail("TABLE_DELETE_ROW_REPARSE_FAILED");
+  for(let r=0;r<parsed.rows.length;r++)for(let c=0;c<parsed.columns;c++)
+    if(parsed.rows[r].cells[c].text!==model.rows[r].cells[c].text)
+      fail("TABLE_DELETE_ROW_REPARSE_FAILED");
+  const keep=parsed.rows.at(-1);
+  return Object.freeze({
+    type:"replaceRange",from,to,text,
+    selectionAfter:collapsedSelection(keep.cells[0].start),
+    operation:"table-delete-last-row",
+    focus:Object.freeze({row:keep.index,col:0})
+  });
+}

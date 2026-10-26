@@ -666,6 +666,25 @@ async function run() {
   await page("document.querySelector('#undo').click()");
   await retry("table row append undo", () =>
     page("document.querySelectorAll('.flow-table tr').length === 3"));
+
+  // G0.7B: delete only the last body row from Inspector; Undo restores it.
+  await page("document.querySelector('#inspector-table-add-row').click()");
+  await retry("table row recreated", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 4"));
+  assert.equal(await page(
+    "!document.querySelector('#inspector-table-delete-row').disabled"),true);
+  await page("document.querySelector('#inspector-table-delete-row').click()");
+  await retry("table last row deleted", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 3"));
+  assert.equal(await page(
+    "document.querySelector('#inspector-table-delete-row').disabled"),false);
+  await page("document.querySelector('#undo').click()");
+  await retry("table row delete undo", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 4"));
+  await page("document.querySelector('#redo').click()");
+  await retry("table row delete redo", () =>
+    page("document.querySelectorAll('.flow-table tr').length === 3"));
+
   await page("document.querySelector('#show-write').click()");
   const savedTableSource = await page("document.querySelector('#editor').textContent");
   assert.ok(savedTableSource.includes("| Başlık 1 | Başlık 2 | Başlık 3 |"));

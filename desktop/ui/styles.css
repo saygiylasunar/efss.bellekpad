@@ -237,3 +237,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .flow-list_item[data-checklist="done"] .flow-check-toggle{background:#376c5e;border-color:#a1d2ae}
 .flow-list_item[data-checklist="done"] .flow-editable{color:#91a69e;
   text-decoration:line-through;text-decoration-thickness:1px}
+
+.property-danger{margin-top:8px;background:#402d32;border-color:#704b50;color:#e8c2c4}
+.property-danger:hover:not(:disabled){background:#613a42}
+.property-button:disabled{opacity:.4;cursor:not-allowed}

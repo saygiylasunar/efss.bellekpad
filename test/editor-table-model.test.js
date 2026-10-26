@@ -4,7 +4,7 @@ import { parseMarkdownAst, serializeMarkdownAst } from "../src/ast.js";
 import { createBlockDocument } from "../src/editor-block-model.js";
 import { projectFlowBlocks, insertFlowBlock } from "../src/editor-flow-model.js";
 import { parsePipeTable, tableHeaderColumns } from "../src/pipe-table-parser.js";
-import { planTableCellEdit, planTableAppendRow } from "../src/editor-table-model.js";
+import { planTableCellEdit, planTableAppendRow, planTableDeleteLastRow } from "../src/editor-table-model.js";
 import { TextEditorSession } from "../src/editor-text-engine.js";
 
 const table = eol => [
@@ -123,4 +123,36 @@ test("G0.7A unsafe table edits and stale projections never alter source", () => 
   }),/TABLE_STALE_SOURCE/);
   assert.equal(document.source,source);
   assert.equal(parsePipeTable("| a | b |\n| --- | --- |\n",0),null);
+});
+
+test("G0.7B last body row deletion is atomic, undoable and opaque-safe", () => {
+  for (const eol of ["\n","\r\n","\r"]) {
+    const source=fixture(eol),{document,block}=read(source);
+    assert.equal(block.table.rows.length,3);
+    const plan=planTableDeleteLastRow({source,document,block});
+    const last=block.table.rows.at(-1);
+    assert.equal(plan.from,last.start);
+    assert.equal(plan.to,last.end);
+    assert.equal(plan.text,"");
+    assert.deepEqual(plan.focus,{row:1,col:0});
+    const session=new TextEditorSession({text:source});
+    session.dispatch(plan);
+    const updated=source.slice(0,last.start)+source.slice(last.end);
+    assert.equal(session.snapshot.text,updated);
+    assert.equal(read(updated).block.table.rows.length,2);
+    assert.deepEqual(read(updated).block.table.rows[1].cells.map(x=>x.text),["A","B","C"]);
+    assert.equal(updated.slice(updated.indexOf(":::efss.private")),
+      source.slice(source.indexOf(":::efss.private")));
+    session.undo();
+    assert.equal(session.snapshot.text,source);
+    session.redo();
+    assert.equal(session.snapshot.text,updated);
+    const remaining=read(updated);
+    assert.throws(()=>planTableDeleteLastRow({
+      source:updated,document:remaining.document,block:remaining.block
+    }),/TABLE_LAST_BODY_ROW_REQUIRED/);
+    assert.throws(()=>planTableDeleteLastRow({
+      source:source.replace("Başlık 1","Different"),document,block
+    }),/TABLE_STALE_SOURCE/);
+  }
 });

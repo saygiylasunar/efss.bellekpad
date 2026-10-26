@@ -126,6 +126,17 @@ test("visual prose Enter uses one line of spacing, not an extra rendered row", (
 });
 
 
+test("G0.7B table delete-last-row control is source transaction, not DOM removal", () => {
+  const adapter=read("src/editor-flow-adapter.js");
+  const app=read("desktop/ui/app.js");
+  const html=read("desktop/ui/index.html");
+  const model=read("src/editor-table-model.js");
+  assert.match(model,/planTableDeleteLastRow/);
+  assert.match(adapter,/deleteLastTableRow/);
+  assert.match(app,/flowBinding.deleteLastTableRow/);
+  assert.match(html,/id="inspector-table-delete-row"/);
+});
+
 test("G0.7B checklist is source-authored and rendered as interactive checkbox", () => {
   const flow=read("src/editor-flow-adapter.js");
   const model=read("src/editor-flow-model.js");

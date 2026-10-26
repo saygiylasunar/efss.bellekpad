@@ -22,7 +22,8 @@ const nodes = Object.fromEntries([
   "inspector-heading-group", "inspector-heading-level",
   "inspector-bullet-group", "inspector-bullet-marker",
   "inspector-callout-group", "inspector-callout-variant",
-  "inspector-table-group","inspector-table-dimensions","inspector-table-add-row"
+  "inspector-table-group","inspector-table-dimensions","inspector-table-add-row",
+  "inspector-table-delete-row"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -113,6 +114,7 @@ function updateInspector(block) {
     nodes["inspector-table-dimensions"].textContent =
       block.table.columns + " sütun · " + block.table.rows.length + " satır";
     nodes["inspector-table-add-row"].disabled = block.table.rows.length >= 100;
+    nodes["inspector-table-delete-row"].disabled = block.table.rows.length <= 2;
   } else nodes["inspector-block-detail"].textContent = !block ?
     "Düzenlemek için görsel alandaki bir bloğu seç." :
     block.editable ? "Bu blok için henüz değiştirilebilir özellik yok." :
@@ -402,6 +404,12 @@ for (const [id, attribute] of [
 nodes["inspector-table-add-row"].addEventListener("click", () => {
   if (!flowBinding || blocked || composing) return;
   flowBinding.addTableRow();
+  updateHistoryButtons();
+  updateInspector(flowBinding.getActiveBlock());
+});
+nodes["inspector-table-delete-row"].addEventListener("click", () => {
+  if (!flowBinding || blocked || composing) return;
+  flowBinding.deleteLastTableRow();
   updateHistoryButtons();
   updateInspector(flowBinding.getActiveBlock());
 });

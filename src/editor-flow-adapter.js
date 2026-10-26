@@ -13,7 +13,7 @@ import {
   planInlineMark, planInlineTextEdit
 } from "./editor-inline-format.js";
 import { makeIcon } from "./ui-icons.js";
-import { planTableCellEdit, planTableAppendRow } from "./editor-table-model.js";
+import { planTableCellEdit, planTableAppendRow, planTableDeleteLastRow } from "./editor-table-model.js";
 
 // Native DOM is the input surface. The global TextEditorSession is still the
 // single writable source of truth and owns history in *all* editing modes.
@@ -520,6 +520,26 @@ export function attachFlowEditor(host, {
       return false;
     }
   }
+  function deleteLastTableRow() {
+    if (composing || !activeId) return false;
+    const document=getStructure();
+    const block=projectFlowBlocks(document).find(b=>b.id===activeId&&b.type==="table");
+    if(!block?.table)return false;
+    try {
+      const plan=planTableDeleteLastRow({source:session.snapshot.text,document,block});
+      const result=session.dispatch(plan);
+      if(!result.changed)return false;
+      notify();
+      const next=projectFlowBlocks(getStructure()).find(b=>b.type==="table"&&b.start===block.start);
+      render({focusCell:{blockId:next?.id??block.id,
+        row:plan.focus.row,col:0,offset:0}});
+      return true;
+    } catch(error) {
+      onError("Tablo satırı silinemedi: " + (error?.message ?? "UNSAFE_TABLE_DELETE"));
+      return false;
+    }
+  }
+
   function appendTableRow() {
     if (composing || !activeId) return false;
     const document=getStructure();
@@ -900,6 +920,7 @@ export function attachFlowEditor(host, {
     format,
     setAttribute,
     addTableRow:appendTableRow,
+    deleteLastTableRow,
     getActiveBlock() {
       return projectFlowBlocks(getStructure()).find(b => b.id === activeId) ?? null;
     },
