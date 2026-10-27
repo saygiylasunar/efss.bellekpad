@@ -1,8 +1,8 @@
 # EFSS BellekPad — Current status
 
-> **27 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
+> **28 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active delivery: AI-0.1 desktop local model discovery + G0.7B partial checklist/table; early G0.9 Inspector / v0.2.8 (27.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active delivery: AI-0.2 explicit local model chat + cancellation; G0.7B partial checklist/table; early G0.9 Inspector / v0.2.8 (28.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -143,3 +143,7 @@ Source commit `d452657c04ebd3ba200d1ca97ceb8727e669ddb0` — **299/299 Node, pri
 
 Verified implementation code `27e75fad569cc9dc3c3b9a356a60370da84cf91e`: the left sidebar provides **Local Model → Check models**, which invokes a single whitelisted Electron main-process IPC call to existing `OpenAICompatibleProvider.listModels()`, fixed at `127.0.0.1:1234/v1`. No requests on startup, no arbitrary URLs, no renderer `fetch`, no document body or model directories sent. The connection state, local model IDs and offline/error state are visible; the model selection is not yet executable inference. Strict IPC frame validation, redirects rejected, timeout and model-list limits implemented. GUI smoke runs a synthetic loopback HTTP server, verifies listing, choice, disconnect state; **it does not run a real model or LM Studio instance**. **304/304 Node + privacy and Windows/Linux real Electron GUI smoke green.** [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40580561010) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40580560908). [Details](AI_DESKTOP_IPC.md).
 
+
+## AI-0.2 — explicit chat, cancellation, no document transfer (28.10.2026)
+
+Code `95462f0`: model is selected from the local list; user explicitly submits one prompt via fixed loopback `POST /v1/chat/completions`; response is shown as read-only text in a separate panel. A requestId-scoped IPC cancel aborts in-flight operation. No document text is automatically sent or changed. **309/309 Node + sanity + real Windows/Linux Electron GUI smoke** with a synthetic local HTTP model. **No real LM Studio GGUF inference was tested.** [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40587434854) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40587434834) · [AI IPC contract](AI_DESKTOP_IPC.md).
