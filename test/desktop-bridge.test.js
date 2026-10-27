@@ -85,7 +85,8 @@ test("native bridge rejects arbitrary paths, unknown operations and huge payload
 });
 
 test("renderer always receives explicit result/error; preload exports no arbitrary invoke", () => {
-  assert.deepEqual(Object.keys(DESKTOP_CHANNELS).sort(), ["chat", "chatCancel", "create", "list", "models", "open", "save"]);
+  assert.deepEqual(Object.keys(DESKTOP_CHANNELS).sort(), ["chat", "chatCancel", "create", "list", "models", "open", "save",
+    "runnerChoose", "runnerStart", "runnerStatus", "runnerStop"]);
   assert.equal(isTrustedEditorFrame({
     senderURL: APP_HOME, isMainFrame: true
   }), true);

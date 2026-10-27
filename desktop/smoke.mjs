@@ -26,6 +26,14 @@ async function run() {
   const page = code => win.webContents.executeJavaScript(code, true);
   assert.equal(win.webContents.isDevToolsOpened(), false);
   assert.equal(await page("typeof window.bellekpadDesktop"), "object");
+  // Owned runtime controls are embedded in our application (no auto loading,
+  // disk search or externally launched model on first boot).
+  assert.equal(await page("!!document.querySelector('#owned-runner-start')"),true);
+  assert.equal(await page("!!document.querySelector('#owned-runner-choose-model')"),true);
+  assert.equal(await page("document.querySelector('#owned-runner-stop').disabled"),true);
+  assert.equal(await page("document.querySelector('#owned-runner-status').textContent"),
+    "Motor çalışmıyor.");
+
   // AI-0.1: real Electron main-process IPC reaches a deliberately local,
   // synthetic OpenAI-compatible HTTP server. No external API or model used.
   let modelRequests=0;

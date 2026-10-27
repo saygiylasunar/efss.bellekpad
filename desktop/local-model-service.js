@@ -1,6 +1,7 @@
 // First desktop AI vertical: explicit discovery of a separately running local server.
 // Never enumerate disks, model paths, documents or external URLs. No inference yet.
 import { OpenAICompatibleProvider } from "../src/model-provider.js";
+import { OWNED_MODEL_URL } from "./owned-model-runner.js";
 
 export const LOCAL_MODEL_ENDPOINT = "http://127.0.0.1:1234/v1";
 const MAX_VISIBLE_MODELS = 128;
@@ -15,18 +16,16 @@ export function createDesktopModelService({
   // The provider supplies strict loopback URL validation, redirect rejection,
   // request cancellation and response-shape checking. The main process alone
   // owns the network operation; the sandboxed renderer retains connect-src none.
-  const provider = new OpenAICompatibleProvider({
-    baseURL: LOCAL_MODEL_ENDPOINT, fetchImpl, timeoutMs
-  });
-  const chatProvider = new OpenAICompatibleProvider({
-    baseURL: LOCAL_MODEL_ENDPOINT, fetchImpl, timeoutMs: chatTimeoutMs
+  let targetURL = LOCAL_MODEL_ENDPOINT, apiKey = null;
+  const providerFor = timeout => new OpenAICompatibleProvider({
+    baseURL: targetURL, apiKey, fetchImpl, timeoutMs: timeout
   });
   const discovered = new Set();
   const inFlight = new Map();
   return Object.freeze({
     async list() {
       if (inFlight.size) throw new Error("MODEL_BUSY");
-      const models = await provider.listModels();
+      const models = await providerFor(timeoutMs).listModels();
       if (models.length > MAX_VISIBLE_MODELS) throw new Error("MODEL_LIST_TOO_LARGE");
       const seen = new Set();
       const filtered = [];
@@ -41,7 +40,7 @@ export function createDesktopModelService({
       discovered.clear();
       for (const item of filtered) discovered.add(item.id);
       return Object.freeze({
-        endpoint: LOCAL_MODEL_ENDPOINT,
+        endpoint: targetURL,
         models: filtered,
         checked: true
       });
@@ -59,6 +58,7 @@ export function createDesktopModelService({
       try {
         // Nothing is attached from open documents, clipboard or a hidden
         // system prompt. Only text the user explicitly submits is sent.
+        const chatProvider = providerFor(chatTimeoutMs);
         const result = await chatProvider.chat({
           model, messages: [{ role: "user", content: prompt }],
           temperature: 0.7, maxTokens: 1024, signal: controller.signal
@@ -78,6 +78,21 @@ export function createDesktopModelService({
       if (!controller) return Object.freeze({ cancelled: false });
       controller.abort();
       return Object.freeze({ cancelled: true });
+    },
+    useOwned({ endpoint, token } = {}) {
+      if (endpoint !== OWNED_MODEL_URL || typeof token !== "string" ||
+          !/^[0-9a-f]{48}$/.test(token))
+        throw new Error("INVALID_CHAT_REQUEST");
+      for (const controller of inFlight.values()) controller.abort();
+      targetURL = OWNED_MODEL_URL;
+      apiKey = token;
+      discovered.clear();
+    },
+    useExternal() {
+      for (const controller of inFlight.values()) controller.abort();
+      targetURL = LOCAL_MODEL_ENDPOINT;
+      apiKey = null;
+      discovered.clear();
     },
     dispose() {
       for (const controller of inFlight.values()) controller.abort();

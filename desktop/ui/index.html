@@ -18,9 +18,23 @@
       <button class="create" id="new-document" type="button" data-ui-icon="new">Yeni sayfa</button>
       <div class="side-heading"><span>BELGELER</span><span id="document-count">0</span></div>
       <nav id="document-list" aria-label="Yerel belgeler" class="document-list"></nav>
+      <section class="owned-model-card" aria-label="BellekPad model çalıştırıcısı">
+        <div class="local-ai-eyebrow">◈ BELLEKPAD MOTORU</div>
+        <p class="owned-model-help">GGUF modelini uygulamanın içinden çalıştır. LM Studio gerekli değil.</p>
+        <button id="owned-runner-choose-engine" type="button" class="local-ai-connect">llama-server seç</button>
+        <p id="owned-runner-engine" class="owned-model-path">Motor henüz seçilmedi.</p>
+        <button id="owned-runner-choose-model" type="button" class="local-ai-connect">GGUF model seç</button>
+        <p id="owned-runner-model" class="owned-model-path">Model henüz seçilmedi.</p>
+        <div class="owned-model-actions">
+          <button id="owned-runner-start" type="button" class="local-ai-connect">▶ Başlat</button>
+          <button id="owned-runner-stop" type="button" class="local-ai-connect" disabled>■ Durdur</button>
+        </div>
+        <p id="owned-runner-status" class="local-ai-status" role="status" aria-live="polite">Motor çalışmıyor.</p>
+        <p class="owned-model-path">Yalnız seçtiğin güvenilir llama.cpp çalıştırıcısı kullanılır; model dosyası taraması yapılmaz.</p>
+      </section>
       <section class="local-ai-card" aria-label="Yerel yapay zekâ sunucusu">
         <div class="local-ai-eyebrow"><span class="local-ai-lamp" id="local-model-lamp"></span> YEREL MODEL</div>
-        <p class="local-ai-address">LM Studio · 127.0.0.1:1234</p>
+        <p class="local-ai-address">BellekPad motoru veya harici LM Studio</p>
         <button type="button" id="local-model-refresh" class="local-ai-connect">Modelleri kontrol et ↗</button>
         <p id="local-model-status" class="local-ai-status" role="status" aria-live="polite">Henüz bağlantı denenmedi.</p>
         <label for="local-model-select" class="local-ai-label">Sunucudaki modeller</label>

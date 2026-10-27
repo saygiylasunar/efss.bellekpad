@@ -12,6 +12,10 @@ if (process.isMainFrame) {
       ipcRenderer.invoke("bellekpad:models:chat", { requestId, model, prompt }),
     cancelLocalChat: (requestId) =>
       ipcRenderer.invoke("bellekpad:models:chat:cancel", { requestId }),
+    runnerStatus: () => ipcRenderer.invoke("bellekpad:runner:status"),
+    runnerChoose: (kind) => ipcRenderer.invoke("bellekpad:runner:choose", kind),
+    runnerStart: () => ipcRenderer.invoke("bellekpad:runner:start"),
+    runnerStop: () => ipcRenderer.invoke("bellekpad:runner:stop"),
     openDocument: (kind, id) =>
       ipcRenderer.invoke("bellekpad:documents:open", { kind, id }),
     createDocument: (kind, title) =>

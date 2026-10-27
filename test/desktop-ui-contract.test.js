@@ -27,9 +27,10 @@ test("privileged Electron host enforces sandbox, main-frame and no window escape
   assert.doesNotMatch(main, /shell\.openExternal/);
 });
 
-test("preload exposes seven guarded actions without generalized remote execution", () => {
+test("preload exposes eleven guarded actions without generalized remote execution", () => {
   const preload = read("desktop/preload.cjs");
-  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft", "listLocalModels", "chatLocalModel", "cancelLocalChat"])
+  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft", "listLocalModels", "chatLocalModel", "cancelLocalChat",
+    "runnerChoose", "runnerStart", "runnerStop", "runnerStatus"])
     assert.match(preload, new RegExp(method + ":"));
   assert.doesNotMatch(preload, /ipcRenderer\.send\(/);
   assert.doesNotMatch(preload, /on: ipcRenderer\.on/);
@@ -72,6 +73,28 @@ test("AI-0.2 prompt-only explicit chat through fixed main-process IPC, with canc
   assert.doesNotMatch(ui,/fetch\(/);
   assert.match(css,/\.local-chat-panel\[hidden\]\{display:none\}/);
   assert.match(html,/connect-src 'none'/);
+});
+
+test("owned GGUF controls use native file picker and strictly scoped IPC, no renderer paths", () => {
+  const main=read("desktop/main.js");
+  const preload=read("desktop/preload.cjs");
+  const html=read("desktop/ui/index.html");
+  const ui=read("desktop/ui/app.js");
+  const security=read("desktop/security.js");
+  for (const id of ["owned-runner-choose-engine","owned-runner-choose-model",
+    "owned-runner-start","owned-runner-stop","owned-runner-status"])
+    assert.ok(html.includes('id="'+id+'"'));
+  assert.match(main,/dialog\.showOpenDialog/);
+  assert.match(main,/createOwnedModelRunner/);
+  assert.match(main,/models\.useOwned/);
+  assert.match(main,/runner\.stop\(\)/);
+  assert.match(preload,/runnerStart: \(\) => ipcRenderer\.invoke/);
+  assert.match(preload,/runnerChoose: \(kind\) => ipcRenderer\.invoke/);
+  assert.match(security,/bellekpad:runner:start/);
+  assert.match(ui,/call\("runnerChoose",kind\)/);
+  assert.match(ui,/call\("runnerStart"\)/);
+  assert.match(ui,/call\("runnerStop"\)/);
+  assert.doesNotMatch(ui,/fetch\(/);
 });
 
 test("custom editor input adapter owns typing, IME and undo, not the document vault", () => {

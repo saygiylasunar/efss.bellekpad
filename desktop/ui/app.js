@@ -27,7 +27,10 @@ const nodes = Object.fromEntries([
   "local-model-select", "local-model-selected", "local-model-lamp",
   "local-model-open-chat", "local-chat-panel", "local-chat-close",
   "local-chat-model", "local-chat-prompt", "local-chat-send",
-  "local-chat-stop", "local-chat-status", "local-chat-answer"
+  "local-chat-stop", "local-chat-status", "local-chat-answer",
+  "owned-runner-choose-engine", "owned-runner-choose-model",
+  "owned-runner-engine", "owned-runner-model",
+  "owned-runner-start", "owned-runner-stop", "owned-runner-status"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -435,11 +438,77 @@ window.addEventListener("keydown", event => {
   }
 });
 
+let runnerOperationPending=false;
+let managedRunnerReady=false;
 let modelCheckPending = false;
 let modelChatPending = false;
 let modelChatRequestId = null;
 let modelChatSerial = 0;
 let discoveredModels = new Set();
+function updateRunnerButtons(state = {}) {
+  const busy = runnerOperationPending;
+  const running = managedRunnerReady;
+  nodes["owned-runner-choose-engine"].disabled=busy||running;
+  nodes["owned-runner-choose-model"].disabled=busy||running;
+  nodes["owned-runner-start"].disabled=busy||running;
+  nodes["owned-runner-stop"].disabled=busy||!running;
+  if (typeof state.engine === "string")
+    nodes["owned-runner-engine"].textContent=state.engine;
+  if (typeof state.model === "string")
+    nodes["owned-runner-model"].textContent=state.model;
+}
+async function selectRunnerFile(kind) {
+  if (runnerOperationPending || managedRunnerReady) return;
+  runnerOperationPending=true;updateRunnerButtons();
+  try {
+    const state=await call("runnerChoose",kind);
+    updateRunnerButtons(state);
+    nodes["owned-runner-status"].textContent="Motor ve GGUF hazır olduğunda Başlat'a bas.";
+  } catch {
+    nodes["owned-runner-status"].textContent="Dosya seçilemedi. Güvenilir llama-server ve .gguf seç.";
+  } finally {runnerOperationPending=false;updateRunnerButtons();}
+}
+async function startRunner() {
+  if (runnerOperationPending||managedRunnerReady||modelChatPending)return;
+  runnerOperationPending=true;updateRunnerButtons();
+  nodes["owned-runner-status"].textContent="BellekPad modeli yükleniyor…";
+  try {
+    const state=await call("runnerStart");
+    managedRunnerReady=state.ready===true;
+    if (!managedRunnerReady)throw new Error("NOT_READY");
+    nodes["owned-runner-status"].textContent="Model BellekPad tarafından çalıştırılıyor.";
+    await refreshLocalModels();
+  } catch (error) {
+    nodes["owned-runner-status"].textContent=
+      error?.message === "MODEL_RUNNER_NOT_CONFIGURED" ?
+        "Önce llama-server ve GGUF dosyasını seç." :
+      error?.message === "MODEL_RUNNER_TIMEOUT" ?
+        "Model başlatılamadı veya 90 saniye içinde yüklenmedi." :
+        "Model açılamadı. Uyumlu llama.cpp çalıştırıcısını ve GGUF dosyasını denetle.";
+  } finally {runnerOperationPending=false;updateRunnerButtons();}
+}
+async function stopRunner() {
+  if (runnerOperationPending||!managedRunnerReady)return;
+  if (modelChatPending) await cancelLocalChat();
+  runnerOperationPending=true;updateRunnerButtons();
+  try {
+    await call("runnerStop");
+    managedRunnerReady=false;
+    discoveredModels.clear();
+    nodes["local-model-select"].replaceChildren(new Option("Motor kapalı",""));
+    nodes["local-model-select"].disabled=true;
+    toggleChatPanel(false);
+    modelStatus("BellekPad motoru durduruldu.", "offline");
+    nodes["owned-runner-status"].textContent="Motor durduruldu. Harici sunucu isteğe bağlı.";
+  } catch {
+    nodes["owned-runner-status"].textContent="Motor durdurma işlemi tamamlanamadı.";
+  } finally {runnerOperationPending=false;updateRunnerButtons();updateChatButtons();}
+}
+nodes["owned-runner-choose-engine"].addEventListener("click",()=>void selectRunnerFile("engine"));
+nodes["owned-runner-choose-model"].addEventListener("click",()=>void selectRunnerFile("model"));
+nodes["owned-runner-start"].addEventListener("click",()=>void startRunner());
+nodes["owned-runner-stop"].addEventListener("click",()=>void stopRunner());
+updateRunnerButtons();
 function updateChatButtons() {
   const selected = nodes["local-model-select"].value;
   const available = discoveredModels.has(selected) && !modelCheckPending;
@@ -524,7 +593,9 @@ async function refreshLocalModels() {
   nodes["local-model-select"].disabled = true;
   updateChatButtons();
   nodes["local-model-select"].replaceChildren(new Option("Kontrol ediliyor…", ""));
-  nodes["local-model-selected"].textContent = "Yalnızca cihazdaki LM Studio sunucusu sorgulanır.";
+  nodes["local-model-selected"].textContent =
+    managedRunnerReady ? "BellekPad'in çalıştırdığı model sorgulanır." :
+      "İsteğe bağlı harici sunucu (127.0.0.1:1234) sorgulanır.";
   modelStatus("Yerel sunucu kontrol ediliyor…", "checking");
   try {
     const result = await call("listLocalModels");
@@ -546,7 +617,7 @@ async function refreshLocalModels() {
       "Sunucu açık, ancak model bildirmiyor.", "online");
     nodes["local-model-selected"].textContent = models.length ?
       "Model listesi alındı. Sohbet penceresi açılabilir." :
-      "LM Studio'da bir model yükleyip yeniden kontrol edebilirsin.";
+      "Yerel motora GGUF yükleyip veya harici sunucuyu açıp yeniden deneyebilirsin.";
   } catch(error) {
     discoveredModels.clear();
     nodes["local-model-select"].replaceChildren(new Option("Bağlantı kurulamadı", ""));
@@ -557,7 +628,8 @@ async function refreshLocalModels() {
         "Sunucu geçerli model listesi döndürmedi." :
         "LM Studio sunucusuna ulaşılamadı.", "offline");
     nodes["local-model-selected"].textContent =
-      "LM Studio yerel sunucusunu başlat (port 1234), sonra yeniden dene.";
+      managedRunnerReady ? "BellekPad motorunda model yanıtı alınamadı." :
+      "BellekPad motorunu başlat veya LM Studio sunucusunu aç (port 1234).";
   } finally {
     modelCheckPending = false;
     nodes["local-model-refresh"].disabled = false;

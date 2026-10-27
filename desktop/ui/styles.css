@@ -323,3 +323,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
   font-size:11px}
 @media(max-width:650px){.local-chat-panel{right:7px;bottom:7px;
   width:calc(100vw - 14px);max-height:85vh}}
+
+/* Own model control, with explicit native-file selection and stop button. */
+.owned-model-card{border:1px solid #486a56;border-radius:10px;
+  background:#1b2d2c;margin:12px 3px 0;padding:13px 12px;color:#dcebe4}
+.owned-model-help{font-size:11px;line-height:1.5;color:#adc7b8;margin:7px 0 13px}
+.owned-model-path{font-size:10px;line-height:1.5;overflow-wrap:anywhere;
+  margin:7px 0 10px;color:#92aea5}
+.owned-model-actions{display:flex;gap:7px}
+.owned-model-actions .local-ai-connect{flex:1;min-width:0}
+.owned-model-card .local-ai-connect + .local-ai-connect{margin-top:6px}
+.owned-model-card button:disabled{opacity:.42;cursor:not-allowed}

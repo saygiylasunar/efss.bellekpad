@@ -44,5 +44,9 @@ export const DESKTOP_CHANNELS = Object.freeze({
   save: "bellekpad:documents:save",
   models: "bellekpad:models:list",
   chat: "bellekpad:models:chat",
-  chatCancel: "bellekpad:models:chat:cancel"
+  chatCancel: "bellekpad:models:chat:cancel",
+  runnerStatus: "bellekpad:runner:status",
+  runnerChoose: "bellekpad:runner:choose",
+  runnerStart: "bellekpad:runner:start",
+  runnerStop: "bellekpad:runner:stop"
 });

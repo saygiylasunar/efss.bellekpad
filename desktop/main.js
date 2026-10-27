@@ -1,10 +1,11 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, session } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, protocol, session, dialog } from "electron";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDesktopDocumentService } from "../src/desktop-document-service.js";
 import { LocalDocumentVault } from "../src/local-document-vault.js";
 import { createDesktopModelService } from "./local-model-service.js";
+import { createOwnedModelRunner } from "./owned-model-runner.js";
 import {
   APP_HOME, DESKTOP_CHANNELS, isTrustedEditorFrame, resolveBundledAsset
 } from "./security.js";
@@ -31,7 +32,11 @@ const knownErrors = new Set([
   "BAD_MODEL_LIST", "BAD_MODEL", "PROVIDER_HTTP_ERROR",
   "TRANSPORT_ERROR", "TIMEOUT", "BAD_RESPONSE",
   "RESPONSE_TOO_LARGE", "MODEL_LIST_TOO_LARGE",
-  "INVALID_CHAT_REQUEST", "MODEL_BUSY", "CANCELLED", "BAD_CHAT_RESPONSE", "BAD_INPUT"
+  "INVALID_CHAT_REQUEST", "MODEL_BUSY", "CANCELLED", "BAD_CHAT_RESPONSE", "BAD_INPUT",
+  "MODEL_RUNNER_BUSY", "MODEL_RUNNER_INVALID_FILE", "MODEL_RUNNER_BAD_ENGINE",
+  "MODEL_RUNNER_BAD_MODEL", "MODEL_RUNNER_START_FAILED", "MODEL_RUNNER_EXITED",
+  "MODEL_RUNNER_TIMEOUT", "MODEL_RUNNER_NOT_CONFIGURED", "MODEL_RUNNER_CANCELLED",
+  "MODEL_RUNNER_INVALID_PATH", "MODEL_RUNNER_INTERNAL"
 ]);
 
 function trustedRequest(event) {
@@ -44,7 +49,7 @@ function trustedRequest(event) {
     });
 }
 
-function bindDesktopAPI(service, models) {
+function bindDesktopAPI(service, models, runner) {
   const operations = {
     [DESKTOP_CHANNELS.list]: () => service.list(),
     [DESKTOP_CHANNELS.open]: payload => service.open(payload),
@@ -52,7 +57,33 @@ function bindDesktopAPI(service, models) {
     [DESKTOP_CHANNELS.save]: payload => service.saveDraft(payload),
     [DESKTOP_CHANNELS.models]: () => models.list(),
     [DESKTOP_CHANNELS.chat]: payload => models.chat(payload),
-    [DESKTOP_CHANNELS.chatCancel]: payload => models.cancel(payload)
+    [DESKTOP_CHANNELS.chatCancel]: payload => models.cancel(payload),
+    [DESKTOP_CHANNELS.runnerStatus]: () => runner.status(),
+    [DESKTOP_CHANNELS.runnerChoose]: async payload => {
+      if (payload !== "engine" && payload !== "model")
+        throw new Error("MODEL_RUNNER_INVALID_PATH");
+      const selected = await dialog.showOpenDialog(window, {
+        title: payload === "engine" ? "llama-server çalıştırıcısını seç" :
+          "Yerel GGUF modelini seç",
+        properties: ["openFile"],
+        filters: payload === "model" ?
+          [{name:"GGUF",extensions:["gguf"]}] :
+          process.platform === "win32" ?
+            [{name:"llama-server",extensions:["exe"]}] :
+            [{name:"Bütün dosyalar",extensions:["*"]}]
+      });
+      if (selected.canceled || selected.filePaths.length !== 1) return runner.status();
+      return runner.choose(payload, selected.filePaths[0]);
+    },
+    [DESKTOP_CHANNELS.runnerStart]: async () => {
+      const started = await runner.start();
+      models.useOwned({endpoint:started.endpoint,token:started.apiKey});
+      return runner.status();
+    },
+    [DESKTOP_CHANNELS.runnerStop]: () => {
+      models.useExternal();
+      return runner.stop();
+    }
   };
   for (const [channel, run] of Object.entries(operations)) {
     ipcMain.handle(channel, async (event, payload) => {
@@ -135,8 +166,9 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionCheckHandler(() => false);
   const vault = new LocalDocumentVault({ root: join(app.getPath("userData"), "vault") });
   const models = createDesktopModelService();
-  bindDesktopAPI(createDesktopDocumentService({ vault }), models);
-  app.on("before-quit", () => models.dispose());
+  const runner = createOwnedModelRunner();
+  bindDesktopAPI(createDesktopDocumentService({ vault }), models, runner);
+  app.on("before-quit", () => {models.dispose(); runner.stop();});
   createEditorWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createEditorWindow();
