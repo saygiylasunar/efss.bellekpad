@@ -5,6 +5,8 @@
 
 > **🧭 GELİŞTİRME DEVRİ / AKTİF ROADMAP:** [docs/DEV_HANDOFF.md](docs/DEV_HANDOFF.md) — güncel durum, tamamlanan dilimler, G0.6'dan itibaren öncelikler, dosya haritası, test kapıları ve yeni sohbet başlangıç talimatı. **Yeni çalışmaya bu dosyadan başla.**
 
+**🧪 BellekPad 0.3.0-beta.1 — Windows sınırlı teknik beta adayı.** İlk portable `BellekPad.exe` ZIP'i, Node ve gerçek Windows GUI kontrollerinden geçirilerek GitHub Actions artefaktı olarak hazırlandı. **Kurulum programı, dijital imza, otomatik yedekleme/kurtarma ve kararlı sürüm değildir.** Önemli belgelerin tek kopyasını betada saklama. [Beta kapsamı, indirme ve bilinen riskler](docs/BETA_PREVIEW.md) · [Windows artefakt işi](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263).
+
 Local-first experimental EFSS Markdown and contextual-memory kernel. Own Markdown parser, AST, source-linked references and offline document vault. **A stored value is not automatically a fact or the current state of a real-world object.**
 
 ## Symbol contract (P1.4 cleanup)

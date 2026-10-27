@@ -2,7 +2,7 @@
 
 > **28 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active delivery: AI-0.2 explicit local model chat + cancellation; G0.7B partial checklist/table; early G0.9 Inspector / v0.2.8 (28.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active delivery: limited Windows portable beta 0.3.0-beta.1 candidate + AI-0.2, G0.7B partial and early Inspector (28.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -147,3 +147,8 @@ Verified implementation code `27e75fad569cc9dc3c3b9a356a60370da84cf91e`: the lef
 ## AI-0.2 — explicit chat, cancellation, no document transfer (28.10.2026)
 
 Code `95462f0`: model is selected from the local list; user explicitly submits one prompt via fixed loopback `POST /v1/chat/completions`; response is shown as read-only text in a separate panel. A requestId-scoped IPC cancel aborts in-flight operation. No document text is automatically sent or changed. **309/309 Node + sanity + real Windows/Linux Electron GUI smoke** with a synthetic local HTTP model. **No real LM Studio GGUF inference was tested.** [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40587434854) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40587434834) · [AI IPC contract](AI_DESKTOP_IPC.md).
+
+## Limited beta candidate — Windows portable v0.3.0-beta.1 (28.10.2026)
+
+`335fa45` main: Beta packaging uses only approved Electron runtime dependencies without adding an installer framework or traversing local notes/model paths. Successful [beta artifact job](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263): **312/312 Node**, source sanity, native Windows Electron GUI smoke, bundle hash/manifest verifier and ZIP artifact generation. Artifact lives **seven days** in GitHub Actions, not an automatically published Release. Windows cross-platform test path regressions were fixed before acceptance. **Packaging verified; actual beta ZIP extracted and executed on user Windows host not yet verified**. Known beta blockers: first-party backup/export and recovery, physical IME, lockfile, signing. [Limitations](BETA_PREVIEW.md).
+

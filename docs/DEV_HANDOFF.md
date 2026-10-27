@@ -2,8 +2,10 @@
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
 > Güncelleme: **28 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan durum: **AI-0.2 yerel tek turlu sohbet ve iptal Electron'a bağlandı**, G0.7B kısmi ve erken Inspector / v0.2.8. Kod commit'i **95462f0a7eb29c54a3b77a34b9088e802bf729eb**. **309/309 Node, kaynak denetimi ve gerçek Windows/Linux Electron GUI smoke başarılı (sahte yerel OpenAI-compatible HTTP sunucu).** [Ürün yönü](PRODUCT_DIRECTION.md) · [AI IPC](AI_DESKTOP_IPC.md). **Gerçek LM Studio modeliyle inference henüz test edilmedi.**
+> Doğrulanan durum: **AI-0.2 yerel tek turlu sohbet ve iptal Electron'a bağlandı**, G0.7B kısmi ve erken Inspector / **v0.3.0-beta.1 sınırlı beta adayı**. Kod commit'i **95462f0a7eb29c54a3b77a34b9088e802bf729eb**. **309/309 Node, kaynak denetimi ve gerçek Windows/Linux Electron GUI smoke başarılı (sahte yerel OpenAI-compatible HTTP sunucu).** [Ürün yönü](PRODUCT_DIRECTION.md) · [AI IPC](AI_DESKTOP_IPC.md). **Gerçek LM Studio modeliyle inference henüz test edilmedi.**
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **28.10.2026 BETA PAKETLEME KAPISI:** `0.3.0-beta.1` sürümü Windows portable `BellekPad.exe` klasörü olarak GitHub Actions'ta üretildi. **Beta-portable-windows iş akışı başarılı**: 312/312 Node, privacy/sanity, gerçek Windows Electron GUI ve Windows portable paket dosyalarının manifest+SHA256 doğrulaması. [Koşu ve indirme](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263). Henüz kullanıcı PC'sinde paket açılışı, export/backup, crash recovery, imzalama, Linux portable ve gerçek LM Studio inference kabul edilmedi. **Bundan sonrası beta stabilizasyonu**; sürüm ismi tamamlanmamış özellikleri tamamlamaz. [Sınırlar](BETA_PREVIEW.md).
 
 > **28.10.2026 AI-0.2 SOHBET / İPTAL:** Kullanıcı model seçip ayrı sohbet penceresine kendi mesajını yazdıktan sonra gönderebilir. İstek yalnız sabit loopback sunucusuna, dar IPC ile iletilir; yanıt metin olarak gösterilir. Tek etkin istek, iptal, hata, veri uzunluğu sınırları mevcut. Notlar hiçbir şekilde otomatik prompt'a eklenmez veya yanıtla değiştirilmez. Gerçek Electron + mock HTTP testinde sohbet, iptal, kaynak veri gizliliği çalıştı. Kod `95462f0`, **309/309 + Windows/Linux smoke yeşil**. Gerçek LM Studio inference ayrı kullanıcı kabulü gerektirir.
 
@@ -161,16 +163,17 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Sıradaki doğrulanabilir ürün işleri
+## 5. Beta kapısı ve sıradaki teslimler
 
-**AI-0.2 kabul edildi:** BellekPad'de model listesinden seçim, açıkça gönderilen kullanıcı prompt'u, salt okunur yanıt paneli, iptal ve hata/timeout akışı çalışıyor. Gerçek Windows ve Linux Electron üzerinde sahte loopback HTTP modeli ile doğrulandı. Gerçek LM Studio üzerinde kullanıcı testi henüz yapılmadı.
+**Sınırlı Windows beta adayı 0.3.0-beta.1 artık derleniyor:** `54afd19` paket altyapısı, `335fa45` Windows test düzeltmesi, başarılı [beta-portable-windows 40591123263](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263). **312/312 Node, sanity, gerçek Windows GUI smoke + offline portable manifest/SHA256 yeşil.** Artefakt yalnız Actions'ta 7 gün saklanır; kararlı public release ve imzalı installer değildir.
 
-1. **G0.7B tablo nesneleri:** Kullanıcının seçtiği satırı silme ve sütun ekle/sil → gerçek Inspector UI → Undo/Redo → EFSS roundtrip ve kasa kaydet/aç.
-2. **AI-0.3:** Sohbeti birden fazla tura genişletme veya streaming değerlendirmesi; kullanıcı onayıyla yanıtı kopyalama veya nota ekleme. AI-0.2'de yanıt yalnız salt okunur, sohbet tek tur.
-3. **G0.6C doğal yazma kabulü:** gerçek fiziksel IME, trailing Shift+Enter, zengin çok satır, çoklu seçim ve yapıştırma.
-4. **G0.8/9:** Artboard ve kapsamlı Inspector; ileride ComfyUI görsel iş akışları.
+1. **Beta veri güvenliği (öncelik 1):** Uygulama içinden kullanıcı eylemiyle gerçek belge **export/backup**, sonra import/restore; çakışma/bozuk veri ve kapanma sonrası geri-kurtarma. Yeni kullanıcı mevcut verisini kaybetmemeli; istenen dosyadan izinsiz okuma yok.
+2. **İlk kullanıcı kabulü:** Kendi Windows cihazında ZIP'i çıkar → exe aç → nota Türkçe/emoji yaz → kaydet → kapat/aç → veriyi karşılaştır. LM Studio'da gerçek modelle test ayrı. Başarılı CI, bu manuel kabulü yerine geçmez.
+3. **Beta giriş kararlılığı:** Fiziksel IME/clipboard, son satır Shift+Enter, uzun yazım ve yeni pencere/kilitlenme, kaynak/Flow tutarlılığı. Her düzeltme hem Node hem Win/Linux smoke.
+4. **Görünür ürün:** G0.7B tablo seçili satır/sütun, AI-0.3 isteğe bağlı yanıt kopyalama/nota ekleme, sonra artboard ve geniş Inspector. Betaya geçiş bu işleri iptal etmez.
+5. **Dağıtım olgunlaşması:** Lockfile/tekrarlanabilir bağımlılık, Windows paket üzerinde doğrudan başlatma/doğrulama, kod imzası, installer/update kararı; sonra geniş beta.
 
-**Kısıtlar:** `saygiylasunar/efss.bellekpad` yalnız `main`; yeni branch/repo veya kullanıcı izni dışında model klasörü taraması yok. Tek kaynak, IPC güvenliği, gerçek Win/Linux testleri korunur.
+**Değişmez:** Doğru `saygiylasunar/efss.bellekpad` `main`. Başka branch/repo veya izinsiz dış editör yok. **Beta sınırlı; veri kaybı riski açık.** [Beta kontrol listesi](BETA_PREVIEW.md).
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -226,6 +229,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbet devri
 
-> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden sürdür. `docs/DEV_HANDOFF.md`, `docs/PRODUCT_DIRECTION.md` ve `docs/AI_DESKTOP_IPC.md` ile HEAD/CI'yi denetle. AI-0.2 sohbet ve iptal `95462f0` üzerinde **309/309 test ve gerçek Win/Linux Electron mock-local HTTP** ile doğrulandı; gerçek LM Studio inference kullanıcı ortamında test edilmeli. Sırada görünür G0.7B tablo satır/sütun kontrolleri, AI-0.3 kullanıcı kontrollü cevap aktarımı ve G0.6C güvenilir yazım var. Doğru repo/main, tek belge kaynağı, izinsiz branch/kütüphane ekleme.”
+> “BellekPad'i `saygiylasunar/efss.bellekpad` `main` üzerinden sürdür. `docs/BETA_PREVIEW.md`, `docs/DEV_HANDOFF.md` ve gerçek Actions HEAD'ini oku. Sınırlı Windows portable **0.3.0-beta.1** beta paketi `335fa45` başında Actions `40591123263` üzerinde **312/312 Node, gerçek Windows Electron smoke, paket SHA256 kontrolü** ile üretildi. **Kullanıcının Windows cihazında çalıştırma ve yedek/kurtarma henüz yok**; geniş beta diye ilan etme. Şimdi öncelik uygulamadan güvenli yedek/dışa aktarma, sonra recovery/IME ve manuel portable kabulü. Sadece doğru repo ve main, veri güvenliği, geri alma ve Win/Linux smoke.”
 
-**Nihai kapsam onayı kullanıcıya aittir.**
+**Kullanıcının ürün kapsamındaki nihai kararı esastır.**

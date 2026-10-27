@@ -46,6 +46,10 @@ BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne 
 
 **6 · İleri AI/medya/çıktı — G1+.** ComfyUI görsel stüdyo, bağlamsal RAG, model değerlendirmesi, yüksek kalite PDF/vector/raster dışa aktarma. Temel LLM bağlantısını G1+'a kadar zorunlu bekletme.
 
+## Beta adayına geçiş — 28.10.2026
+
+**0.3.0-beta.1 Windows portable sınırlı teknik beta adayı** `main` üzerinde gerçek Windows CI'dan paket olarak alınabiliyor. Bu, **ürün kapsamını küçültmeden teste açmak** için ara eşik: artboard, gelişmiş tablolar ve kapsamlı model kontrolü tamamlanmış değildir. İlk kullanıcı kabulünden ve yedekleme/kurtarma güvencelerinden önce geniş genel beta veya kararlı ürün ilan edilmeyecek. [Beta kapıları](BETA_PREVIEW.md).
+
 ## Teslim tanımı
 
 Bir özellik **hazır** yalnız şu koşullarda denebilir: (1) uygulama içinden erişilir, (2) kaynakta veya sürümlü varlıkta saklanır, (3) Undo/Redo varsa doğrulanır, (4) Windows ve Linux gerçek Electron smoke yeşildir, (5) sınırlamalar açıkça yazılmıştır. Pazar/ürün nihai yönü ve tasarım kararlarında son onay kullanıcıya aittir.

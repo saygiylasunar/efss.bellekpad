@@ -24,6 +24,8 @@ npm run beta:verify
 
 Çıktı: `dist/BellekPad-0.3.0-beta.1-win32-x64/`, içerisinde `BellekPad.exe`. **Dosya klasör olarak çıkarılır**; ZIP içerisinden doğrudan çalıştırılmaz.
 
+**Doğrulanan Windows build:** [GitHub Actions beta-portable-windows #40591123263](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263), **312/312 Node, Windows Electron GUI ve bağımsız SHA256 manifest denetimi başarılı**. Artifact: `BellekPad-Windows-limited-beta` (yaklaşık 163 MB; 7 gün saklanır). GitHub'da Actions koşusunu açıp **Artifacts** bölümünden indir. GitHub artifact ZIP'inin içindeki **ikinci ZIP** taşınabilir uygulamadır; aynı yerdeki `.sha256` değerine göre doğrula, sonra ikinci ZIP'i açıp `BellekPad.exe` çalıştır.
+
 GitHub Actions `beta-portable-windows` işi önce çekirdek/Node/gerçek Windows Electron smoke koşar, sonra Windows portable klasörünü ZIP'ler ve SHA256 oluşturur. Başarılıysa **Actions → beta-portable-windows → Artifacts** altında **7 gün** tutulur. **Kendiliğinden bir GitHub Release veya yayınlanan kurulum paketi oluşturmaz**. Başarısız işte beta indirme paketi kabul edilmiş sayılmaz.
 
 ## İlk çalıştırmada dikkat
@@ -40,7 +42,7 @@ GitHub Actions `beta-portable-windows` işi önce çekirdek/Node/gerçek Windows
 | --- | --- |
 | Kaynak ve gizlilik kontrolü, Node testleri | CI tarafından doğrulanır |
 | Windows/Linux gerçek Electron GUI | CI tarafından doğrulanır |
-| Windows portable EXE ZIP ve manifest | Ayrı beta paketleme iş akışı; başarı durumu takip edilir |
+| Windows portable EXE ZIP ve manifest | ✅ Windows CI / 40591123263 doğrulandı; kullanıcı makinesinde ilk çalıştırma bekliyor |
 | Gerçek Windows kullanıcı makinesinde ilk açılış ve yeniden açılış | Kullanıcı kabulü bekleniyor |
 | Belge yedeği / açık kaynak dışa aktarma + kurtarma | **Engel** |
 | Fiziksel Türkçe klavye/IME ve çok satırlı editör güvenilirliği | **Engel** |
