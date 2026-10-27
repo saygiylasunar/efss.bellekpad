@@ -7,6 +7,7 @@ on:
       - scripts/package-beta.mjs
       - scripts/verify-beta.mjs
       - test/beta-package.test.js
+      - test/desktop-bridge.test.js
       - .github/workflows/beta-portable.yml
   workflow_dispatch:
 permissions:
