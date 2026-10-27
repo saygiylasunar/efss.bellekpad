@@ -439,6 +439,9 @@ window.addEventListener("keydown", event => {
 });
 
 let runnerOperationPending=false;
+let runnerStarting=false;
+let runnerStopping=false;
+let runnerEpoch=0;
 let managedRunnerReady=false;
 let modelCheckPending = false;
 let modelChatPending = false;
@@ -446,19 +449,20 @@ let modelChatRequestId = null;
 let modelChatSerial = 0;
 let discoveredModels = new Set();
 function updateRunnerButtons(state = {}) {
-  const busy = runnerOperationPending;
+  const busy = runnerOperationPending || runnerStopping;
   const running = managedRunnerReady;
-  nodes["owned-runner-choose-engine"].disabled=busy||running;
-  nodes["owned-runner-choose-model"].disabled=busy||running;
-  nodes["owned-runner-start"].disabled=busy||running;
-  nodes["owned-runner-stop"].disabled=busy||!running;
+  nodes["owned-runner-choose-engine"].disabled=busy||running||runnerStarting;
+  nodes["owned-runner-choose-model"].disabled=busy||running||runnerStarting;
+  nodes["owned-runner-start"].disabled=busy||running||runnerStarting;
+  // A real kill switch must stay available *while model weights load*.
+  nodes["owned-runner-stop"].disabled=runnerStopping||!(runnerStarting||running);
   if (typeof state.engine === "string")
     nodes["owned-runner-engine"].textContent=state.engine;
   if (typeof state.model === "string")
     nodes["owned-runner-model"].textContent=state.model;
 }
 async function selectRunnerFile(kind) {
-  if (runnerOperationPending || managedRunnerReady) return;
+  if (runnerOperationPending || runnerStarting || managedRunnerReady) return;
   runnerOperationPending=true;updateRunnerButtons();
   try {
     const state=await call("runnerChoose",kind);
@@ -469,28 +473,38 @@ async function selectRunnerFile(kind) {
   } finally {runnerOperationPending=false;updateRunnerButtons();}
 }
 async function startRunner() {
-  if (runnerOperationPending||managedRunnerReady||modelChatPending)return;
-  runnerOperationPending=true;updateRunnerButtons();
+  if (runnerOperationPending||runnerStarting||managedRunnerReady||modelChatPending)return;
+  runnerOperationPending=true;runnerStarting=true;
+  const epoch=++runnerEpoch;
+  updateRunnerButtons();
   nodes["owned-runner-status"].textContent="BellekPad modeli yükleniyor…";
   try {
     const state=await call("runnerStart");
+    if (runnerEpoch!==epoch) return; // a Stop request superseded the load
     managedRunnerReady=state.ready===true;
     if (!managedRunnerReady)throw new Error("NOT_READY");
     nodes["owned-runner-status"].textContent="Model BellekPad tarafından çalıştırılıyor.";
     await refreshLocalModels();
   } catch (error) {
+    if (runnerEpoch!==epoch) return;
     nodes["owned-runner-status"].textContent=
       error?.message === "MODEL_RUNNER_NOT_CONFIGURED" ?
         "Önce llama-server ve GGUF dosyasını seç." :
       error?.message === "MODEL_RUNNER_TIMEOUT" ?
         "Model başlatılamadı veya 90 saniye içinde yüklenmedi." :
         "Model açılamadı. Uyumlu llama.cpp çalıştırıcısını ve GGUF dosyasını denetle.";
-  } finally {runnerOperationPending=false;updateRunnerButtons();}
+  } finally {
+    if (runnerEpoch===epoch) runnerStarting=false;
+    runnerOperationPending=false;updateRunnerButtons();
+  }
 }
 async function stopRunner() {
-  if (runnerOperationPending||!managedRunnerReady)return;
+  if (runnerStopping || !(runnerStarting || managedRunnerReady)) return;
+  ++runnerEpoch;
+  runnerStarting=false;
+  runnerStopping=true;
+  updateRunnerButtons();
   if (modelChatPending) await cancelLocalChat();
-  runnerOperationPending=true;updateRunnerButtons();
   try {
     await call("runnerStop");
     managedRunnerReady=false;
@@ -502,7 +516,9 @@ async function stopRunner() {
     nodes["owned-runner-status"].textContent="Motor durduruldu. Harici sunucu isteğe bağlı.";
   } catch {
     nodes["owned-runner-status"].textContent="Motor durdurma işlemi tamamlanamadı.";
-  } finally {runnerOperationPending=false;updateRunnerButtons();updateChatButtons();}
+  } finally {
+    runnerStopping=false;updateRunnerButtons();updateChatButtons();
+  }
 }
 nodes["owned-runner-choose-engine"].addEventListener("click",()=>void selectRunnerFile("engine"));
 nodes["owned-runner-choose-model"].addEventListener("click",()=>void selectRunnerFile("model"));
