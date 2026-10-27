@@ -1,8 +1,8 @@
 # EFSS BellekPad — Current status
 
-> **25 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
+> **27 Ekim 2026 güncel ürün yönü ve devir:** [DEV_HANDOFF.md](DEV_HANDOFF.md). Bu dosya kronolojik uygulama notlarını saklar; ilerleme önceliği ve eksikler için devir belgesine bak.
 
-**Active editor delivery: G0.7B partial checklist + safe last-table-row delete; early G0.9 Inspector / v0.2.8 (26.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
+**Active delivery: AI-0.1 desktop local model discovery + G0.7B partial checklist/table; early G0.9 Inspector / v0.2.8 (27.10.2026).** P1.4 schema version 2 remains the EFSS semantic core milestone; the older sections below are chronological implementation history, not the current editor state. Current mainline handoff is [DEV_HANDOFF.md](DEV_HANDOFF.md).
 
 Core present: EFSS Markdown lexer and AST, source-referenced documents, typed variable inspection, immutable constants, Node local document vault, lexical memory search, explicit reviewed relation graph, optional local AI/ComfyUI adapters, model-directory manifests and privacy checks.
 
@@ -137,4 +137,9 @@ Scope now prioritizes **visible end-to-end capabilities**: real tables/checklist
 Source commit `d452657c04ebd3ba200d1ca97ceb8727e669ddb0` — **299/299 Node, privacy gate and real Windows/Linux Electron GUI smoke passed**. Checklist insertion (`- [ ]`), source-owned toggle (`[ ]` ↔ `[x]`), checked Enter→new unchecked task, one-level Tab/Shift+Tab, Undo/Redo, unknown EFSS preservation and actual desktop-vault save/reopen verified. Table Inspector now offers **Delete last row** (only the last body row, while protecting the header and last remaining data row), using parser-verified single replacement + Undo/Redo. User-selected arbitrary row deletion, column editing, spreadsheet paste, physical IME and model GUI IPC are **not shipped**.
 
 [Core CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228052) · [Desktop CI](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40272228049).
+
+
+## AI-0.1 — explicit local model discovery, first desktop IPC (27.10.2026)
+
+Verified implementation code `27e75fad569cc9dc3c3b9a356a60370da84cf91e`: the left sidebar provides **Local Model → Check models**, which invokes a single whitelisted Electron main-process IPC call to existing `OpenAICompatibleProvider.listModels()`, fixed at `127.0.0.1:1234/v1`. No requests on startup, no arbitrary URLs, no renderer `fetch`, no document body or model directories sent. The connection state, local model IDs and offline/error state are visible; the model selection is not yet executable inference. Strict IPC frame validation, redirects rejected, timeout and model-list limits implemented. GUI smoke runs a synthetic loopback HTTP server, verifies listing, choice, disconnect state; **it does not run a real model or LM Studio instance**. **304/304 Node + privacy and Windows/Linux real Electron GUI smoke green.** [Core](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40580561010) · [Desktop](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40580560908). [Details](AI_DESKTOP_IPC.md).
 

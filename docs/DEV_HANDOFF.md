@@ -1,9 +1,11 @@
 # EFSS BellekPad — Devir README'si ve Uygulama Roadmap'i
 
 > **Bu dosya yeni sohbetin birincil devam noktasıdır.**
-> Güncelleme: **26 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
-> Doğrulanan durum: **G0.7B kısmi — tıklanabilir checklist + kontrollü son tablo satırını silme**, G0.9 erken Inspector ve G0.6B.6 kısmi / v0.2.8. Son doğrulanan KOD commit'i **d452657c04ebd3ba200d1ca97ceb8727e669ddb0**. **299/299 Node, sanity/check ve Windows/Linux gerçek Electron GUI smoke başarılı; checklist için gerçek kasa kaydet/aç doğrulandı.** [Ürün yönü](PRODUCT_DIRECTION.md) · [Blok sözleşmesi](BLOCK_BEHAVIOR_SPEC.md). G0.7'nin tamamı bitmedi.
+> Güncelleme: **27 Ekim 2026** | Repository: **saygiylasunar/efss.bellekpad** | Dal: **main**.
+> Doğrulanan durum: **AI-0.1 ilk yerel model keşfi Electron'a bağlandı**, G0.7B kısmi, G0.9 erken Inspector ve G0.6B.6 kısmi / v0.2.8. Son doğrulanan KOD commit'i **27e75fad569cc9dc3c3b9a356a60370da84cf91e**. **304/304 Node, sanity/check ve Windows/Linux gerçek Electron GUI smoke başarılı (sahte loopback HTTP sunucusu üzerinden).** [Ürün yönü](PRODUCT_DIRECTION.md) · [AI IPC sözleşmesi](AI_DESKTOP_IPC.md). **Gerçek LM Studio kurulumu, model inference veya sohbet henüz doğrulanmadı.**
 > Bu belge de commit edileceği için yeni sohbette **önce gerçek HEAD'i ve CI'yi tekrar kontrol et**.
+
+> **27.10.2026 AI-0.1 MASAÜSTÜ İLK MODEL BAĞLANTISI:** Sol panelde yeni Yerel Model kartı, **kullanıcı “Modelleri kontrol et” dediğinde** ana süreç üzerinden `GET http://127.0.0.1:1234/v1/models` çağrısı yapar. Electron `main` trusted-main-frame IPC, sabit loopback URL, Node fetch, timeout, strict parse, redirect reject, gizlilikli hata mesajları; renderer CSP `connect-src 'none'` korunuyor. Dönen geçerli model adları seçilebilir; ancak seçim henüz inference/sohbet başlatmaz. Bağlantı başarısızsa yeniden deneme ve çevrimdışı durum gösterilir; başlangıçta **otomatik ağ isteği yok**. Testte Electron içinde çalıştırılan **sahte yerel HTTP modeli** ile bağlı→bağlantısız akış ve UI doğrulandı. `27e75fa`: **304/304 Node + Windows/Linux desktop smoke yeşil**. **Kullanıcının gerçek LM Studio sunucusuna ve model ağırlıklarına erişimimiz olmadığından gerçek model çalıştırma kanıtlanmadı.** [Kapsam](AI_DESKTOP_IPC.md).
 
 > **26.10.2026 G0.7B İLK TESLİM:** Menüde “Yapılacak görev” bloğu (`- [ ] `) ve doğrudan tıklanabilir görsel checkbox var. `- [x]` ↔ `- [ ]` değişikliği yalnız tek karakter kaynak işlemi; Undo/Redo, tamamlanmış görevden Enter ile yeni boş görev, tek seviye Tab/Shift+Tab, Backspace ve kaydet-aç GUI regresyonlarından geçti. Tablo Inspector'ına **“Son satırı sil”** geldi: yalnız son veri satırını ve en az bir veri satırının korunmasını destekler. Silme tek Undo/Redo işlemi, tekrar parse ve opaque EFSS byte denetimli. **`62e7a6a` (checklist) → `d452657` (satır silme), 299/299 Node + gerçek Win/Linux Electron smoke yeşil.** G0.7B'nin tümü **bitmedi**: seçili herhangi satırı silme, sütun ekle/sil, grid paste, tüm GFM biçimleri/IME yok.
 
@@ -157,16 +159,16 @@ src/local-document-vault.js        [yerel veri: Electron userData/vault]
 
 PDF/Print-to-PDF, PNG/WebP raster export ve DPI/kalite/sıkıştırma, text-to-outlines, ileri baskı/ICC/bleed, cloud/collaboration ve gelişmiş AI entegrasyonları. **PDF sayfa geometrisi tek bir DPI kavramına indirgenmez**; raster çözünürlük ile fiziksel sayfa ayrıdır. Bunlar metin, tablo ve artboard doğruluğundan önce iş kapsamına alınmaz.
 
-## 5. Somut sıradaki değer teslimleri
+## 5. Sonraki somut teslimler — AI hattı açıldı
 
-**G0.7B ilk kesit doğrulandı (`d452657`):** Checklist ekle → metnini görsel yaz → işaretle/işareti kaldır → Enter ile yeni boş görev → Undo/Redo → gerçek yerel kasada kaydet/aç. Tabloda *yalnız son veri satırını* Inspector ile silme, güvenli minimum bir veri satırı sınırı. **299/299 Node + Windows/Linux Electron smoke yeşil.**
+**AI-0.1 doğrulandı:** Yerel LM Studio/OpenAI-compatible sunucusunun `127.0.0.1:1234/v1/models` listesini sadece kullanıcı butona basınca Electron IPC ile alıp sol panelde göstermek; bağlantı hatasını GUI'da durumsal sunmak. **Gerçek sunucu sahte HTTP fixture ile test edildi**, kullanıcının bilgisayarındaki LM Studio'dan gerçek bir inference yapılmış değildir. `27e75fa` — **304/304 Node + gerçek Windows/Linux Electron smoke.**
 
-1. **Şimdi ilk yerel LLM masaüstü bağlantısı (AI-0.1) en yakın öncelik.** `src/model-provider.js`'de `OpenAICompatibleProvider` var. Electron main-preload IPC yalnız **127.0.0.1 / loopback** için sınırlı ve açık kullanıcı tetiklemesiyle `/v1/models` durum/isimlerini listelemeli. Aşağıdaki kabul kapıları: trusted frame whitelist, `redirect:"error"`, timeout, response limit, ağ/gizlilik hatalarını kaynaksız söylememe, fake response ile Node ve gerçek GUI smoke. **Gerçek LM Studio inference'i kullanıcı ortamında bağlanmadan gerçekleşti diye sunma.** Sohbet ve kullanıcının belgeye açık onayla aktarımı sonraki ayrı dilimdir. ComfyUI model taramasını otomatik başlatma.
-2. **G0.7B devam:** Mevcut `planTableDeleteLastRow` yeterli değil; bilinçli seçili satırı silme, sütun ekle/sil, hücre paste-grid/selection, daha geniş tablo Inspector semantiği, checklist'in richer marker/caret edge vakaları. Her özellik tek EFSS source ve Undo/Redo üzerinden.
-3. **G0.6C güvenilirlik:** Fiziksel IME, trailing Shift+Enter, çoklu seçim, rich multiline, clipboard, kaydet/aç. Gündelik yazmayı Kaynak sekmesine gönderen kusurları izole edip onar.
-4. **Sonra G0.8 artboard; geniş G0.9 Inspector; G1+ ComfyUI ve gelişmiş AI.** Kalıcı schema olmadan X/Y/W/H veya font dosyası uydurma.
+1. **AI-0.2 — İlk sohbet/inference:** Seçili ID için ayrı **explicit Send** eylemi, dar sadece-loopback `chat/completions` IPC, string prompt boyut sınırları, token/timeout cap, işlemi iptal, error states. **Belgenin içeriğini otomatik gönderme veya yanıtı otomatik belgeye yazma yok**. Node HTTP fixture + gerçek Electron UI smoke; gerçek LM Studio üzerinde kullanıcı testine ayrıca ihtiyaç var. Uzaktan endpoint, API anahtarları ve geniş model dizini taraması kapsam dışı.
+2. **G0.7B — nesne derinliği:** Kullanıcının seçtiği tablo satırını silme, sütun ekle/sil, grid clipboard ve checklist caret/IME durumları. Sade GFM kaynak sınırlarını ve tek Undo/Redo'yu koru.
+3. **G0.6C — yazım güvenilirliği:** Fiziksel IME, sonda Shift+Enter, çoklu rich seçim ve kaynak/Flow roundtrip; normal yazımda Kaynağı düzenle zorunluluğunu azalt.
+4. **G0.8 artboard + G0.9 genel Inspector:** Sürümlemeli EFSS geometry, sayfa düzeni, metin kutusu, katman/asset özellikleri, görsel ürün standardı. ComfyUI stüdyo sonraki AI dikeyi; CLI model dizinleri izinsiz taranmaz.
 
-**Kısıtlar:** Sadece `saygiylasunar/efss.bellekpad` **main**. Yeni branch yok. Dış kütüphane/editor bağlama veya kullanıcı model klasörlerini izinsiz tarama yok. Her kabulde Node, Windows/Linux Electron, kaynak roundtrip, unknown EFSS ve Undo/Redo.
+**Değişmez:** Sadece `saygiylasunar/efss.bellekpad` **main**. Yeni branch yok. Kullanıcı onayı olmadan model/belge dış sunucuya gönderme yok. Tüm teslimler Node, GUI Windows/Linux, yerel kasa ve kaynak bütünlüğü.
 
 ## 6. Kanonik kod/test dosya haritası
 
@@ -222,6 +224,6 @@ Node minimum 20, CI Node 22 — geliştirmede Node 22 uygun. \`npm run desktop:s
 
 ## 9. Yeni sohbet devri
 
-> “BellekPad'i `saygiylasunar/efss.bellekpad` / `main` üzerinden geliştir. `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md` ve güncel HEAD/CI'yi oku. **G0.7B kısmi** `d452657`: tıklanabilir Markdown checklist, Enter, Undo/Redo, gerçek kasa kaydet/aç; tabloda Inspector'dan yalnız **son veri satırını** atomik silme; **299/299 test ve gerçek Windows/Linux Electron yeşil**. Şimdi **dar güvenli yerel LLM modellerini listeleme IPC + UI kesitine** geç; asla internet endpoint'i veya kullanıcı dosyası taramayı varsayılan etkinleştirme. Tam sohbet/inference/ComfyUI'ı doğrulanmadan tamamlandı diye ilan etme. Sonra kalan tablo/IME/artboard görevlerini ilerlet. Yeni branch/repo/harici editör açma.”
+> “BellekPad'i `saygiylasunar/efss.bellekpad` `main`'den geliştir. `docs/PRODUCT_DIRECTION.md`, `docs/DEV_HANDOFF.md` ve yeni `docs/AI_DESKTOP_IPC.md`'yi oku. **AI-0.1 kodu `27e75fa` kabul:** user-click `GET /v1/models` sabit `127.0.0.1:1234` üzerinden, main-only IPC, sol panel bağlantı/model listesi, offline state; **304/304 Node ve gerçek Win/Linux smoke (sahte loopback server)**. Gerçek LM Studio inference **yapılmadı**. Sırada **AI-0.2: kullanıcı tarafından başlatılan chat, iptal ve hata UI**, belgenin otomatik paylaşılmaması/yazılmaması; sonra G0.7B tablo kolonları ve G0.6C fiziksel IME. Yeni repo/branch/framework yok.”
 
-**Nihai ürün ve kullanım kararları kullanıcıda.**
+**Nihai ürün kararları kullanıcıdadır; uygulanmayan işleri tamamlandı sayma.**

@@ -1,6 +1,6 @@
 # BellekPad — Ürün Yörüngesi ve Teslim Ölçütleri
 
-Tarih: **26 Ekim 2026** · Kanonik repository: `saygiylasunar/efss.bellekpad` · Dal: `main`
+Tarih: **27 Ekim 2026** · Kanonik repository: `saygiylasunar/efss.bellekpad` · Dal: `main`
 
 Bu belge **uygulama kapsamını bağlamak** içindir, kullanıcı onayı olmadan özelliklerin son tasarımını kesinleştirmez. Güncel mühendislik ilerlemesi [DEV_HANDOFF](DEV_HANDOFF.md), bloklar [BLOCK_BEHAVIOR_SPEC](BLOCK_BEHAVIOR_SPEC.md).
 
@@ -38,7 +38,7 @@ BellekPad salt Markdown alanı değil: **yerel öncelikli, görsel olarak nesne 
 
 **2 · Zengin nesneler — G0.7.** **G0.7A doğrulandı:** 3×3 kaynak tablosu ekleme, hücreye yazma/silme, Tab/Shift+Tab, satır ekleme, Undo/Redo ve yerel kasa kaydet-aç. **G0.7B ilk kesit tamamlandı:** görsel checkbox kontrolü, tamamlanmış görevden Enter ile yeni boş görev, Undo/Redo/kasa kaydet-aç ve Inspector'dan **yalnız son tablo veri satırını silme**. **Kalanlar:** seçili herhangi satır, sütun ekleme/silme, çoklu hücre seçimi, spreadsheet clipboard, gelişmiş Inspector ve fiziksel IME. Güvenli GFM sınırları korunacak.
 
-**3 · Yerel modelin masaüstüyle ilk bağlantısı — paralel dikey.** `OpenAICompatibleProvider` için loopback-only, doğrulanmış model listesi + durum; Electron ana süreçte minimal whitelist IPC; sonraki adımda seçili modeli kullanarak isteğe bağlı sohbet/işleme. LM Studio gibi sunucu dışarıda çalışır. Hata/iptal/UI testleri gereklidir, metin yalnız açık onayla belgeye aktarılır. ComfyUI workflow/kuyruk/galeri ayrı sonraki AI dikeyidir. **G0.8/G0.9'un tümü bitmeden ilk LLM bağlanabilir.**
+**3 · Yerel model / AI-0.1 başladı.** Sabit `127.0.0.1:1234`, whitelist main IPC, kullanıcı isteğiyle sunucu durumunu ve model listesini gösterme **çalışıyor; fake local HTTP+real Electron GUI doğrulandı**. **AI-0.2** sıradaki gerçek kullanıcı işlemi: açıkça başlatılan, seçili modelle sohbet/inference ve iptal/hata; kullanıcının belgesi asla otomatik gönderilmez. Gerçek LM Studio model çalıştırma hâlâ test edilmedi. ComfyUI ayrı AI dikeyidir.
 
 **4 · Artboard / Layout — G0.8.** Sayfa boyutu, TextFrame, vektör ölçüler, snap, grid/row/column, overflow işareti, özgür çakışmada açık niyet ve kalıcı EFSS layout schema.
 
