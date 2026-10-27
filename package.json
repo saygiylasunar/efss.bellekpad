@@ -1,6 +1,6 @@
 {
   "name": "efss-bellekpad",
-  "version": "0.2.8",
+  "version": "0.3.0-beta.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,7 +18,9 @@
     "sanity:staged": "node scripts/sanity-check.mjs --staged",
     "vault": "node tools/efss-vault.mjs",
     "desktop": "electron .",
-    "desktop:smoke": "electron desktop/smoke.mjs"
+    "desktop:smoke": "electron desktop/smoke.mjs",
+    "beta:package": "node scripts/package-beta.mjs",
+    "beta:verify": "node scripts/verify-beta.mjs"
   },
   "license": "UNLICENSED",
   "main": "desktop/main.js",

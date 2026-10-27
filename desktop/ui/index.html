@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="color-scheme" content="dark">
-  <title>BellekPad — Editor Laboratory</title>
+  <title>BellekPad — Sınırlı Beta</title>
   <!-- Offline Electron shell: NO remote Adobe Fonts requests. See docs/TYPOGRAPHY_ICONOGRAPHY.md. -->
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
@@ -13,7 +13,7 @@
 <body>
   <div class="shell">
     <aside class="sidebar" aria-label="Belge gezgini">
-      <div class="brand"><span class="brand-mark">◈</span><span>bel<span class="em">lek</span>pad<small>EFSS EDITOR LAB</small></span></div>
+      <div class="brand"><span class="brand-mark">◈</span><span>bel<span class="em">lek</span>pad<small>EFSS · BETA ÖNİZLEME</small></span></div>
       <div class="side-heading"><span>ÇALIŞMA ALANI</span><span class="side-icon" data-ui-icon="layers" data-icon-only="true" aria-label="Çalışma alanı"></span></div>
       <button class="create" id="new-document" type="button" data-ui-icon="new">Yeni sayfa</button>
       <div class="side-heading"><span>BELGELER</span><span id="document-count">0</span></div>
@@ -36,7 +36,7 @@
       <header class="header">
         <div class="breadcrumbs"><span>Çalışma Alanı</span><span class="divider">/</span><strong id="crumb-title">Editör laboratuvarı</strong></div>
         <div class="header-actions">
-          <span class="chip" title="G0 — Native input ve dosya köprüsü">G0 · PROTOTİP</span>
+          <span class="chip" title="0.3.0-beta.1 — sınırlı teknik önizleme">0.3 · SINIRLI BETA</span>
           <span class="save-state" id="save-state" role="status" aria-live="polite">Hazır</span>
           <button id="save" class="button primary" data-ui-icon="save" type="button" disabled>Kaydet <kbd>Ctrl S</kbd></button>
         </div>
@@ -137,11 +137,11 @@
           <div class="empty-art">✳</div>
           <span class="eyebrow">EFSS · BELLEKPAD</span>
           <h1>Fikirler için<br><em>kendine ait</em> bir alan.</h1>
-          <p>Bir sayfa oluştur. Metnini yaz. BellekPad onu bu cihazda saklasın. Bu ekran ilk masaüstü editör altyapısıdır; artboard ve zengin düzenleme sıradaki aşamalardır.</p>
+          <p>Bir sayfa oluştur. Metnini yaz. BellekPad onu bu cihazda saklasın. Bu sürüm sınırlı beta önizlemesidir; önemli notlarını ayrıca yedekle. Artboard ve ileri düzenleme henüz tamamlanmadı.</p>
           <button id="start-document" type="button" data-ui-icon="new" class="button primary large">İlk sayfanı oluştur</button>
         </section>
       </main>
-      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · INLINE LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
+      <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.3.0-beta.1 · SINIRLI ÖNİZLEME</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
     </div>
     <section id="local-chat-panel" class="local-chat-panel" aria-label="Yerel modelle sohbet" hidden>
       <div class="local-chat-header">
