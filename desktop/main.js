@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDesktopDocumentService } from "../src/desktop-document-service.js";
 import { LocalDocumentVault } from "../src/local-document-vault.js";
+import { createDesktopModelService } from "./local-model-service.js";
 import {
   APP_HOME, DESKTOP_CHANNELS, isTrustedEditorFrame, resolveBundledAsset
 } from "./security.js";
@@ -26,7 +27,10 @@ const knownErrors = new Set([
   "DOCUMENT_VERSION_CONFLICT", "DOCUMENT_ALREADY_EXISTS",
   "DOCUMENT_TOO_LARGE", "DOCUMENT_BUSY", "UNSAFE_DOCUMENT_FILE",
   "UNSAFE_VAULT_DIRECTORY", "INVALID_DOCUMENT_IDENTITY",
-  "CONSTANT_DEFINITION_IMMUTABLE"
+  "CONSTANT_DEFINITION_IMMUTABLE",
+  "BAD_MODEL_LIST", "BAD_MODEL", "PROVIDER_HTTP_ERROR",
+  "TRANSPORT_ERROR", "TIMEOUT", "BAD_RESPONSE",
+  "RESPONSE_TOO_LARGE", "MODEL_LIST_TOO_LARGE"
 ]);
 
 function trustedRequest(event) {
@@ -39,12 +43,13 @@ function trustedRequest(event) {
     });
 }
 
-function bindDesktopAPI(service) {
+function bindDesktopAPI(service, models) {
   const operations = {
     [DESKTOP_CHANNELS.list]: () => service.list(),
     [DESKTOP_CHANNELS.open]: payload => service.open(payload),
     [DESKTOP_CHANNELS.create]: payload => service.create(payload),
-    [DESKTOP_CHANNELS.save]: payload => service.saveDraft(payload)
+    [DESKTOP_CHANNELS.save]: payload => service.saveDraft(payload),
+    [DESKTOP_CHANNELS.models]: () => models.list()
   };
   for (const [channel, run] of Object.entries(operations)) {
     ipcMain.handle(channel, async (event, payload) => {
@@ -126,7 +131,7 @@ app.whenReady().then(() => {
   });
   session.defaultSession.setPermissionCheckHandler(() => false);
   const vault = new LocalDocumentVault({ root: join(app.getPath("userData"), "vault") });
-  bindDesktopAPI(createDesktopDocumentService({ vault }));
+  bindDesktopAPI(createDesktopDocumentService({ vault }), createDesktopModelService());
   createEditorWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createEditorWindow();

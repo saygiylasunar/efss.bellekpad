@@ -18,6 +18,17 @@
       <button class="create" id="new-document" type="button" data-ui-icon="new">Yeni sayfa</button>
       <div class="side-heading"><span>BELGELER</span><span id="document-count">0</span></div>
       <nav id="document-list" aria-label="Yerel belgeler" class="document-list"></nav>
+      <section class="local-ai-card" aria-label="Yerel yapay zekâ sunucusu">
+        <div class="local-ai-eyebrow"><span class="local-ai-lamp" id="local-model-lamp"></span> YEREL MODEL</div>
+        <p class="local-ai-address">LM Studio · 127.0.0.1:1234</p>
+        <button type="button" id="local-model-refresh" class="local-ai-connect">Modelleri kontrol et ↗</button>
+        <p id="local-model-status" class="local-ai-status" role="status" aria-live="polite">Henüz bağlantı denenmedi.</p>
+        <label for="local-model-select" class="local-ai-label">Sunucudaki modeller</label>
+        <select id="local-model-select" class="local-ai-select" aria-label="Yerel model" disabled>
+          <option value="">Bağlanılmadı</option>
+        </select>
+        <p id="local-model-selected" class="local-ai-disclaimer">Model keşfi hazır · Sohbet sonraki aşamada.</p>
+      </section>
       <div class="side-bottom"><span class="status-lamp"></span> Yalnızca bu cihazda <small>Bulut bağlantısı kullanılmıyor.</small></div>
     </aside>
     <div class="workspace">

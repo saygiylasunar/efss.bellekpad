@@ -27,13 +27,28 @@ test("privileged Electron host enforces sandbox, main-frame and no window escape
   assert.doesNotMatch(main, /shell\.openExternal/);
 });
 
-test("preload exposes four guarded actions without generalized remote execution", () => {
+test("preload exposes five guarded actions without generalized remote execution", () => {
   const preload = read("desktop/preload.cjs");
-  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft"])
+  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft", "listLocalModels"])
     assert.match(preload, new RegExp(method + ":"));
   assert.doesNotMatch(preload, /ipcRenderer\.send\(/);
   assert.doesNotMatch(preload, /on: ipcRenderer\.on/);
   assert.match(preload, /if \(process\.isMainFrame\)/);
+});
+
+test("local model discovery is explicit, IPC-scoped and never requests arbitrary URLs", () => {
+  const main=read("desktop/main.js");
+  const preload=read("desktop/preload.cjs");
+  const html=read("desktop/ui/index.html");
+  const ui=read("desktop/ui/app.js");
+  assert.match(main,/createDesktopModelService/);
+  assert.match(main,/DESKTOP_CHANNELS\.models/);
+  assert.match(preload,/listLocalModels: \(\) => ipcRenderer\.invoke\("bellekpad:models:list"\)/);
+  assert.match(html,/id="local-model-refresh"/);
+  assert.match(html,/id="local-model-select"/);
+  assert.match(ui,/nodes\["local-model-refresh"\]\.addEventListener\("click"/);
+  assert.doesNotMatch(ui,/fetch\(/);
+  assert.match(html,/connect-src 'none'/);
 });
 
 test("custom editor input adapter owns typing, IME and undo, not the document vault", () => {

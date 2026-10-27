@@ -7,6 +7,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 if (process.isMainFrame) {
   contextBridge.exposeInMainWorld("bellekpadDesktop", Object.freeze({
     listDocuments: () => ipcRenderer.invoke("bellekpad:documents:list"),
+    listLocalModels: () => ipcRenderer.invoke("bellekpad:models:list"),
     openDocument: (kind, id) =>
       ipcRenderer.invoke("bellekpad:documents:open", { kind, id }),
     createDocument: (kind, title) =>

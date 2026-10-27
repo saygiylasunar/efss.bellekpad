@@ -23,7 +23,8 @@ const nodes = Object.fromEntries([
   "inspector-bullet-group", "inspector-bullet-marker",
   "inspector-callout-group", "inspector-callout-variant",
   "inspector-table-group","inspector-table-dimensions","inspector-table-add-row",
-  "inspector-table-delete-row"
+  "inspector-table-delete-row", "local-model-refresh", "local-model-status",
+  "local-model-select", "local-model-selected", "local-model-lamp"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -430,6 +431,67 @@ window.addEventListener("keydown", event => {
     void saveCurrent().catch(() => {});
   }
 });
+
+let modelCheckPending = false;
+// No startup probe: connections to local software are made only on explicit
+// user click. Neither document text nor model-directory paths cross this IPC.
+function modelStatus(message, state) {
+  nodes["local-model-status"].textContent = message;
+  nodes["local-model-status"].dataset.state = state;
+  nodes["local-model-lamp"].dataset.state = state;
+}
+async function refreshLocalModels() {
+  if (modelCheckPending) return;
+  modelCheckPending = true;
+  nodes["local-model-refresh"].disabled = true;
+  nodes["local-model-select"].disabled = true;
+  nodes["local-model-select"].replaceChildren(new Option("Kontrol ediliyor…", ""));
+  nodes["local-model-selected"].textContent = "Yalnızca cihazdaki LM Studio sunucusu sorgulanır.";
+  modelStatus("Yerel sunucu kontrol ediliyor…", "checking");
+  try {
+    const result = await call("listLocalModels");
+    const models = result.models;
+    if (!Array.isArray(models) || models.some(item =>
+        !item || typeof item.id !== "string") || result.checked !== true)
+      throw new Error("BAD_MODEL_LIST");
+    nodes["local-model-select"].replaceChildren();
+    for (const model of models) {
+      nodes["local-model-select"].append(new Option(model.id, model.id));
+    }
+    if (!models.length) {
+      nodes["local-model-select"].append(new Option("Model bulunamadı", ""));
+    } else {
+      nodes["local-model-select"].disabled = false;
+    }
+    modelStatus(models.length ? models.length + " yerel model listelendi." :
+      "Sunucu açık, ancak model bildirmiyor.", "online");
+    nodes["local-model-selected"].textContent = models.length ?
+      "Model listesi alındı. Sohbet ve çıkarım sonraki aşamada." :
+      "LM Studio'da bir model yükleyip yeniden kontrol edebilirsin.";
+  } catch(error) {
+    nodes["local-model-select"].replaceChildren(new Option("Bağlantı kurulamadı", ""));
+    modelStatus(error?.message === "TIMEOUT" ? "Sunucu zaman aşımına uğradı." :
+      error?.message === "PROVIDER_HTTP_ERROR" ? "Yerel sunucu yanıt vermedi." :
+      error?.message === "BAD_MODEL_LIST" || error?.message === "BAD_MODEL" ?
+        "Sunucu geçerli model listesi döndürmedi." :
+        "LM Studio sunucusuna ulaşılamadı.", "offline");
+    nodes["local-model-selected"].textContent =
+      "LM Studio yerel sunucusunu başlat (port 1234), sonra yeniden dene.";
+  } finally {
+    modelCheckPending = false;
+    nodes["local-model-refresh"].disabled = false;
+  }
+}
+nodes["local-model-refresh"].addEventListener("click", () => {
+  void refreshLocalModels();
+});
+nodes["local-model-select"].addEventListener("change", () => {
+  const id=nodes["local-model-select"].value;
+  nodes["local-model-selected"].textContent = id ?
+    "Seçili model: " + id + " · Sohbet sonraki aşamada." :
+    "Model keşfi hazır · Sohbet sonraki aşamada.";
+});
+
 window.addEventListener("beforeunload", event => {
   if (current?.dirty || saving || composing) {
     // Before Electron supports a safe close confirmation, do not promise

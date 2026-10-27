@@ -41,5 +41,6 @@ export const DESKTOP_CHANNELS = Object.freeze({
   list: "bellekpad:documents:list",
   open: "bellekpad:documents:open",
   create: "bellekpad:documents:create",
-  save: "bellekpad:documents:save"
+  save: "bellekpad:documents:save",
+  models: "bellekpad:models:list"
 });

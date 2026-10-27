@@ -241,3 +241,32 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .property-danger{margin-top:8px;background:#402d32;border-color:#704b50;color:#e8c2c4}
 .property-danger:hover:not(:disabled){background:#613a42}
 .property-button:disabled{opacity:.4;cursor:not-allowed}
+
+/* First AI runtime slice: deliberately restrained local connectivity panel. */
+.local-ai-card{border:1px solid #2d484b;background:#1c2a30;border-radius:10px;
+  margin:13px 3px 10px;padding:15px 12px 12px;min-width:0}
+.local-ai-eyebrow{color:#b5d3ce;font:700 10px/1.4 var(--font-technical);
+  letter-spacing:.12em;display:flex;align-items:center;gap:8px}
+.local-ai-lamp{width:8px;height:8px;border-radius:50%;background:#6d818b;flex:none}
+.local-ai-lamp[data-state="online"]{background:#9bdec1;box-shadow:0 0 0 3px #315548}
+.local-ai-lamp[data-state="offline"]{background:#cb908b}
+.local-ai-lamp[data-state="checking"]{background:#d9bd8c}
+.local-ai-address{font-size:11px;color:#91abb0;margin:10px 0 13px;font-family:var(--font-technical)}
+.local-ai-connect{width:100%;border:1px solid #486963;background:#29443f;
+  color:#d8f1e7;padding:9px 8px;font-size:11px;border-radius:6px;font-weight:650}
+.local-ai-connect:hover:not(:disabled){background:#385d52}
+.local-ai-connect:disabled{opacity:.52}
+.local-ai-status{font-size:11px;line-height:1.5;color:#a2b7bd;
+  overflow-wrap:anywhere;margin:10px 0 15px;min-height:31px}
+.local-ai-status[data-state="offline"]{color:#deada7}
+.local-ai-status[data-state="online"]{color:#a8d6b9}
+.local-ai-label{display:block;font-size:10px;letter-spacing:.02em;
+  color:#90adb3;margin-bottom:7px}
+.local-ai-select{width:100%;background:#18272d;border:1px solid #3f5860;
+  color:#dce9ee;border-radius:6px;padding:9px 6px;font-size:11px;min-width:0}
+.local-ai-disclaimer{font-size:10px;color:#708f99;line-height:1.55;margin:10px 0 0}
+.sidebar .document-list{min-height:0;flex:1;max-height:none}
+.sidebar .side-bottom{margin-top:0}
+@media(max-height:680px){.sidebar{padding-top:12px}.brand{padding-bottom:12px}
+  .local-ai-card{padding-top:10px;margin-top:5px}
+  .side-bottom{padding-top:7px}.local-ai-status{margin:5px 0 8px}}

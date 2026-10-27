@@ -3,6 +3,7 @@
 import "./main.js";
 import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function retry(label, predicate) {
@@ -25,6 +26,46 @@ async function run() {
   const page = code => win.webContents.executeJavaScript(code, true);
   assert.equal(win.webContents.isDevToolsOpened(), false);
   assert.equal(await page("typeof window.bellekpadDesktop"), "object");
+  // AI-0.1: real Electron main-process IPC reaches a deliberately local,
+  // synthetic OpenAI-compatible HTTP server. No external API or model used.
+  let modelRequests=0;
+  const modelServer=createServer((request,response)=>{
+    modelRequests++;
+    assert.equal(request.method,"GET");
+    assert.equal(request.url,"/v1/models");
+    assert.equal(request.headers.authorization,undefined);
+    response.writeHead(200,{"content-type":"application/json"});
+    response.end(JSON.stringify({data:[
+      {id:"mock-local-qwen",owned_by:"local-test"},
+      {id:"mock-vision",owned_by:"local-test"}
+    ]}));
+  });
+  await new Promise((resolve,reject)=>{
+    modelServer.once("error",reject);
+    modelServer.listen(1234,"127.0.0.1",resolve);
+  });
+  assert.equal(modelRequests,0); // even with an available server, no auto-probe
+  assert.equal(await page("document.querySelector('#local-model-status').textContent"),
+    "Henüz bağlantı denenmedi.");
+  await page("document.querySelector('#local-model-refresh').click()");
+  await retry("local models listed over Electron IPC",()=>
+    page("document.querySelector('#local-model-select').options.length === 2 && " +
+      "document.querySelector('#local-model-status').dataset.state === 'online'"));
+  assert.equal(modelRequests,1);
+  assert.equal(await page("document.querySelector('#local-model-select').options[0].value"),
+    "mock-local-qwen");
+  await page('(() => {const sel=document.querySelector("#local-model-select");' +
+    'sel.value="mock-vision";sel.dispatchEvent(new Event("change"));})()');
+  assert.equal(await page(
+    "document.querySelector('#local-model-selected').textContent.includes('mock-vision')"),true);
+  await new Promise((resolve,reject)=>modelServer.close(error=>error?reject(error):resolve()));
+  await page("document.querySelector('#local-model-refresh').click()");
+  await retry("local model disconnected state",()=>
+    page("document.querySelector('#local-model-status').dataset.state === 'offline'"));
+  assert.equal(await page("document.querySelector('#local-model-select').disabled"),true);
+  assert.equal(await page("document.querySelector('#local-model-select').options.length"),1);
+  assert.equal(await page("document.querySelector('#local-model-lamp').dataset.state"),"offline");
+
   // UI theme and packaged, original vector icons must work completely offline.
   assert.equal(await page("document.querySelector('#undo svg[data-icon=undo]') !== null"), true);
   assert.equal(await page("document.querySelector('#save svg[data-icon=save]') !== null"), true);
