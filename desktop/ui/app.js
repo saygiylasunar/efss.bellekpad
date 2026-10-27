@@ -24,7 +24,10 @@ const nodes = Object.fromEntries([
   "inspector-callout-group", "inspector-callout-variant",
   "inspector-table-group","inspector-table-dimensions","inspector-table-add-row",
   "inspector-table-delete-row", "local-model-refresh", "local-model-status",
-  "local-model-select", "local-model-selected", "local-model-lamp"
+  "local-model-select", "local-model-selected", "local-model-lamp",
+  "local-model-open-chat", "local-chat-panel", "local-chat-close",
+  "local-chat-model", "local-chat-prompt", "local-chat-send",
+  "local-chat-stop", "local-chat-status", "local-chat-answer"
 ].map(id => [id, document.getElementById(id)]));
 
 let current = null;
@@ -433,6 +436,79 @@ window.addEventListener("keydown", event => {
 });
 
 let modelCheckPending = false;
+let modelChatPending = false;
+let modelChatRequestId = null;
+let modelChatSerial = 0;
+let discoveredModels = new Set();
+function updateChatButtons() {
+  const selected = nodes["local-model-select"].value;
+  const available = discoveredModels.has(selected) && !modelCheckPending;
+  nodes["local-model-open-chat"].disabled = !available && !modelChatPending;
+  nodes["local-chat-send"].disabled = modelChatPending || !available ||
+    !nodes["local-chat-prompt"].value.trim();
+  nodes["local-chat-stop"].disabled = !modelChatPending;
+  nodes["local-model-select"].disabled = modelChatPending ||
+    modelCheckPending || discoveredModels.size === 0;
+  nodes["local-model-refresh"].disabled = modelChatPending || modelCheckPending;
+  nodes["local-chat-model"].textContent = available || modelChatPending ?
+    selected || "Yerel model" : "Model seçilmedi";
+}
+function chatStatus(message, state = "idle") {
+  nodes["local-chat-status"].textContent = message;
+  nodes["local-chat-status"].dataset.state = state;
+}
+function toggleChatPanel(show) {
+  nodes["local-chat-panel"].hidden = !show;
+  nodes["local-model-open-chat"].setAttribute("aria-expanded", String(show));
+  if (show) nodes["local-chat-prompt"].focus();
+}
+async function sendLocalChat() {
+  if (modelChatPending || modelCheckPending) return;
+  const model=nodes["local-model-select"].value;
+  const prompt=nodes["local-chat-prompt"].value;
+  if (!discoveredModels.has(model) || !prompt.trim() || prompt.length > 8192) {
+    chatStatus("Geçerli bir model ve mesaj seç.", "error");
+    return;
+  }
+  const requestId = "chat_" + Date.now() + "_" + (++modelChatSerial);
+  modelChatRequestId = requestId;
+  modelChatPending = true;
+  nodes["local-chat-answer"].textContent = "";
+  chatStatus("Yerel model yanıtlıyor…", "running");
+  updateChatButtons();
+  try {
+    const answer = await call("chatLocalModel", requestId, model, prompt);
+    if (answer?.model !== model || typeof answer?.content !== "string")
+      throw new Error("BAD_CHAT_RESPONSE");
+    // Never interpret model output as HTML, Markdown instructions, or code.
+    nodes["local-chat-answer"].textContent = answer.content;
+    chatStatus("Yanıt alındı. Belgen değiştirilmedi.", "success");
+  } catch(error) {
+    const code=error?.message;
+    chatStatus(code === "CANCELLED" ? "İstek iptal edildi." :
+      code === "TIMEOUT" ? "Yerel model zaman aşımına uğradı." :
+      code === "MODEL_BUSY" ? "Yerel model başka bir isteği işliyor." :
+      code === "BAD_CHAT_RESPONSE" ? "Model yanıtının biçimi desteklenmiyor." :
+      code === "PROVIDER_HTTP_ERROR" ? "Yerel model isteği tamamlayamadı." :
+      code === "INVALID_CHAT_REQUEST" ? "Model ya da mesaj geçersiz." :
+      "Yerel modelle iletişim kurulamadı.", "error");
+  } finally {
+    if (modelChatRequestId === requestId) modelChatRequestId = null;
+    modelChatPending = false;
+    updateChatButtons();
+  }
+}
+async function cancelLocalChat() {
+  if (!modelChatPending || !modelChatRequestId) return;
+  nodes["local-chat-stop"].disabled = true;
+  chatStatus("İptal ediliyor…", "running");
+  try {
+    await call("cancelLocalChat", modelChatRequestId);
+  } catch {
+    // The pending send still resolves its own final status. Never surface
+    // internal IPC/server exception content into the chat panel.
+  }
+}
 // No startup probe: connections to local software are made only on explicit
 // user click. Neither document text nor model-directory paths cross this IPC.
 function modelStatus(message, state) {
@@ -441,10 +517,12 @@ function modelStatus(message, state) {
   nodes["local-model-lamp"].dataset.state = state;
 }
 async function refreshLocalModels() {
-  if (modelCheckPending) return;
+  if (modelCheckPending || modelChatPending) return;
+  discoveredModels.clear();
   modelCheckPending = true;
   nodes["local-model-refresh"].disabled = true;
   nodes["local-model-select"].disabled = true;
+  updateChatButtons();
   nodes["local-model-select"].replaceChildren(new Option("Kontrol ediliyor…", ""));
   nodes["local-model-selected"].textContent = "Yalnızca cihazdaki LM Studio sunucusu sorgulanır.";
   modelStatus("Yerel sunucu kontrol ediliyor…", "checking");
@@ -455,6 +533,7 @@ async function refreshLocalModels() {
         !item || typeof item.id !== "string") || result.checked !== true)
       throw new Error("BAD_MODEL_LIST");
     nodes["local-model-select"].replaceChildren();
+    discoveredModels = new Set(models.map(model => model.id));
     for (const model of models) {
       nodes["local-model-select"].append(new Option(model.id, model.id));
     }
@@ -466,10 +545,12 @@ async function refreshLocalModels() {
     modelStatus(models.length ? models.length + " yerel model listelendi." :
       "Sunucu açık, ancak model bildirmiyor.", "online");
     nodes["local-model-selected"].textContent = models.length ?
-      "Model listesi alındı. Sohbet ve çıkarım sonraki aşamada." :
+      "Model listesi alındı. Sohbet penceresi açılabilir." :
       "LM Studio'da bir model yükleyip yeniden kontrol edebilirsin.";
   } catch(error) {
+    discoveredModels.clear();
     nodes["local-model-select"].replaceChildren(new Option("Bağlantı kurulamadı", ""));
+    toggleChatPanel(false);
     modelStatus(error?.message === "TIMEOUT" ? "Sunucu zaman aşımına uğradı." :
       error?.message === "PROVIDER_HTTP_ERROR" ? "Yerel sunucu yanıt vermedi." :
       error?.message === "BAD_MODEL_LIST" || error?.message === "BAD_MODEL" ?
@@ -480,6 +561,7 @@ async function refreshLocalModels() {
   } finally {
     modelCheckPending = false;
     nodes["local-model-refresh"].disabled = false;
+    updateChatButtons();
   }
 }
 nodes["local-model-refresh"].addEventListener("click", () => {
@@ -488,9 +570,22 @@ nodes["local-model-refresh"].addEventListener("click", () => {
 nodes["local-model-select"].addEventListener("change", () => {
   const id=nodes["local-model-select"].value;
   nodes["local-model-selected"].textContent = id ?
-    "Seçili model: " + id + " · Sohbet sonraki aşamada." :
-    "Model keşfi hazır · Sohbet sonraki aşamada.";
+    "Seçili model: " + id + " · Sohbet kullanılabilir." :
+    "Model seçilmedi.";
+  updateChatButtons();
 });
+nodes["local-model-open-chat"].addEventListener("click", () => toggleChatPanel(true));
+nodes["local-chat-close"].addEventListener("click", () => toggleChatPanel(false));
+nodes["local-chat-prompt"].addEventListener("input", updateChatButtons);
+nodes["local-chat-send"].addEventListener("click", () => void sendLocalChat());
+nodes["local-chat-stop"].addEventListener("click", () => void cancelLocalChat());
+nodes["local-chat-prompt"].addEventListener("keydown", event => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    void sendLocalChat();
+  }
+});
+updateChatButtons();
 
 window.addEventListener("beforeunload", event => {
   if (current?.dirty || saving || composing) {

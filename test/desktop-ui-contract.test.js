@@ -27,9 +27,9 @@ test("privileged Electron host enforces sandbox, main-frame and no window escape
   assert.doesNotMatch(main, /shell\.openExternal/);
 });
 
-test("preload exposes five guarded actions without generalized remote execution", () => {
+test("preload exposes seven guarded actions without generalized remote execution", () => {
   const preload = read("desktop/preload.cjs");
-  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft", "listLocalModels"])
+  for (const method of ["listDocuments", "openDocument", "createDocument", "saveDraft", "listLocalModels", "chatLocalModel", "cancelLocalChat"])
     assert.match(preload, new RegExp(method + ":"));
   assert.doesNotMatch(preload, /ipcRenderer\.send\(/);
   assert.doesNotMatch(preload, /on: ipcRenderer\.on/);
@@ -48,6 +48,29 @@ test("local model discovery is explicit, IPC-scoped and never requests arbitrary
   assert.match(html,/id="local-model-select"/);
   assert.match(ui,/nodes\["local-model-refresh"\]\.addEventListener\("click"/);
   assert.doesNotMatch(ui,/fetch\(/);
+  assert.match(html,/connect-src 'none'/);
+});
+
+test("AI-0.2 prompt-only explicit chat through fixed main-process IPC, with cancellation", () => {
+  const main=read("desktop/main.js");
+  const preload=read("desktop/preload.cjs");
+  const model=read("desktop/local-model-service.js");
+  const html=read("desktop/ui/index.html");
+  const ui=read("desktop/ui/app.js");
+  const css=read("desktop/ui/styles.css");
+  for(const id of ["local-chat-panel","local-chat-prompt","local-chat-send",
+    "local-chat-stop","local-chat-answer"])
+    assert.ok(html.includes('id="'+id+'"'));
+  assert.match(main,/DESKTOP_CHANNELS\.chatCancel/);
+  assert.match(preload,/chatLocalModel:/);
+  assert.match(preload,/cancelLocalChat:/);
+  assert.match(model,/provider\.chat|chatProvider\.chat/);
+  assert.match(model,/new AbortController/);
+  assert.match(ui,/call\("chatLocalModel"/);
+  assert.match(ui,/call\("cancelLocalChat"/);
+  assert.match(ui,/nodes\["local-chat-answer"\]\.textContent = answer\.content/);
+  assert.doesNotMatch(ui,/fetch\(/);
+  assert.match(css,/\.local-chat-panel\[hidden\]\{display:none\}/);
   assert.match(html,/connect-src 'none'/);
 });
 

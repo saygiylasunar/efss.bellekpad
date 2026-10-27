@@ -801,6 +801,80 @@ async function run() {
   await retry("checklist reopened from local vault",()=>
     page("document.querySelectorAll('.flow-check-toggle').length === 2 && " +
       "document.querySelector('.flow-check-toggle').getAttribute('aria-pressed') === 'true'"));
+
+  // AI-0.2: an explicit prompt travels through the actual restricted IPC and
+  // POST loopback route. Real note content and test-private EFSS text must
+  // never be included. A slow in-flight response can be cancelled.
+  const observedChats=[];
+  let slowChatStarted=false;
+  const chatServer=createServer(async(req,res)=>{
+    if(req.method==="GET"&&req.url==="/v1/models"){
+      res.writeHead(200,{"content-type":"application/json"});
+      res.end(JSON.stringify({data:[{id:"mock-local-qwen",owned_by:"local-test"}]}));
+      return;
+    }
+    assert.equal(req.method,"POST");
+    assert.equal(req.url,"/v1/chat/completions");
+    assert.equal(req.headers.authorization,undefined);
+    let raw="";
+    for await(const chunk of req) raw+=chunk;
+    const body=JSON.parse(raw);
+    observedChats.push(body);
+    if(body.messages[0].content==="slow-cancel-test"){
+      slowChatStarted=true;
+      // Leave the connection intentionally pending. Abort via IPC must
+      // settle the renderer without disclosing hidden docs.
+      return;
+    }
+    res.writeHead(200,{"content-type":"application/json"});
+    res.end(JSON.stringify({model:"mock-local-qwen",choices:[
+      {message:{content:"Yanıt: <img src=x onerror=alert(1)> 🧩"}}
+    ]}));
+  });
+  await new Promise((resolve,reject)=>{
+    chatServer.once("error",reject);
+    chatServer.listen(1234,"127.0.0.1",resolve);
+  });
+  await page("document.querySelector('#local-model-refresh').click()");
+  await retry("AI-0.2 model rediscovered",()=>page(
+    "document.querySelector('#local-model-open-chat').disabled === false"));
+  assert.equal(observedChats.length,0);
+  await page("document.querySelector('#local-model-open-chat').click()");
+  assert.equal(await page("document.querySelector('#local-chat-panel').hidden"),false);
+  await page('(() => {const p=document.querySelector("#local-chat-prompt");' +
+    'p.value="Selam, sadece bu mesajı yanıtla";' +
+    'p.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  assert.equal(await page("document.querySelector('#local-chat-send').disabled"),false);
+  assert.equal(observedChats.length,0); // typing is not a network request
+  const previouslySaved=await page("document.querySelector('#editor').textContent");
+  assert.ok(previouslySaved.includes("private: unchanged"));
+  await page("document.querySelector('#local-chat-send').click()");
+  await retry("AI-0.2 response rendered",()=>page(
+    "document.querySelector('#local-chat-status').dataset.state === 'success'"));
+  assert.equal(observedChats.length,1);
+  assert.deepEqual(observedChats[0].messages,
+    [{role:"user",content:"Selam, sadece bu mesajı yanıtla"}]);
+  assert.equal(observedChats[0].model,"mock-local-qwen");
+  assert.equal(observedChats[0].max_tokens,1024);
+  assert.equal(JSON.stringify(observedChats).includes("private: unchanged"),false);
+  assert.equal(await page("document.querySelector('#local-chat-answer').textContent"),
+    "Yanıt: <img src=x onerror=alert(1)> 🧩");
+  assert.equal(await page("document.querySelector('#local-chat-answer img') === null"),true);
+  assert.equal(await page("document.querySelector('#editor').textContent"),previouslySaved);
+  await page('(() => {const p=document.querySelector("#local-chat-prompt");' +
+    'p.value="slow-cancel-test";p.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await page("document.querySelector('#local-chat-send').click()");
+  await retry("AI-0.2 slow request reached server",()=>slowChatStarted);
+  assert.equal(await page("document.querySelector('#local-chat-stop').disabled"),false);
+  await page("document.querySelector('#local-chat-stop').click()");
+  await retry("AI-0.2 abort completed",()=>page(
+    "document.querySelector('#local-chat-status').textContent === 'İstek iptal edildi.'"));
+  assert.equal(await page("document.querySelector('#local-chat-send').disabled"),false);
+  assert.equal(await page("document.querySelector('#editor').textContent"),previouslySaved);
+  chatServer.closeAllConnections();
+  await new Promise((resolve,reject)=>chatServer.close(e=>e?reject(e):resolve()));
+  await page("document.querySelector('#local-chat-close').click()");
+  assert.equal(await page("document.querySelector('#local-chat-panel').hidden"),true);
   console.log("DESKTOP GUI SMOKE PASSED — Flow inline formatting, undo/redo, local vault, views.");
   // A successful CI smoke previously stayed alive until the 12-minute
   // workflow timeout after printing PASSED. Exit Electron deterministically.

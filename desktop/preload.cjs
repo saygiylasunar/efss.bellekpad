@@ -8,6 +8,10 @@ if (process.isMainFrame) {
   contextBridge.exposeInMainWorld("bellekpadDesktop", Object.freeze({
     listDocuments: () => ipcRenderer.invoke("bellekpad:documents:list"),
     listLocalModels: () => ipcRenderer.invoke("bellekpad:models:list"),
+    chatLocalModel: (requestId, model, prompt) =>
+      ipcRenderer.invoke("bellekpad:models:chat", { requestId, model, prompt }),
+    cancelLocalChat: (requestId) =>
+      ipcRenderer.invoke("bellekpad:models:chat:cancel", { requestId }),
     openDocument: (kind, id) =>
       ipcRenderer.invoke("bellekpad:documents:open", { kind, id }),
     createDocument: (kind, title) =>

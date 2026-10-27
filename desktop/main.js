@@ -30,7 +30,8 @@ const knownErrors = new Set([
   "CONSTANT_DEFINITION_IMMUTABLE",
   "BAD_MODEL_LIST", "BAD_MODEL", "PROVIDER_HTTP_ERROR",
   "TRANSPORT_ERROR", "TIMEOUT", "BAD_RESPONSE",
-  "RESPONSE_TOO_LARGE", "MODEL_LIST_TOO_LARGE"
+  "RESPONSE_TOO_LARGE", "MODEL_LIST_TOO_LARGE",
+  "INVALID_CHAT_REQUEST", "MODEL_BUSY", "CANCELLED", "BAD_CHAT_RESPONSE", "BAD_INPUT"
 ]);
 
 function trustedRequest(event) {
@@ -49,7 +50,9 @@ function bindDesktopAPI(service, models) {
     [DESKTOP_CHANNELS.open]: payload => service.open(payload),
     [DESKTOP_CHANNELS.create]: payload => service.create(payload),
     [DESKTOP_CHANNELS.save]: payload => service.saveDraft(payload),
-    [DESKTOP_CHANNELS.models]: () => models.list()
+    [DESKTOP_CHANNELS.models]: () => models.list(),
+    [DESKTOP_CHANNELS.chat]: payload => models.chat(payload),
+    [DESKTOP_CHANNELS.chatCancel]: payload => models.cancel(payload)
   };
   for (const [channel, run] of Object.entries(operations)) {
     ipcMain.handle(channel, async (event, payload) => {
@@ -131,7 +134,9 @@ app.whenReady().then(() => {
   });
   session.defaultSession.setPermissionCheckHandler(() => false);
   const vault = new LocalDocumentVault({ root: join(app.getPath("userData"), "vault") });
-  bindDesktopAPI(createDesktopDocumentService({ vault }), createDesktopModelService());
+  const models = createDesktopModelService();
+  bindDesktopAPI(createDesktopDocumentService({ vault }), models);
+  app.on("before-quit", () => models.dispose());
   createEditorWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createEditorWindow();

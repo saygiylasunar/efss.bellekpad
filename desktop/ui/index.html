@@ -27,7 +27,8 @@
         <select id="local-model-select" class="local-ai-select" aria-label="Yerel model" disabled>
           <option value="">Bağlanılmadı</option>
         </select>
-        <p id="local-model-selected" class="local-ai-disclaimer">Model keşfi hazır · Sohbet sonraki aşamada.</p>
+        <p id="local-model-selected" class="local-ai-disclaimer">Model listesi ve bağlantı durumu.</p>
+        <button type="button" id="local-model-open-chat" class="local-ai-chat-open" aria-controls="local-chat-panel" aria-expanded="false" disabled>Sohbet penceresi ↗</button>
       </section>
       <div class="side-bottom"><span class="status-lamp"></span> Yalnızca bu cihazda <small>Bulut bağlantısı kullanılmıyor.</small></div>
     </aside>
@@ -142,6 +143,28 @@
       </main>
       <footer class="footer"><span>◈ BELLEKPAD <span class="fade">0.2 · INLINE LAB</span></span><span>EFSS Markdown <span class="bullet">·</span> Electron köprüsü <span class="bullet">·</span> Yerel kayıt</span></footer>
     </div>
+    <section id="local-chat-panel" class="local-chat-panel" aria-label="Yerel modelle sohbet" hidden>
+      <div class="local-chat-header">
+        <div><span class="local-chat-eyebrow">◈ BELLEKPAD / YEREL</span>
+          <h2>Model sohbeti</h2>
+          <p id="local-chat-model" class="local-chat-model">Model seçilmedi</p></div>
+        <button type="button" id="local-chat-close" class="local-chat-close" aria-label="Sohbeti kapat">×</button>
+      </div>
+      <div class="local-chat-content">
+        <label for="local-chat-prompt" class="local-chat-label">Modele göndereceğin metin</label>
+        <textarea id="local-chat-prompt" maxlength="8192" rows="5"
+          placeholder="Buraya kendi mesajını yaz. Notların otomatik gönderilmez."></textarea>
+        <p class="local-chat-privacy">Yalnızca Gönder'e bastığında bu metin seçili yerel modele iletilir.</p>
+        <div class="local-chat-actions">
+          <button type="button" id="local-chat-send" class="local-chat-send" disabled>Yanıt iste ↗</button>
+          <button type="button" id="local-chat-stop" class="local-chat-stop" disabled>İptal et</button>
+        </div>
+        <p id="local-chat-status" class="local-chat-status" role="status" aria-live="polite">Hazır.</p>
+        <div class="local-chat-response-label">MODEL YANITI <span>salt okunur</span></div>
+        <div id="local-chat-answer" class="local-chat-answer" role="log" aria-label="Model yanıtı" aria-live="polite"
+          data-placeholder="Yanıt burada görünecek. Belgeye otomatik eklenmez."></div>
+      </div>
+    </section>
   </div>
 </body>
 </html>
