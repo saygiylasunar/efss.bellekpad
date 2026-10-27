@@ -1,4 +1,4 @@
-# BellekPad 0.3.0-beta.1 — Sınırlı teknik beta
+# BellekPad 0.3.0-beta.2 — Sınırlı teknik beta
 
 ## Kapsam ve dürüst durum
 
@@ -22,7 +22,7 @@ npm run beta:package
 npm run beta:verify
 ```
 
-Çıktı: `dist/BellekPad-0.3.0-beta.1-win32-x64/`, içerisinde `BellekPad.exe`. **Dosya klasör olarak çıkarılır**; ZIP içerisinden doğrudan çalıştırılmaz.
+Çıktı: `dist/BellekPad-0.3.0-beta.2-win32-x64/`, içerisinde `BellekPad.exe`. **Dosya klasör olarak çıkarılır**; ZIP içerisinden doğrudan çalıştırılmaz.
 
 **Doğrulanan Windows build:** [GitHub Actions beta-portable-windows #40591123263](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263), **312/312 Node, Windows Electron GUI ve bağımsız SHA256 manifest denetimi başarılı**. Artifact: `BellekPad-Windows-limited-beta` (yaklaşık 163 MB; 7 gün saklanır). GitHub'da Actions koşusunu açıp **Artifacts** bölümünden indir. GitHub artifact ZIP'inin içindeki **ikinci ZIP** taşınabilir uygulamadır; aynı yerdeki `.sha256` değerine göre doğrula, sonra ikinci ZIP'i açıp `BellekPad.exe` çalıştır.
 
@@ -50,3 +50,9 @@ GitHub Actions `beta-portable-windows` işi önce çekirdek/Node/gerçek Windows
 | Gerçek LM Studio inference | Opsiyonel AI özelliği için ayrı kabul kapısı |
 
 **Beta adayı olmak, bütün planlanan özelliklerin tamamlandığını veya verinin garantili kurtarılabildiğini söylemek değildir.** Kapsam, son kullanıcı testleri ve sonraki sürüm kararlarında nihai onay kullanıcıdadır.
+
+## 0.3.0-beta.2 — dahili GGUF başlatma kontrolü
+
+BellekPad'in kendi sohbet arayüzü **zaten vardı**; beta.1 yalnız LM Studio gibi harici bir sunucuyla inference konuşabiliyordu. beta.2 adayı model motorunun uygulama içinden **başlatılması ve durdurulması** için ilk somut yüzeyi ekler. Native dosya seçiminden **güvenilir llama.cpp llama-server** binary ve bir `.gguf` seçilir. Sunucu BellekPad'in alt sürecidir; localhost API rastgele oturum anahtarı ile kullanılır. **LM Studio zorunlu değildir**, ancak bu beta adayı `llama-server.exe` dosyasını kendisi içermediğinden tam tek-parça model dağıtımı da değildir. Gerçek GGUF inference testi ve runtime lisans/SHA doğrulamalı paketleme ayrı kabul kapılarıdır. [Motor ayrıntıları](OWNED_GGUF_RUNTIME.md).
+
+**Paketlemenin eski beta.1 artifact linkini beta.2'ye aitmiş gibi kullanma.** En son başarılı beta-portable-windows job sürümünü ve manifestini kontrol et. 

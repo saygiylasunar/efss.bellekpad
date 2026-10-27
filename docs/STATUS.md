@@ -152,3 +152,7 @@ Code `95462f0`: model is selected from the local list; user explicitly submits o
 
 `335fa45` main: Beta packaging uses only approved Electron runtime dependencies without adding an installer framework or traversing local notes/model paths. Successful [beta artifact job](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40591123263): **312/312 Node**, source sanity, native Windows Electron GUI smoke, bundle hash/manifest verifier and ZIP artifact generation. Artifact lives **seven days** in GitHub Actions, not an automatically published Release. Windows cross-platform test path regressions were fixed before acceptance. **Packaging verified; actual beta ZIP extracted and executed on user Windows host not yet verified**. Known beta blockers: first-party backup/export and recovery, physical IME, lockfile, signing. [Limitations](BETA_PREVIEW.md).
 
+
+## AI-0.3-owned-runner first implementation / beta.2 candidate (28.10.2026)
+
+Native Electron model-runner controls added, with explicit `llama-server` + `.gguf` picker, fixed authorized loopback subprocess, lifecycle, stop during startup, and internal provider redirection. **No automatic disk scan, no automatic model download and no bundled engine yet.** Unit tests and Electron UI smoke required; real llama.cpp binary and GGUF inference unverified. See [OWNED_GGUF_RUNTIME.md](OWNED_GGUF_RUNTIME.md).
