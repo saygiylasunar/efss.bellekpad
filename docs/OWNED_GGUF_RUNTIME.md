@@ -19,7 +19,9 @@ Bu ilk kesitte **llama.cpp ikili dosyası henüz beta paketine dâhil değil**. 
 
 **Sonraki zorunlu adım:** Windows x64 için dağıtıma uygun, lisansı ve SHA-256'sı doğrulanan sürüme sabitlenmiş CPU/CUDA `llama.cpp` runtime'ını paketleme; güvenli otomatik seçimi, kurulum/ilk açılış deneyimi, CUDA uyumluluğu ve eksik DLL teşhisini ayrıca test etme. Sonra GGUF model seçiciye önizleme/bellek tahmini, çok turlu sohbet ve seçili modelin yükle/boşalt akışı. Kullanıcıdan izin almadan genel disk/model klasörü tarama veya otomatik model indirme yok.
 
-**Doğrulama:** Node birim testleri native dosya doğrulaması, allowlist spawn argümanları, localhost auth, model başlat/stop, token sızdırmama, provider geçişi ve reddedilen istekleri sınar; Windows/Linux Electron GUI testleri yeni butonların varlığını ve önceki sohbetini sınar. **Gerçek `llama-server` binary ve gerçek GGUF ile inference, kullanıcı makinesinde ayrıca doğrulanmalıdır.**
+**Doğrulama:** `0.3.0-beta.2` kodu **317/317 Node + gerçek Windows/Linux Electron smoke**; Windows portable oluşturma, 31 uygulama dosyasının SHA-256 manifesti ve ZIP artefaktı başarılı: [Beta.2 build](https://github.com/saygiylasunar/efss.bellekpad/actions/runs/40595695360). Bu **gerçek GGUF inference** testi değildir.
+
+Node birim testleri native dosya doğrulaması, allowlist spawn argümanları, localhost auth, model başlat/stop, token sızdırmama, provider geçişi ve reddedilen istekleri sınar; Windows/Linux Electron GUI testleri yeni butonların varlığını ve önceki sohbetini sınar. **Gerçek `llama-server` binary ve gerçek GGUF ile inference, kullanıcı makinesinde ayrıca doğrulanmalıdır.**
 
 **Uyarı:** Native seçim kullanıcının `llama-server` adlı *kendi seçtiği* yürütülebilir dosyayı çalıştırır. Bilinmeyen kaynaklardan gelen `.exe` dosyalarını kullanma. Bu güvenlik gereksinimi model içerik filtrelemesinden bağımsızdır.
 
