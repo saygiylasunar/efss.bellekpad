@@ -69,7 +69,8 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
             return JSONResponse(status_code=403, content={"error": "UNTRUSTED_HOST"})
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("origin")
-            if origin and origin not in ("http://127.0.0.1:8765", "http://localhost:8765", "http://localhost:5173"):
+            if origin and origin not in ("http://127.0.0.1:8765", "http://localhost:8765",
+                                         "http://127.0.0.1:5173", "http://localhost:5173"):
                 return JSONResponse(status_code=403, content={"error": "UNTRUSTED_ORIGIN"})
         return await call_next(request)
 
