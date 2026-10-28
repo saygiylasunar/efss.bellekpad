@@ -1,0 +1,110 @@
+"""Managed runtime lifecycle with no web-controlled commands or shell strings."""
+from __future__ import annotations
+import asyncio
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Awaitable
+
+
+@dataclass(frozen=True)
+class EngineProfile:
+    executable: str
+    main_script: str
+    cwd: str
+    args: tuple[str, ...] = ("--listen", "127.0.0.1", "--port", "8188")
+
+    def validate(self):
+        if not Path(self.executable).is_file() or not Path(self.main_script).is_file():
+            raise ValueError("ENGINE_FILES_MISSING")
+        if not Path(self.cwd).is_dir():
+            raise ValueError("ENGINE_CWD_MISSING")
+        if self.args != ("--listen", "127.0.0.1", "--port", "8188"):
+            raise ValueError("ENGINE_ARGS_NOT_ALLOWED")
+
+
+class Supervisor:
+    """A single owned Comfy process. Explicit start/stop, truthful readiness.
+
+    Start returns STARTING; background health check promotes it to READY.
+    Stop is valid during STARTING. Failed engine never reports READY.
+    """
+    def __init__(self, ready_probe: Callable[[], Awaitable[bool]],
+                 profile: EngineProfile | None = None):
+        self.profile = profile
+        self.ready_probe = ready_probe
+        self.state = "stopped"
+        self.failure = None
+        self.proc = None
+        self._lock = asyncio.Lock()
+        self._watcher = None
+        self._generation = 0
+
+    def status(self):
+        if self.proc is not None and self.proc.returncode is not None and self.state in ("starting", "ready"):
+            self.state = "failed"
+            self.failure = "ENGINE_EXITED"
+        return {"state": "unconfigured" if self.profile is None else self.state,
+                "failure": self.failure, "pid": self.proc.pid if self.proc and self.proc.returncode is None else None}
+
+    async def start(self):
+        async with self._lock:
+            if self.profile is None:
+                raise ValueError("ENGINE_NOT_CONFIGURED")
+            if self.state in ("starting", "ready", "stopping"):
+                raise ValueError("ENGINE_BUSY")
+            self.profile.validate()
+            self._generation += 1
+            gen = self._generation
+            self.failure = None
+            self.state = "starting"
+            try:
+                self.proc = await asyncio.create_subprocess_exec(
+                    self.profile.executable, self.profile.main_script,
+                    *self.profile.args, cwd=self.profile.cwd,
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL
+                )
+            except (OSError, ValueError) as exc:
+                self.state = "failed"
+                self.failure = "ENGINE_START_FAILED"
+                raise ValueError("ENGINE_START_FAILED") from exc
+            self._watcher = asyncio.create_task(self._observe(gen))
+            return self.status()
+
+    async def _observe(self, gen: int):
+        for _ in range(120):
+            if gen != self._generation:
+                return
+            if self.proc is None or self.proc.returncode is not None:
+                self.state, self.failure = "failed", "ENGINE_EXITED"
+                return
+            if await self.ready_probe():
+                if gen == self._generation and self.state == "starting":
+                    self.state = "ready"
+                return
+            await asyncio.sleep(0.5)
+        if gen == self._generation:
+            self.failure = "ENGINE_READY_TIMEOUT"
+            await self.stop(preserve_error=True)
+
+    async def stop(self, preserve_error=False):
+        async with self._lock:
+            self._generation += 1
+            proc = self.proc
+            self.proc = None
+            self.state = "stopping"
+            if proc is not None and proc.returncode is None:
+                proc.terminate()
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=8)
+                except asyncio.TimeoutError:
+                    proc.kill()
+                    await proc.wait()
+            self.state = "failed" if preserve_error else "stopped"
+            if not preserve_error:
+                self.failure = None
+            return self.status()
+
+    async def close(self):
+        await self.stop()
