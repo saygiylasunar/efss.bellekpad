@@ -30,7 +30,7 @@ class NotePatch(BaseModel):
     changes: list[dict]
 
 
-def build_app(root: str | None = None, comfy=None, profile=None):
+def build_app(root: str | None = None, comfy=None, profile=None, supervisor_override=None):
     data_root = root if root is not None else os.environ.get("BELLEKPAD_DATA_ROOT")
     if not data_root:
         raise RuntimeError("BELLEKPAD_DATA_ROOT_REQUIRED")
@@ -40,7 +40,7 @@ def build_app(root: str | None = None, comfy=None, profile=None):
         script = os.environ["BELLEKPAD_COMFY_MAIN"]
         profile = EngineProfile(os.environ["BELLEKPAD_COMFY_PYTHON"], script,
                                 os.environ.get("BELLEKPAD_COMFY_CWD", str(Path(script).parent)))
-    supervisor = Supervisor(client.ready, profile)
+    supervisor = supervisor_override if supervisor_override is not None else Supervisor(client.ready, profile)
 
     @asynccontextmanager
     async def lifespan(app):
