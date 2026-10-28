@@ -61,7 +61,7 @@ def _integrity(db_path: Path) -> None:
         if db.execute("PRAGMA foreign_key_check").fetchone() is not None:
             raise BackupError("BACKUP_FOREIGN_KEY_INVALID")
         schema = db.execute("PRAGMA user_version").fetchone()[0]
-        if schema not in (2, 3):
+        if schema not in (2, 3, 4):
             raise BackupError("BACKUP_DATABASE_SCHEMA_UNSUPPORTED")
 
 
