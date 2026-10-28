@@ -16,9 +16,17 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 - User chooses the data root and model directories. No model files or personal notes live in Git.
 - Conversation policies: Parallel / Roundtable / Orchestrated. Runtime implementations are future end-to-end slices, not pretended features.
 
+## Model index (R2.5)
+
+The **Modeller** tab now registers user-approved model directories and indexes
+GGUF, safetensors and common related weight formats **without opening or
+copying weights**. Add each folder once, then press **Tara**; no automatic disk
+scan runs. Models are indexed, not loaded: real LLM/diffusion engine support
+must still be verified at runtime. See [Model Registry](docs/MODEL_REGISTRY.md).
+
 ## Important: implemented vs planned
 
-**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. An additive workspace schema-v3 migration preserves prior notes, workflows and saved generation jobs. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
+**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. An additive workspace schema-v4 migration preserves prior notes, workflows and saved generation jobs. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
 
 ## Development (after installing Python dependencies)
 
