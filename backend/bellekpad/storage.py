@@ -36,6 +36,17 @@ class Workspace:
                 id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL,
                 parent_id TEXT, role TEXT NOT NULL, model_id TEXT, body TEXT NOT NULL,
                 FOREIGN KEY(conversation_id) REFERENCES conversations(id));
+              CREATE TABLE IF NOT EXISTS generation_jobs (
+                id TEXT PRIMARY KEY,
+                engine_job_id TEXT UNIQUE,
+                state TEXT NOT NULL CHECK(state IN
+                  ('submitting','submission_unknown','queued','running','completed','failed','cancelled')),
+                prompt_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                failure_code TEXT,
+                queue_number INTEGER
+              );
             """)
 
     @contextmanager
@@ -137,6 +148,73 @@ class Workspace:
                 raise WorkflowStoreError("WORKFLOW_REVISION_CONFLICT")
         return {"id": wid, "name": name.strip(), "revision": expected_revision + 1,
                 "graph": json.loads(data)}
+
+    def begin_generation(self, compiled_prompt: dict) -> dict:
+        """Durable intent precedes Comfy submit: remote timeouts cannot become fake failures."""
+        jid = str(uuid.uuid4())
+        payload = json.dumps(compiled_prompt, ensure_ascii=False, sort_keys=True,
+                             separators=(",", ":"), allow_nan=False)
+        with self.connect() as db:
+            db.execute(
+                "INSERT INTO generation_jobs(id,state,prompt_json) VALUES(?,?,?)",
+                (jid, "submitting", payload))
+        return self.get_generation(jid)
+
+    def get_generation(self, jid: str) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT id,engine_job_id,state,created_at,updated_at,failure_code,queue_number "
+                "FROM generation_jobs WHERE id=?", (jid,)).fetchone()
+        if row is None:
+            return None
+        return dict(zip(
+            ("id","engine_job_id","state","created_at","updated_at","failure_code","queue_number"), row))
+
+    def list_generations(self) -> list[dict]:
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT id,engine_job_id,state,created_at,updated_at,failure_code,queue_number "
+                "FROM generation_jobs ORDER BY rowid DESC LIMIT 100").fetchall()
+        keys = ("id","engine_job_id","state","created_at","updated_at","failure_code","queue_number")
+        return [dict(zip(keys, row)) for row in rows]
+
+    def generation_submitted(self, jid: str, engine_id: str, queue_number) -> dict:
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            result = db.execute(
+                "UPDATE generation_jobs SET engine_job_id=?,state='queued',queue_number=?,"
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
+                "WHERE id=? AND state='submitting'",
+                (engine_id, queue_number if type(queue_number) is int else None, jid))
+            if result.rowcount != 1:
+                raise ValueError("GENERATION_STATE_CONFLICT")
+        return self.get_generation(jid)
+
+    def generation_uncertain(self, jid: str) -> dict:
+        # A network error after POST may mean Comfy accepted the prompt but the
+        # reply was lost. Never claim the job was safely cancelled or failed.
+        with self.connect() as db:
+            db.execute(
+                "UPDATE generation_jobs SET state='submission_unknown',"
+                "failure_code='ENGINE_SUBMISSION_UNCONFIRMED',"
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
+                "WHERE id=? AND state='submitting'", (jid,))
+        return self.get_generation(jid)
+
+    def generation_observed(self, jid: str, state: str) -> dict:
+        if state not in ("queued","running","completed","failed","cancelled"):
+            raise ValueError("INVALID_GENERATION_STATE")
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            result = db.execute(
+                "UPDATE generation_jobs SET state=?,"
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
+                "WHERE id=? AND engine_job_id IS NOT NULL "
+                "AND state NOT IN ('completed','failed','cancelled')",
+                (state, jid))
+            if result.rowcount != 1 and self.get_generation(jid) is None:
+                raise ValueError("GENERATION_NOT_FOUND")
+        return self.get_generation(jid)
 
     def backup(self) -> Path:
         fd, path = tempfile.mkstemp(prefix=".snapshot-", suffix=".sqlite3",
