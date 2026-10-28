@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Notes from "./Notes";
 import { ReactFlow,
   Background, Controls, Handle, MiniMap, Position, addEdge,
   applyEdgeChanges, applyNodeChanges,
@@ -53,6 +54,7 @@ function NodeCard({data, selected}: NodeProps<GraphNode>) {
 const nodeTypes = {comfy: NodeCard};
 
 export default function App() {
+  const [mode, setMode] = useState<"workflow"|"notes">("workflow");
   const [engine, setEngine] = useState<Engine>({state:"unconfigured",pid:null,failure:null});
   const [catalog, setCatalog] = useState<Catalog>({});
   const [nodes, setNodes] = useState<GraphNode[]>([]);
@@ -141,9 +143,9 @@ export default function App() {
   return <div className="app">
     <aside className="side">
       <div className="brand"><span>◈</span> bellekpad <small>EFSS · WEB AI CORE</small></div>
-      <div className="nav active">◆ Workflow Studio</div>
+      <button className={"nav " + (mode==="workflow"?"active":"")} onClick={()=>setMode("workflow")}>◆ Workflow Studio</button>
       <div className="nav disabled">Sohbet · R3</div>
-      <div className="nav disabled">Notlar · R5</div>
+      <button className={"nav " + (mode==="notes"?"active":"")} onClick={()=>setMode("notes")}>◈ Notlar · EFSS</button>
       <div className="nav disabled">Projeler · R6</div>
       <div className="spacer"/>
       <p className="caption">Backend yönetiminde</p>
@@ -154,6 +156,7 @@ export default function App() {
       </div>
     </aside>
     <main className="workspace">
+      {mode==="notes" ? <Notes /> : <>
       <header><div><strong>Workflow Studio</strong><small>React Flow → BellekPad validator → ComfyUI Engine</small></div>
         <div className="actions">
           <button disabled={busy||engine.state!=="ready"||!nodes.length} onClick={()=>void run(false)}>Kontrol et</button>
@@ -192,6 +195,7 @@ export default function App() {
         </aside>
       </div>
       <footer><span role="status">{notice}</span>{history ? <details><summary>Comfy iş geçmişi</summary><pre>{JSON.stringify(history,null,2)}</pre></details>:null}</footer>
+      </>}
     </main>
   </div>;
 }
