@@ -118,6 +118,33 @@ class ModelDescriptorTests(unittest.TestCase):
         self.assertEqual(result["status"],"invalid")
         self.assertEqual(result["reason"],"INVALID_SAFETENSORS_TENSOR")
 
+    def test_duplicate_safetensors_key_does_not_escape_as_http_500(self):
+        raw=b'{"a":{"dtype":"F16","shape":[1],"data_offsets":[0,2]},"a":{"dtype":"F16","shape":[1],"data_offsets":[0,2]}}'
+        (self.folder/"duplicate.safetensors").write_bytes(
+            struct.pack("<Q",len(raw))+raw+b"\x00\x00")
+        row=self.scan()["duplicate.safetensors"]
+        with TestClient(build_app(root=str(self.workspace.root),
+                                  supervisor_override=OfflineSupervisor())) as api:
+            result=api.get("/api/models/"+row["id"]+"/descriptor")
+            self.assertEqual(result.status_code,200,result.text)
+            self.assertEqual(result.json()["inspection"]["status"],"invalid")
+            self.assertEqual(result.json()["inspection"]["reason"],"DUPLICATE_HEADER_KEY")
+            self.assertEqual(result.json()["runtime"]["candidate_engines"],[])
+
+    def test_bounded_header_and_unavailable_weight_handled_without_loading(self):
+        path=self.folder/"large-header.safetensors"
+        path.write_bytes(struct.pack("<Q",33*1024*1024)+b"{}")
+        row=self.scan()["large-header.safetensors"]
+        limited=inspect_registered_model(str(self.folder),row)
+        self.assertEqual(limited["status"],"limited")
+        self.assertEqual(limited["reason"],"SAFETENSORS_HEADER_LIMIT")
+        path.unlink()
+        with TestClient(build_app(root=str(self.workspace.root),
+                                  supervisor_override=OfflineSupervisor())) as api:
+            result=api.get("/api/models/"+row["id"]+"/descriptor")
+            self.assertEqual(result.status_code,409)
+            self.assertEqual(result.json()["detail"],"MODEL_FILE_UNAVAILABLE")
+
     def test_symlink_target_not_accessible_via_index(self):
         file=self.folder/"source.gguf"
         file.write_bytes(gguf())
