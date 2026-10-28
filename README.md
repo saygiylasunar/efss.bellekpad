@@ -32,7 +32,7 @@ From repo root:
 - Optional managed Comfy engine: set BELLEKPAD_COMFY_PYTHON to the trusted Comfy venv Python executable, and BELLEKPAD_COMFY_MAIN to its main.py; optionally set BELLEKPAD_COMFY_CWD.
 - python -m uvicorn bellekpad.api:create_app --factory --app-dir backend --host 127.0.0.1 --port 8765
 
-Do not expose the backend or Comfy engine on a LAN/public interface. Read [generation lifecycle](docs/GENERATION_LIFECYCLE.md), [architecture](docs/ARCHITECTURE.md) and [acceptance](docs/ACCEPTANCE.md) before extending. **Database snapshots do not include archived images in assets/**; coordinated full-workspace backup is still required.
+Do not expose the backend or Comfy engine on a LAN/public interface. Read [generation lifecycle](docs/GENERATION_LIFECYCLE.md), [architecture](docs/ARCHITECTURE.md), [workspace backup & restore](docs/WORKSPACE_BACKUP.md), and [acceptance](docs/ACCEPTANCE.md). **Portable workspace ZIP backups now contain both SQLite and referenced archived images.** The older `/api/backups` endpoint remains **database-only**; use the sidebar's **Tam yedek oluştur** for a complete supported-data backup.
 
 ## Release/licensing
 
