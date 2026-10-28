@@ -74,6 +74,8 @@ def compile_graph(graph: dict, registry: dict) -> dict:
         edge = _shape(edge)
         src, dst = edge.get("source"), edge.get("target")
         index, target_input = edge.get("sourceHandle"), edge.get("targetHandle")
+        if not isinstance(src, str) or not isinstance(dst, str):
+            raise WorkflowError("INVALID_EDGE")
         if src not in mapped or dst not in mapped or not isinstance(index, int) or isinstance(index, bool) or index < 0 or not isinstance(target_input, str):
             raise WorkflowError("INVALID_EDGE")
         target_kind = mapped[dst]["class_type"]
