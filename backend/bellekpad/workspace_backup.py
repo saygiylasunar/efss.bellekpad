@@ -17,6 +17,7 @@ import tempfile
 import uuid
 import zipfile
 from datetime import datetime, timezone
+from contextlib import closing
 from pathlib import Path
 
 FORMAT = "EFSS-BELLEKPAD-WORKSPACE"
@@ -54,7 +55,7 @@ def _asset_member(job_id: str, filename: str) -> str:
 
 def _integrity(db_path: Path) -> None:
     # Read-only for verifying an archived snapshot: no automatic schema migrations.
-    with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)) as db:
         if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise BackupError("BACKUP_DATABASE_INVALID")
         if db.execute("PRAGMA foreign_key_check").fetchone() is not None:
@@ -65,7 +66,7 @@ def _integrity(db_path: Path) -> None:
 
 
 def _assets(db_path: Path) -> list[tuple[str, str, str, int]]:
-    with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)) as db:
         return db.execute(
             "SELECT generation_id,filename,sha256,size_bytes "
             "FROM generation_assets ORDER BY generation_id,id"
@@ -179,8 +180,9 @@ def create_backup(workspace) -> dict:
     temp_db = Path(db_temp)
     final = folder / f"workspace-{uuid.uuid4().hex}.efss-backup.zip"
     try:
-        with workspace.connect() as source, sqlite3.connect(temp_db) as snapshot:
-            source.backup(snapshot)
+        with workspace.connect() as source, closing(sqlite3.connect(temp_db)) as snapshot:
+            with snapshot:  # commit the SQLite backup transaction before closing
+                source.backup(snapshot)
         _integrity(temp_db)
         entries: list[dict] = []
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED,
