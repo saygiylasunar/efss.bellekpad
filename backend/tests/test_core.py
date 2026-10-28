@@ -84,7 +84,7 @@ class StorageTests(unittest.TestCase):
                 vault.patch_note(item["id"], 1, b["revision"], [])
             backup = vault.backup()
             self.assertTrue(backup.exists())
-            with closing(sqlite3.connect(backup)) as db:
+            with closing(sqlite3.connect(backup)) as db, db:
                 self.assertEqual(db.execute("select revision from notes").fetchone()[0], 2)
 
 
