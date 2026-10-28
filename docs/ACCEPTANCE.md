@@ -11,7 +11,10 @@
 - [ ] Windows NTFS backup+verify retest following observed WinError 32.
 - [x] SQLite online backup is a transactionally consistent DB snapshot.
 - [x] Managed subprocess lifecycle and API boundaries implemented.
-- [x] Local Comfy installation UI → validated profile → SQLite v3 → managed subprocess fixed args contract tested, including configuration lock while running.
+- [x] Local Comfy installation UI → validated profile → SQLite v3+ → managed subprocess fixed args contract tested, including configuration lock while running.
+- [x] Model Registry R2.5: approved-root-only discovery, symlink skip, metadata-only scan, transactional replacement, SQL-filtered paging and metadata-only deletion tested in Core/API.
+- [x] Registry metadata retained through portable SQLite workspace backup; schema v3→v4 additive update tested with existing state.
+- [ ] Actual GGUF/Safetensors runner compatibility and real-model activation; index metadata must not be confused with inference support.
 - [x] Native Windows 3.13 CI job added alongside Ubuntu API/core test and frontend build (its success/failure is checked on each commit).
 - [ ] Real Comfy installation through browser UI: start, readiness, node palette, image output and stop on Windows.
 - [x] Workflow draft v1 storage: save while Comfy offline, list/open, layout roundtrip, optimistic revision conflict and backup tested through HTTP.
