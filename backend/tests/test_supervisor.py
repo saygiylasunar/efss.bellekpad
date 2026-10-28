@@ -59,6 +59,34 @@ class SupervisorTests(unittest.TestCase):
                     self.assertTrue(child.stopped)
         asyncio.run(scenario())
 
+    def test_engine_output_is_bounded_and_available_only_on_demand(self):
+        async def scenario():
+            with tempfile.TemporaryDirectory() as root:
+                executable=Path(root)/"python.exe"
+                script=Path(root)/"main.py"
+                executable.touch()
+                script.touch()
+                profile=EngineProfile(str(executable),str(script),root)
+                async def probe():
+                    return False
+                child=Child()
+                child.stdout=asyncio.StreamReader()
+                async def spawn(*args, **kwargs):
+                    self.assertEqual(kwargs["stdout"],asyncio.subprocess.PIPE)
+                    self.assertEqual(kwargs["stderr"],asyncio.subprocess.STDOUT)
+                    return child
+                sup=Supervisor(probe,profile)
+                with patch("bellekpad.supervisor.asyncio.create_subprocess_exec",side_effect=spawn):
+                    await sup.start()
+                    for index in range(140):
+                        child.stdout.feed_data(("engine line "+str(index)+"\\n").encode())
+                    child.stdout.feed_eof()
+                    await asyncio.sleep(0.02)
+                    self.assertEqual(len(sup.logs()),120)
+                    self.assertIn("engine line 139",sup.logs()[-1])
+                    await sup.stop()
+        asyncio.run(scenario())
+
     def test_existing_server_cannot_pass_as_managed_worker(self):
         async def scenario():
             with tempfile.TemporaryDirectory() as root:
