@@ -140,7 +140,8 @@ def verify_backup(path: str | Path) -> dict:
             # Exact asset list matches the SQLite snapshot, not just the manifest.
             with tempfile.TemporaryDirectory(prefix="efss-verify-") as folder:
                 local_db = Path(folder) / "snapshot.sqlite3"
-                local_db.write_bytes(archive.read(DB_MEMBER))
+                with archive.open(DB_MEMBER) as source, local_db.open("wb") as output:
+                    shutil.copyfileobj(source, output, length=1024 * 1024)
                 _integrity(local_db)
                 expected = {
                     _asset_member(job_id, filename): (sha, size)
@@ -178,34 +179,41 @@ def create_backup(workspace) -> dict:
         with workspace.connect() as source, sqlite3.connect(temp_db) as snapshot:
             source.backup(snapshot)
         _integrity(temp_db)
-        resources: list[tuple[str, bytes]] = [(DB_MEMBER, temp_db.read_bytes())]
-        seen = {DB_MEMBER}
-        for jid, filename, digest, expected_size in _assets(temp_db):
-            member = _asset_member(jid, filename)
-            path = root / member
-            if member in seen or path.is_symlink() or not path.is_file():
-                raise BackupError("BACKUP_ASSET_UNAVAILABLE")
-            data = path.read_bytes()
-            if len(data) != expected_size or _checksum(data) != digest:
-                raise BackupError("BACKUP_ASSET_INTEGRITY_ERROR")
-            if len(data) > MAX_MEMBER:
-                raise BackupError("BACKUP_ASSET_TOO_LARGE")
-            resources.append((member, data))
-            seen.add(member)
-            if len(resources) > MAX_FILES:
-                raise BackupError("BACKUP_TOO_MANY_FILES")
-        manifest = {"format": FORMAT, "version": VERSION,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "files": [{"path": name, "bytes": len(data), "sha256": _checksum(data)}
-                              for name, data in resources]}
+        entries: list[dict] = []
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED,
                              allowZip64=True) as archive:
-            for name, data in resources:
-                archive.writestr(name, data)
+            # Stream in constant memory, even when hundreds of images exist.
+            def add_file(member: str, path: Path, expected: tuple[str, int] | None = None):
+                size, checksum = 0, hashlib.sha256()
+                with path.open("rb") as source, archive.open(member, "w", force_zip64=True) as output:
+                    while chunk := source.read(1024 * 1024):
+                        size += len(chunk)
+                        if size > MAX_MEMBER:
+                            raise BackupError("BACKUP_ASSET_TOO_LARGE")
+                        checksum.update(chunk)
+                        output.write(chunk)
+                if expected and (size != expected[1] or checksum.hexdigest() != expected[0]):
+                    raise BackupError("BACKUP_ASSET_INTEGRITY_ERROR")
+                entries.append({"path": member, "bytes": size, "sha256": checksum.hexdigest()})
+
+            add_file(DB_MEMBER, temp_db)
+            seen = {DB_MEMBER}
+            for jid, filename, digest, expected_size in _assets(temp_db):
+                member = _asset_member(jid, filename)
+                path = root / member
+                if member in seen or path.is_symlink() or not path.is_file():
+                    raise BackupError("BACKUP_ASSET_UNAVAILABLE")
+                add_file(member, path, (digest, expected_size))
+                seen.add(member)
+                if len(entries) > MAX_FILES:
+                    raise BackupError("BACKUP_TOO_MANY_FILES")
+            manifest = {"format": FORMAT, "version": VERSION,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "files": entries}
             archive.writestr(MANIFEST, _json_bytes(manifest))
         verify_backup(target)  # publish only a verified full workspace backup
         os.replace(target, final)
-        return {"name": final.name, "valid": True, "asset_count": len(resources) - 1,
+        return {"name": final.name, "valid": True, "asset_count": len(entries) - 1,
                 "size_bytes": final.stat().st_size}
     finally:
         target.unlink(missing_ok=True)
@@ -231,7 +239,8 @@ def restore_backup(archive_path: str | Path, new_root: str | Path) -> dict:
             for item in manifest["files"]:
                 target = staging.joinpath(*item["path"].split("/"))
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(archive.read(item["path"]))
+                with archive.open(item["path"]) as source, target.open("wb") as output:
+                    shutil.copyfileobj(source, output, length=1024 * 1024)
         # Reverify restored DB and archive (integrity check independently).
         _integrity(staging / DB_MEMBER)
         if destination.exists():
