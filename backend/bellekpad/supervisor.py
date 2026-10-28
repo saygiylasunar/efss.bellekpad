@@ -46,6 +46,25 @@ class Supervisor:
         return {"state": "unconfigured" if self.profile is None else self.state,
                 "failure": self.failure, "pid": self.proc.pid if self.proc and self.proc.returncode is None else None}
 
+    async def configure(self, profile: EngineProfile,
+                        persist: Callable[[EngineProfile], object] | None = None):
+        """Commit profile only while inactive, including durable write under lock.
+
+        A rejected/failed persistence attempt cannot silently replace the
+        previously configured runtime; the caller must not manage argv.
+        """
+        async with self._lock:
+            if self.state in ("starting", "ready", "stopping") or (
+                    self.proc is not None and self.proc.returncode is None):
+                raise ValueError("ENGINE_BUSY")
+            profile.validate()
+            if persist is not None:
+                persist(profile)
+            self.profile = profile
+            self.state = "stopped"
+            self.failure = None
+            return self.status()
+
     async def start(self):
         async with self._lock:
             if self.profile is None:
