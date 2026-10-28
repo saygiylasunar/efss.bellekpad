@@ -13,10 +13,19 @@ from .efss import SourceConflict
 from .storage import Workspace
 from .supervisor import Supervisor, EngineProfile
 from .runtime_settings import RuntimeConfigError, build_comfy_profile, profile_info
+from .model_registry import ModelRegistryError, discover
 from .workflow import WorkflowError, compile_graph
 from .workflow_store import WorkflowStoreError
 from .generation import GenerationError, image_outputs, normalized_engine_state, parse_uuid
 from .workspace_backup import BackupError, ARCHIVE_PATTERN, create_backup, verify_backup
+
+
+class ModelRootCreate(BaseModel):
+    path: str = Field(min_length=1, max_length=4096)
+
+
+class ModelFileListParams(BaseModel):
+    root_id: str | None = None
 
 
 class RuntimeConfiguration(BaseModel):
@@ -129,6 +138,58 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
     @app.post("/api/engine/stop")
     async def engine_stop():
         return await supervisor.stop()
+
+    # Registry is local metadata only; indexing never activates a runner.
+    scanning_roots: set[str] = set()
+
+    @app.get("/api/models/roots")
+    async def model_roots():
+        return workspace.list_model_roots()
+
+    @app.post("/api/models/roots", status_code=201)
+    async def add_model_root(body: ModelRootCreate):
+        try:
+            return await run_in_threadpool(workspace.add_model_root, body.path)
+        except ModelRegistryError as exc:
+            raise HTTPException(422, detail=exc.code) from exc
+
+    @app.delete("/api/models/roots/{root_id}")
+    async def remove_model_root(root_id: str):
+        if root_id in scanning_roots:
+            raise HTTPException(409, detail="MODEL_SCAN_ACTIVE")
+        if not workspace.delete_model_root(root_id):
+            raise HTTPException(404, detail="MODEL_ROOT_NOT_FOUND")
+        return {"removed": True}
+
+    @app.post("/api/models/roots/{root_id}/scan")
+    async def scan_model_root(root_id: str):
+        root = workspace.get_model_root(root_id)
+        if root is None:
+            raise HTTPException(404, detail="MODEL_ROOT_NOT_FOUND")
+        if root_id in scanning_roots:
+            raise HTTPException(409, detail="MODEL_SCAN_ACTIVE")
+        scanning_roots.add(root_id)
+        try:
+            # No traversal of arbitrary user input: use persisted approved path.
+            snapshot = await run_in_threadpool(discover, root["path"])
+            return await run_in_threadpool(workspace.replace_model_index, root_id, snapshot)
+        except ModelRegistryError as exc:
+            code = 404 if exc.code == "MODEL_ROOT_NOT_FOUND" else 409
+            raise HTTPException(code, detail=exc.code) from exc
+        finally:
+            scanning_roots.discard(root_id)
+
+    @app.get("/api/models")
+    async def model_files(root_id: str | None = None, query: str = "",
+                          format: str = "", limit: int = 100, offset: int = 0):
+        if len(query) > 160 or len(format) > 32:
+            raise HTTPException(422, detail="MODEL_FILTER_INVALID")
+        if root_id is not None and workspace.get_model_root(root_id) is None:
+            raise HTTPException(404, detail="MODEL_ROOT_NOT_FOUND")
+        try:
+            return workspace.list_model_files(root_id, query, format, limit, offset)
+        except ModelRegistryError as exc:
+            raise HTTPException(422, detail=exc.code) from exc
 
     @app.get("/api/workflow/nodes")
     async def workflow_nodes():
