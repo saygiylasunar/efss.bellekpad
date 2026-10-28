@@ -12,11 +12,21 @@ from .efss import SourceConflict
 from .storage import Workspace
 from .supervisor import Supervisor, EngineProfile
 from .workflow import WorkflowError, compile_graph
+from .workflow_store import WorkflowStoreError
 
 
 class GraphRequest(BaseModel):
     nodes: list[dict] = Field(max_length=512)
     edges: list[dict] = Field(max_length=2048)
+
+
+class WorkflowDraftCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    graph: dict
+
+
+class WorkflowDraftUpdate(WorkflowDraftCreate):
+    expected_revision: int
 
 
 class NoteCreate(BaseModel):
@@ -99,6 +109,34 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
             raise HTTPException(422, detail=exc.code) from exc
         except EngineOffline as exc:
             raise HTTPException(503, detail=str(exc)) from exc
+
+    @app.get("/api/workflows")
+    async def saved_workflows():
+        return workspace.list_workflows()
+
+    @app.post("/api/workflows", status_code=201)
+    async def create_saved_workflow(body: WorkflowDraftCreate):
+        try:
+            return workspace.create_workflow(body.name, body.graph)
+        except WorkflowStoreError as exc:
+            raise HTTPException(422, detail=exc.code) from exc
+
+    @app.get("/api/workflows/{workflow_id}")
+    async def get_saved_workflow(workflow_id: str):
+        result = workspace.get_workflow(workflow_id)
+        if result is None:
+            raise HTTPException(404, detail="WORKFLOW_NOT_FOUND")
+        return result
+
+    @app.put("/api/workflows/{workflow_id}")
+    async def update_saved_workflow(workflow_id: str, body: WorkflowDraftUpdate):
+        try:
+            return workspace.update_workflow(
+                workflow_id, body.expected_revision, body.name, body.graph)
+        except WorkflowStoreError as exc:
+            code = 404 if exc.code == "WORKFLOW_NOT_FOUND" else (
+                409 if exc.code == "WORKFLOW_REVISION_CONFLICT" else 422)
+            raise HTTPException(code, detail=exc.code) from exc
 
     @app.post("/api/generations")
     async def generations(graph: GraphRequest):
