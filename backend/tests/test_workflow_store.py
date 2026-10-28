@@ -83,12 +83,12 @@ class SchemaMigrationTests(unittest.TestCase):
             first=Workspace(root)
             note=first.new_note("Korunacak", "Kişisel metin\n")
             saved=first.create_workflow("Kayıt", graph())
-            with closing(sqlite3.connect(first.db_path)) as db:
+            with closing(sqlite3.connect(first.db_path)) as db, db:
                 db.execute("PRAGMA user_version = 1")
             upgraded=Workspace(root)
             self.assertEqual(upgraded.get_note(note["id"])["source"],"Kişisel metin\n")
             self.assertEqual(upgraded.get_workflow(saved["id"])["graph"],graph())
-            with closing(sqlite3.connect(first.db_path)) as db:
+            with closing(sqlite3.connect(first.db_path)) as db, db:
                 self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],3)
                 self.assertIsNotNone(db.execute(
                     "SELECT name FROM sqlite_master WHERE name='generation_assets'").fetchone())
@@ -98,13 +98,13 @@ class SchemaMigrationTests(unittest.TestCase):
             rootpath=Path(root)
             dbdir=rootpath/"database"
             dbdir.mkdir(parents=True)
-            with closing(sqlite3.connect(dbdir/"bellekpad.sqlite3")) as db:
+            with closing(sqlite3.connect(dbdir/"bellekpad.sqlite3")) as db, db:
                 db.execute("PRAGMA user_version=99")
                 db.execute("CREATE TABLE future_data(secret TEXT)")
                 db.execute("INSERT INTO future_data VALUES ('preserved')")
             with self.assertRaisesRegex(RuntimeError,"DATA_SCHEMA_NEWER_THAN_APP"):
                 Workspace(rootpath)
-            with closing(sqlite3.connect(dbdir/"bellekpad.sqlite3")) as db:
+            with closing(sqlite3.connect(dbdir/"bellekpad.sqlite3")) as db, db:
                 self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],99)
                 self.assertEqual(db.execute("SELECT secret FROM future_data").fetchone()[0],"preserved")
 
@@ -142,7 +142,7 @@ class WorkflowAPITests(unittest.TestCase):
                 self.assertEqual(compiled.json()["detail"], "ENGINE_NOT_READY")
                 self.assertEqual(client.post("/api/backups").status_code, 200)
                 backup = next((Path(root)/"backups").glob("backup-*.sqlite3"))
-                with closing(sqlite3.connect(backup)) as db:
+                with closing(sqlite3.connect(backup)) as db, db:
                     persisted = db.execute("SELECT graph_json,revision FROM workflows WHERE id=?", (wid,)).fetchone()
                     self.assertEqual(persisted[1], 2)
                     self.assertEqual(json.loads(persisted[0]), modified)
