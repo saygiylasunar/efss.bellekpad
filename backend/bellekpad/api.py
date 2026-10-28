@@ -180,9 +180,11 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
     async def generation_status(job_id: str):
         job = owned_generation(job_id)
         if not job["engine_job_id"]:
-            return {**job, "engine_reachable": False, "images": []}
+            return {**job, "engine_reachable": False, "images": [],
+                    "archived": workspace.list_generation_assets(job["id"])}
         if supervisor.status()["state"] != "ready":
-            return {**job, "engine_reachable": False, "images": []}
+            return {**job, "engine_reachable": False, "images": [],
+                    "archived": workspace.list_generation_assets(job["id"])}
         try:
             upstream = await client.job_status(job["engine_job_id"])
             state = normalized_engine_state(upstream)
@@ -193,9 +195,11 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
                 historical = await client.history(job["engine_job_id"])
                 images = [img.public(i, job["id"])
                           for i, img in enumerate(image_outputs(historical))]
-            return {**job, "engine_reachable": True, "images": images}
+            return {**job, "engine_reachable": True, "images": images,
+                    "archived": workspace.list_generation_assets(job["id"])}
         except EngineOffline:
-            return {**job, "engine_reachable": False, "images": []}
+            return {**job, "engine_reachable": False, "images": [],
+                    "archived": workspace.list_generation_assets(job["id"])}
 
     @app.get("/api/generations/{job_id}/images/{index}")
     async def generation_image(job_id: str, index: int):
@@ -220,6 +224,46 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
             })
         except EngineOffline as exc:
             raise HTTPException(503, detail=str(exc)) from exc
+
+    @app.post("/api/generations/{job_id}/images/{index}/archive", status_code=201)
+    async def archive_generation_image(job_id: str, index: int):
+        job = owned_generation(job_id)
+        if job["state"] != "completed":
+            raise HTTPException(409, detail="GENERATION_NOT_COMPLETED")
+        if index < 0 or index >= 256:
+            raise HTTPException(404, detail="IMAGE_NOT_FOUND")
+        if not job["engine_job_id"] or supervisor.status()["state"] != "ready":
+            raise HTTPException(503, detail="ENGINE_NOT_READY")
+        try:
+            historical = await client.history(job["engine_job_id"])
+            images = image_outputs(historical)
+            if index >= len(images):
+                raise HTTPException(404, detail="IMAGE_NOT_FOUND")
+            entry = images[index]
+            content, mime = await client.image(
+                entry.filename, entry.subfolder, entry.kind)
+            return workspace.archive_generation_image(
+                job["id"], content, mime, entry.node_id, entry.filename)
+        except EngineOffline as exc:
+            raise HTTPException(503, detail=str(exc)) from exc
+
+    @app.get("/api/assets/{asset_id}")
+    async def archived_asset(asset_id: str):
+        try:
+            normalized = parse_uuid(asset_id)
+        except GenerationError as exc:
+            raise HTTPException(400, detail=exc.code) from exc
+        try:
+            stored = workspace.get_generation_asset(normalized)
+        except ValueError as exc:
+            raise HTTPException(409, detail=str(exc)) from exc
+        if stored is None:
+            raise HTTPException(404, detail="ASSET_NOT_FOUND")
+        body, mime = stored
+        return Response(content=body, media_type=mime, headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        })
 
     @app.post("/api/generations/{job_id}/cancel")
     async def generation_cancel(job_id: str):
