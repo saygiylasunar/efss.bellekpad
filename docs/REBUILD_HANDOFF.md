@@ -4,7 +4,7 @@ Source of truth: rebuild/web-ai-core. Old Electron G0.x implementation is preser
 
 ## Implemented as source
 - Python core: workflow validation and compilation using live Comfy /object_info; DAG/required port/type/literal checks.
-- Managed Comfy supervisor: fixed operator-configured Python executable and main.py, no shell/renderer process arguments, true readiness, collision preflight, stop during start, failure states.
+- Managed Comfy supervisor: fixed Python executable and Comfy main.py, now **configurable from BellekPad's own UI**, persisted in SQLite v3 with user-selected Comfy root and Python runtime, auto-discovery in known installation-local folders; no shell/renderer argv, collision preflight, true readiness and bounded startup diagnostics. See `RUNTIME_SETUP.md`.
 - Comfy adapter: /system_stats, /object_info, /prompt, /history/{id}, targeted /api/jobs/{id}/cancel.
 - Workspace: user-selected data root; SQLite WAL, version checks for note **and workflow draft** updates, consistent database backup.
 - Workflow drafts: versioned schema v1, offline create/list/open/update, geometry/inputs/edges persisted; duplicate IDs/dangling refs/nonfinite coordinates and stale revisions rejected. Saved drafts are not claimed to be executable until checked against live Comfy node definitions. React Flow Save/Open uses the same API.
@@ -19,7 +19,7 @@ Source of truth: rebuild/web-ai-core. Old Electron G0.x implementation is preser
 - Full EFSS Markdown rich editing, specialized EFSS symbols, advanced formatting/tables and semantic AST conversions. Basic safe multi-paragraph editing is now implemented.
 - **Still missing:** preset overrides, SSE/WebSocket live events and automatic archive policy. Comfy image preview and manual image archiving have API/UI code and mocked integration tests; **no physical Comfy inference has been verified**. Legacy SQLite-only backup excludes image file bytes; the new portable workspace backup includes referenced files. Real Windows/NTFS acceptance, multi-process locking and browser E2E remain open.
 - Chat LLM runtime, multi-agent sessions and conversation UI.
-- Session authentication, mobile layout acceptance, installer, distribution/Comfy GPL audit and additional future asset-type backup coverage.
+- Session authentication, mobile layout acceptance, installer, distribution/Comfy GPL audit and additional future asset-type backup coverage. Real Comfy Windows runtime with model weights remains unverified.
 
 ## İlk gerçek Windows arayüz denemesi — 28.10.2026
 
