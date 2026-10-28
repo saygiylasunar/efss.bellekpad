@@ -6,7 +6,10 @@ type Verification = {valid: boolean; asset_count: number; files: number; format_
 
 async function localApi<T>(path: string, method: "GET"|"POST"="GET"): Promise<T> {
   const response=await fetch(path,{method,headers:{"Content-Type":"application/json"},cache:"no-store"});
-  const payload=await response.json() as {detail?:string;error?:string};
+  const raw=await response.text();
+  let payload: {detail?:string;error?:string};
+  try{payload=JSON.parse(raw) as typeof payload}
+  catch{throw Error("Sunucu yanıtı geçersiz (HTTP "+response.status+").")}
   if(!response.ok)throw Error(payload.detail||payload.error||("HTTP "+response.status));
   return payload as T;
 }
