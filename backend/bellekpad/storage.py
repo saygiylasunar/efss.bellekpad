@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from contextlib import contextmanager, closing
 import uuid
 from pathlib import Path
 from .efss import patch, project, SourceConflict
@@ -36,11 +37,16 @@ class Workspace:
                 FOREIGN KEY(conversation_id) REFERENCES conversations(id));
             """)
 
+    @contextmanager
     def connect(self):
         db = sqlite3.connect(self.db_path, timeout=10)
-        db.execute("PRAGMA foreign_keys=ON")
-        db.execute("PRAGMA journal_mode=WAL")
-        return db
+        try:
+            db.execute("PRAGMA foreign_keys=ON")
+            db.execute("PRAGMA journal_mode=WAL")
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def new_note(self, title: str, source: str = "") -> dict:
         if not isinstance(title, str) or not title.strip() or len(title) > 160 or not isinstance(source, str):
@@ -83,7 +89,7 @@ class Workspace:
         os.close(fd)
         target = Path(path)
         try:
-            with self.connect() as source, sqlite3.connect(target) as destination:
+            with self.connect() as source, closing(sqlite3.connect(target)) as destination:
                 source.backup(destination)
             final = self.root / "backups" / f"backup-{uuid.uuid4().hex}.sqlite3"
             os.replace(target, final)
