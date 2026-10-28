@@ -21,6 +21,24 @@ Source of truth: rebuild/web-ai-core. Old Electron G0.x implementation is preser
 - Chat LLM runtime, multi-agent sessions and conversation UI.
 - Session authentication, mobile layout acceptance, installer, distribution/Comfy GPL audit and additional future asset-type backup coverage.
 
+## İlk gerçek Windows arayüz denemesi — 28.10.2026
+
+Kullanıcının tarayıcı ekran görüntüleri: BellekPad arayüzü yükleniyor; backend
+motor durumu `UNCONFIGURED` (Comfy python yolu verilmediği için beklenen).
+**Yeni not** ve **Tam yedek oluştur** eylemleri HTTP hatası dönüyordu.
+Kök neden API `Origin` izni: Vite'nin gerçek adresi
+`http://127.0.0.1:5173` iken backend mutasyonlarda yalnız
+`http://localhost:5173` adresine izin veriyordu. GET çalışırken POST/PATCH
+403 `UNTRUSTED_ORIGIN` veriyor; UI gerçek hata kodunu göstermeyip genel
+Not kaydedilemedi` / `Yedekleme işlemi başarısız` mesajlarını gösteriyordu.
+
+**Yapılanlar:** backend Origin allowlist düzeltildi; iki adres için not
+oluşturma+düzenleme ve tam yedek/verify POST sözleşme testleri eklendi;
+frontend Note/Backup API error handling backend `error` kodunu gösteriyor.
+Görsel arayüzdeki gereksiz teknik açıklamalar bir sonraki kontrollü UI
+sadeleştirme dilimine alındı; ürünün Core→API→UI özelliği kırpılmayacak.
+**Kullanıcının yeni sürümde tarayıcıdan tekrar denemesi henüz bekleniyor.**
+
 ## First next executable acceptance path
 1. Provide BELLEKPAD_DATA_ROOT (a real writable directory; never silently create a Roaming data root).
 2. Install backend dependencies, start local API, build frontend and open the same-origin UI.
