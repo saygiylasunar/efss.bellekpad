@@ -115,6 +115,13 @@ class GenerationAPITests(unittest.TestCase):
                 self.assertEqual(image.headers["content-type"],"image/png")
                 self.assertEqual(image.headers["x-content-type-options"],"nosniff")
                 self.assertEqual(engine.image_requests,[("image_001.png","outputs/2026","output")])
+                archived=api.post(uri+"/archive")
+                self.assertEqual(archived.status_code,201,archived.text)
+                asset=archived.json()
+                self.assertEqual(asset["filename"],"image_001.png")
+                self.assertTrue(asset["url"].startswith("/api/assets/"))
+                self.assertEqual(api.get(asset["url"]).content,image.content)
+                self.assertEqual(len(api.get("/api/generations/"+jid).json()["archived"]),1)
                 self.assertEqual(api.get("/api/generations/"+jid+"/images/1").status_code,404)
                 self.assertFalse(api.post("/api/generations/"+jid+"/cancel").json()["accepted"])
                 self.assertEqual(len(engine.cancel_calls),1)
@@ -137,9 +144,19 @@ class GenerationAPITests(unittest.TestCase):
                 self.assertEqual(offline["state"],"completed")
                 self.assertFalse(offline["engine_reachable"])
                 self.assertEqual(api.get(uri).status_code,503)
+                self.assertEqual(api.get(asset["url"]).content,image.content)
+                self.assertEqual(len(api.get("/api/generations/"+jid).json()["archived"]),1)
+                self.assertEqual(api.post(uri+"/archive").status_code,503)
             with TestClient(build_app(root=root,comfy=engine,
                                       supervisor_override=supervisor)) as reopened:
                 self.assertEqual(reopened.get("/api/generations").json()[0]["state"],"completed")
+                saved=reopened.get("/api/generations/"+jid).json()
+                self.assertEqual(len(saved["archived"]),1)
+                self.assertEqual(reopened.get(saved["archived"][0]["url"]).content,image.content)
+                # The asset is not blindly trusted even inside the user data root.
+                absolute=Path(root)/"assets"/"generations"/jid/(asset["id"]+".png")
+                absolute.write_bytes(b"tampered")
+                self.assertEqual(reopened.get(asset["url"]).status_code,409)
 
     def test_invalid_graph_does_not_submit_or_create_job(self):
         with tempfile.TemporaryDirectory() as root:
