@@ -8,7 +8,7 @@ import tempfile
 from contextlib import contextmanager, closing
 import uuid
 from pathlib import Path
-from .efss import patch, project, SourceConflict
+from .efss import patch, project, rewrite_blocks, SourceConflict
 from .workflow_store import WorkflowStoreError, serialized_draft
 
 
@@ -96,7 +96,8 @@ class Workspace:
             return None
         return {"id": nid, "title": row[0], "source": row[1], "revision": row[2], "projection": project(row[1])}
 
-    def patch_note(self, nid: str, revision: int, source_sha: str, changes: list[dict]) -> dict:
+    def patch_note(self, nid: str, revision: int, source_sha: str,
+                   changes: list[dict], draft: list[dict] | None = None) -> dict:
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT source,revision FROM notes WHERE id=?", (nid,)).fetchone()
@@ -104,7 +105,8 @@ class Workspace:
                 raise SourceConflict("NOTE_NOT_FOUND")
             if type(revision) is not int or row[1] != revision:
                 raise SourceConflict("NOTE_REVISION_CONFLICT")
-            edited = patch(row[0], source_sha, changes)
+            edited = (rewrite_blocks(row[0], source_sha, draft)
+                      if draft is not None else patch(row[0], source_sha, changes))
             cursor = db.execute("UPDATE notes SET source=?,revision=revision+1 WHERE id=? AND revision=?",
                                 (edited, nid, revision))
             if cursor.rowcount != 1:
