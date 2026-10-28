@@ -89,7 +89,10 @@ function unchanged(doc: Note, draft: DraftLine[]): boolean {
 
 async function api<T>(url:string,init?:RequestInit):Promise<T>{
   const response = await fetch(url,{headers:{"Content-Type":"application/json"},...init});
-  const body = await response.json() as {detail?:string; error?:string};
+  const raw = await response.text();
+  let body: {detail?:string; error?:string};
+  try {body = JSON.parse(raw) as typeof body}
+  catch {throw Error("Sunucu yanıtı geçersiz (HTTP " + response.status + ").")}
   if(!response.ok)throw Error(body.detail || body.error || ("HTTP " + response.status));
   return body as T;
 }
