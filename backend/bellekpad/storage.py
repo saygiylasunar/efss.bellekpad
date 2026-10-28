@@ -23,7 +23,7 @@ class Workspace:
         self.db_path = self.root / "database" / "bellekpad.sqlite3"
         with self.connect() as db:
             schema = db.execute("PRAGMA user_version").fetchone()[0]
-            if schema > 2:
+            if schema > 3:
                 raise RuntimeError("DATA_SCHEMA_NEWER_THAN_APP")
             # v2 is additive to v1: never reset a newer SQLite schema version.
             # All tables are CREATE IF NOT EXISTS for safe retry after interruption.
@@ -62,8 +62,14 @@ class Workspace:
                 source_node_id TEXT NOT NULL,
                 source_filename TEXT NOT NULL
               );
+              CREATE TABLE IF NOT EXISTS runtime_profiles (
+                key TEXT PRIMARY KEY CHECK(key = 'comfy'),
+                python_executable TEXT NOT NULL,
+                comfy_root TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+              );
             """)
-            db.execute("PRAGMA user_version = 2")
+            db.execute("PRAGMA user_version = 3")
 
     @contextmanager
     def connect(self):
@@ -75,6 +81,27 @@ class Workspace:
                 yield db
         finally:
             db.close()
+
+    def get_runtime_profile(self) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT python_executable,comfy_root,updated_at "
+                "FROM runtime_profiles WHERE key='comfy'"
+            ).fetchone()
+        return {"python_executable": row[0], "comfy_root": row[1],
+                "updated_at": row[2]} if row else None
+
+    def save_runtime_profile(self, python_executable: str, comfy_root: str) -> dict:
+        with self.connect() as db:
+            db.execute(
+                "INSERT INTO runtime_profiles(key,python_executable,comfy_root) "
+                "VALUES('comfy',?,?) ON CONFLICT(key) DO UPDATE SET "
+                "python_executable=excluded.python_executable,"
+                "comfy_root=excluded.comfy_root,"
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+                (python_executable, comfy_root)
+            )
+        return self.get_runtime_profile()
 
     def new_note(self, title: str, source: str = "") -> dict:
         if not isinstance(title, str) or not title.strip() or len(title) > 160 or not isinstance(source, str):
