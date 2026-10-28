@@ -218,6 +218,8 @@ def create_backup(workspace) -> dict:
         os.replace(target, final)
         return {"name": final.name, "valid": True, "asset_count": len(entries) - 1,
                 "size_bytes": final.stat().st_size}
+    except (OSError, sqlite3.DatabaseError, zipfile.BadZipFile) as exc:
+        raise BackupError("BACKUP_IO_FAILED") from exc
     finally:
         target.unlink(missing_ok=True)
         temp_db.unlink(missing_ok=True)
