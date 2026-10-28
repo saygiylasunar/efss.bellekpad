@@ -97,3 +97,4 @@ Yeni karar bu dosyanın ilgili başlığını güncelleyip aşağıdaki günlü�
 ### Değişiklik günlüğü
 - **28.10.2026:** Web-first/AI-first; React, Tiptap/ProseMirror ve React Flow; üç çoklu sohbet politikası; yönettiğimiz Comfy engine; kullanıcı tanımlı veri/model dizinleri; CORE→API→UI kuralı **kilitlendi**.
 - **28.10.2026:** `rebuild/web-ai-core` temiz kaynak dalı açıldı; `main` korunacak; ilk Comfy/EFSS/SQLite sözleşmeleri testli temele dönüştürüldü.
+- **28.10.2026:** Bu karar defteri repoya kanonik `docs/DECISIONS.md` olarak kaydedildi; Workflow Studio için motor kapalıyken de kaydedilebilir **sürüm 1 taslak/preset** ve API revizyon koruması eklendi. Gerçek Comfy inference, immutable generation job, visual end-to-end kabulü **açıktır**.
