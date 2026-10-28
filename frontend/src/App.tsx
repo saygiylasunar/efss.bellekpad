@@ -121,6 +121,8 @@ export default function App() {
     }catch(e){setNotice("Geçersiz parametre JSON: "+String(e))}
   };
 
+  const hasUnappliedInputs = () => !!chosen &&
+    parameters.trim() !== JSON.stringify(chosen.data.inputs, null, 2);
   const compiledGraph = () => serializeDraft(nodes, edges);
   const newWorkflow = () => {
     if (draftDirty && !window.confirm("Kaydedilmemiş değişiklikler var. Yeni workflow açılsın mı?")) return;
@@ -144,6 +146,10 @@ export default function App() {
   };
   const saveWorkflow = async () => {
     if (busy) return;
+    if (hasUnappliedInputs()) {
+      setNotice("Node girdilerinde uygulanmamış değişiklik var. Önce 'Girdileri uygula' seç.");
+      return;
+    }
     if (!workflowName.trim()) { setNotice("Workflow adı boş olamaz."); return; }
     setBusy(true);
     try {
@@ -161,6 +167,10 @@ export default function App() {
     finally { setBusy(false); }
   };
   const run = async (submit:boolean)=>{
+    if (hasUnappliedInputs()) {
+      setNotice("Node girdilerini önce uygula; ekrandaki henüz işlenmemiş değerlerle çalıştırma yapılamaz.");
+      return;
+    }
     setBusy(true); setHistory(null);
     try{
       if(submit){
@@ -232,7 +242,7 @@ export default function App() {
             onChange={e=>{setWorkflowName(e.target.value);setDraftDirty(true)}} />
           <div className="actions">
             <button disabled={busy} onClick={newWorkflow}>Yeni</button>
-            <button disabled={busy||!draftDirty&&!workflowRef} onClick={()=>void saveWorkflow()}>Kaydet</button>
+            <button disabled={busy||!draftDirty} onClick={()=>void saveWorkflow()}>Kaydet</button>
           </div>
           <label htmlFor="workflow-saved">Kayıtlı workflow'lar</label>
           <select id="workflow-saved" value={pickedWorkflow}
