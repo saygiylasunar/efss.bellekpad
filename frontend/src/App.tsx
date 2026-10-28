@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Notes from "./Notes";
+import GenerationPanel from "./GenerationPanel";
 import {restoreDraft, serializeDraft,
   type Catalog, type GraphNode, type SavedWorkflow, type WorkflowSummary
 } from "./workflowLibrary";
@@ -11,7 +12,7 @@ import { ReactFlow,
 } from "@xyflow/react";
 
 type Engine = {state: string, pid: number | null, failure: string | null};
-type Result = {job_id: string, queue_number: number | null};
+type Result = {id: string, engine_job_id: string | null, state: string};
 type ErrorData = {detail?: unknown, error?: string};
 
 async function callApi<T>(url: string, init?: RequestInit): Promise<T> {
@@ -67,7 +68,6 @@ export default function App() {
   const [notice, setNotice] = useState("Motorun gerçek durumu backend üzerinden okunur.");
   const [busy, setBusy] = useState(false);
   const [job, setJob] = useState<Result | null>(null);
-  const [history, setHistory] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     try { setEngine(await callApi<Engine>("/api/engine")); }
@@ -171,28 +171,17 @@ export default function App() {
       setNotice("Node girdilerini önce uygula; ekrandaki henüz işlenmemiş değerlerle çalıştırma yapılamaz.");
       return;
     }
-    setBusy(true); setHistory(null);
+    setBusy(true);
     try{
       if(submit){
         const value = await callApi<Result>("/api/generations",{method:"POST",body:JSON.stringify(compiledGraph())});
-        setJob(value);setNotice("İş ComfyUI kuyruğuna alındı: "+value.job_id);
+        setJob(value);setNotice("İş kimliği kaydedildi: "+value.id+" · durum: "+value.state);
       }else{
         const result=await callApi<{prompt:unknown}>("/api/workflows/compile",{method:"POST",body:JSON.stringify(compiledGraph())});
         setNotice("Graph kabul edildi. Derlenen API prompt: "+Object.keys(result.prompt as object).length+" node.");
       }
     }catch(e){setNotice(String(e))}
     finally{setBusy(false)}
-  };
-  const pollJob=async()=>{
-    if (!job)return;
-    try{setHistory(await callApi<unknown>("/api/generations/"+encodeURIComponent(job.job_id)));}
-    catch(e){setNotice(String(e))}
-  };
-  const cancelJob=async()=>{
-    if (!job)return;
-    try{const result=await callApi<{cancelled:boolean}>("/api/generations/"+encodeURIComponent(job.job_id)+"/cancel",{method:"POST"});
-      setNotice(result.cancelled?"İptal istendi.":"İş zaten bitmiş veya kuyrukta bulunamadı.");
-    }catch(e){setNotice(String(e))}
   };
   const onConnect=useCallback((link:Connection)=>{
     setEdges(old=>addEdge(link,old)); setDraftDirty(true);
@@ -271,13 +260,10 @@ export default function App() {
             <small>Girdiler canlı node kataloğuyla backend tarafından doğrulanır. Bağlantılar için portları sürükle.</small>
           </div>:<p className="hint">Özelliklerini düzenlemek için bir node seç.</p>}
           <hr />
-          <label>Çalıştırma</label>
-          <p className="hint">{job ? job.job_id : "Henüz iş gönderilmedi."}</p>
-          <button onClick={()=>void pollJob()} disabled={!job}>Sonucu sorgula</button>
-          <button onClick={()=>void cancelJob()} disabled={!job}>İşi iptal et</button>
+          <GenerationPanel activeId={job?.id||null} />
         </aside>
       </div>
-      <footer><span role="status">{notice}</span>{history ? <details><summary>Comfy iş geçmişi</summary><pre>{JSON.stringify(history,null,2)}</pre></details>:null}</footer>
+      <footer><span role="status">{notice}</span></footer>
       </>}
     </main>
   </div>;
