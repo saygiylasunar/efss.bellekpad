@@ -2,7 +2,7 @@
 
 ## 1. Supervisor / worker
 
-Backend owns process lifecycle, state and error codes. Browser cannot provide executable, shell arguments or remote host. Python paths and Comfy main.py are configured by the operator at startup. Engines are separate Python/CPP workers; a virtual environment is dependency isolation, not inference. State: unconfigured, stopped, starting, ready, stopping, failed. Health is an actual Comfy system_stats response, not presence of a button. Stop works during starting. No implicit GPU/VRAM veto. Failure never means success. Worker dependency installation is intentionally NOT automatic in R0.
+Backend owns process lifecycle, state and error codes. Browser cannot provide executable, shell arguments or remote host. Python paths and Comfy installation directory are configured locally in a compact UI; the server derives a fixed Comfy main.py entry point and fixed loopback arguments. Profile is persisted in workspace SQLite v3 and reloaded on startup. Existing runtime/venv files are reused, never downloaded implicitly. Worker logs are bounded and available only on demand. Engines are separate Python/CPP workers; a virtual environment is dependency isolation, not inference. State: unconfigured, stopped, starting, ready, stopping, failed. Health is an actual Comfy system_stats response, not presence of a button. Stop works during starting. No implicit GPU/VRAM veto. Failure never means success. Worker dependency installation is intentionally NOT automatic in R0.
 
 Limitations to close before runtime GA: monitor old listener / port identity, Windows process-tree kill, stdout log capture/redaction, fault injection, version pinning and crash recovery; measure against real Comfy.
 
