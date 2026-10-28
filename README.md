@@ -1,5 +1,9 @@
 # EFSS BellekPad — Web AI Core
 
+**Kanonik karar defteri:** [docs/DECISIONS.md](docs/DECISIONS.md) ·
+[Devir durumu](docs/REBUILD_HANDOFF.md) ·
+[Kabul kapıları](docs/ACCEPTANCE.md)
+
 This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core. The previous Electron implementation remains preserved in main and its Git history. Do not merge the obsolete Electron PR into this branch.
 
 ## Architecture (R0 foundation)
@@ -14,7 +18,7 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 
 ## Important: implemented vs planned
 
-**Implemented in this foundation:** a core workflow compiler, an isolated process supervisor, a version-checked EFSS line patch contract, a user-chosen SQLite workspace and online backup, a Comfy API adapter, and core unit tests. **Not implemented:** model inference, multi-agent chat, general rich EFSS editing, automated Comfy installation, a release installer. No fake readiness or GPU checks.
+**Implemented in this foundation:** a core workflow compiler, an isolated process supervisor, a version-checked EFSS line patch contract, a user-chosen SQLite workspace and online backup, a Comfy API adapter, **offline-capable versioned workflow draft create/list/open/update with SQLite revision checks and React Flow Save/Open controls**, and core/API contract tests. **Not implemented:** model inference, multi-agent chat, general rich EFSS editing, automated Comfy installation, a release installer. No fake readiness or GPU checks.
 
 ## Development (after installing Python dependencies)
 
