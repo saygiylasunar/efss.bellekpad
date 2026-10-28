@@ -18,9 +18,11 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 
 ## Important: implemented vs planned
 
-**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. A schema-v2 additive migration is tested. **Not implemented:** model inference, multi-agent chat, general rich EFSS editing, automated Comfy installation, a release installer. No fake readiness or GPU checks.
+**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. A schema-v2 additive migration is tested. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
 
 ## Development (after installing Python dependencies)
+
+**Requirements:** Python 3.11+; **Node.js 22.12+** for the current Vite toolchain. If your terminal already ends in `frontend>`, run `npm install` and `npm run dev` directly (do not `cd frontend` again).
 
 From repo root:
 
