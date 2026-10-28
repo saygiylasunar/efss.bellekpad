@@ -53,6 +53,10 @@ class Supervisor:
             if self.state in ("starting", "ready", "stopping"):
                 raise ValueError("ENGINE_BUSY")
             self.profile.validate()
+            # An already-running listener could otherwise fool the readiness
+            # probe into claiming *our* newly spawned worker is READY.
+            if await self.ready_probe():
+                raise ValueError("ENGINE_PORT_OCCUPIED")
             self._generation += 1
             gen = self._generation
             self.failure = None
@@ -79,7 +83,11 @@ class Supervisor:
             if self.proc is None or self.proc.returncode is not None:
                 self.state, self.failure = "failed", "ENGINE_EXITED"
                 return
-            if await self.ready_probe():
+            try:
+                healthy = await self.ready_probe()
+            except Exception:
+                healthy = False
+            if healthy:
                 if gen == self._generation and self.state == "starting":
                     self.state = "ready"
                 return
