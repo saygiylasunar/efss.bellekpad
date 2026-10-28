@@ -11,14 +11,15 @@ Source of truth: rebuild/web-ai-core. Old Electron G0.x implementation is preser
 - EFSS line projection: first lossless source-preservation slice with opaque unknown lines and hash/revision preconditions.
 - FastAPI local routes and React Flow editor wired together; Tiptap Notes first limited editing slice.
 - Generation lifecycle: immutable Comfy API prompt snapshot persisted before submitting, local job UUID, observed queue/running/terminal status, targeted cancel, upstream image gallery and on-demand archive into the chosen workspace with SHA-256 checks; schema v1→v2 additive migration.
+- Full workspace backups: `workspace_backup.py` creates a verified portable ZIP with online SQLite snapshot plus **every referenced image file**, using SHA-256 manifest; offline restore into a *new* directory, no overwrite. `/api/workspace-backups` endpoints and Web sidebar are integrated. Legacy `/api/backups` remains DB-only; see `WORKSPACE_BACKUP.md`.
 - GitHub Actions: Python core/API contract tests and production TypeScript/Vite build.
 
 ## Deliberately not claimed
 - Real Comfy integration with loaded weights on Windows; automatic engine/venv installation, runtime version pinning; generalized multi-engine scheduling and Windows job-object process cleanup.
 - Full EFSS Markdown rich editing, symbols, multiple lines, tables and source-level semantic AST conversions.
-- **Still missing:** preset overrides, SSE/WebSocket live events and automatic archive policy. Comfy image preview and manual image archiving have API/UI code and mocked integration tests; **no physical Comfy inference has been verified**. SQLite backup excludes image file bytes; full-workspace snapshot is required.
+- **Still missing:** preset overrides, SSE/WebSocket live events and automatic archive policy. Comfy image preview and manual image archiving have API/UI code and mocked integration tests; **no physical Comfy inference has been verified**. Legacy SQLite-only backup excludes image file bytes; the new portable workspace backup includes referenced files. Real Windows/NTFS acceptance, multi-process locking and browser E2E remain open.
 - Chat LLM runtime, multi-agent sessions and conversation UI.
-- Session authentication, mobile layout acceptance, installer, distribution/Comfy GPL audit and coordinated asset backup.
+- Session authentication, mobile layout acceptance, installer, distribution/Comfy GPL audit and additional future asset-type backup coverage.
 
 ## First next executable acceptance path
 1. Provide BELLEKPAD_DATA_ROOT (a real writable directory; never silently create a Roaming data root).
@@ -27,6 +28,6 @@ Source of truth: rebuild/web-ai-core. Old Electron G0.x implementation is preser
 4. Check that /object_info matches actual available node types; make a valid graph and compile it.
 5. Submit, observe genuine Comfy job ID, read history and verify the output file/artifact end to end.
 6. Verify known EFSS line edit + unknown-source roundtrip; test conflict and backup.
-7. Immutable prompt snapshots, durable jobs, image preview and opt-in image archiving are implemented. Next: real Comfy output/job-state acceptance on Windows, unknown-submission reconciliation, coordinated assets+DB backup, and browser E2E.
+7. Immutable prompt snapshots, durable jobs, image preview and opt-in image archiving are implemented. Next: real Comfy output/job-state acceptance on Windows, unknown-submission reconciliation, real Windows verification of portable assets+DB restore, and browser E2E.
 
 The primary product decisions live in [DECISIONS.md](DECISIONS.md). All engine lifecycle errors must be visible, with no fake READY. No mandatory VRAM size limit. Keep UI technical controls aligned with available backend contracts.
