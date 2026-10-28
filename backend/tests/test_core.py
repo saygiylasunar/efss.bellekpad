@@ -65,7 +65,7 @@ class EFSSTests(unittest.TestCase):
             patch(original, p["revision"], [{"id": "line-2", "hash": p["blocks"][2]["hash"], "text": "kaybolsun"}])
 
     def test_unchanged_source_byte_for_byte(self):
-        raw = "İ/ı👩‍💻 \n\`\`\`efss\r\nunsupported\r\n\`\`\`\r\n"
+        raw = "İ/ı👩‍💻 \n```efss\r\nunsupported\r\n```\r\n"
         self.assertEqual(patch(raw, project(raw)["revision"], []), raw)
 
 
