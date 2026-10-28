@@ -22,7 +22,11 @@ class Workspace:
             (self.root / name).mkdir(exist_ok=True)
         self.db_path = self.root / "database" / "bellekpad.sqlite3"
         with self.connect() as db:
-            db.execute("PRAGMA user_version = 1")
+            schema = db.execute("PRAGMA user_version").fetchone()[0]
+            if schema > 2:
+                raise RuntimeError("DATA_SCHEMA_NEWER_THAN_APP")
+            # v2 is additive to v1: never reset a newer SQLite schema version.
+            # All tables are CREATE IF NOT EXISTS for safe retry after interruption.
             db.executescript("""
               CREATE TABLE IF NOT EXISTS notes (
                 id TEXT PRIMARY KEY, title TEXT NOT NULL, source TEXT NOT NULL,
@@ -59,6 +63,7 @@ class Workspace:
                 source_filename TEXT NOT NULL
               );
             """)
+            db.execute("PRAGMA user_version = 2")
 
     @contextmanager
     def connect(self):
