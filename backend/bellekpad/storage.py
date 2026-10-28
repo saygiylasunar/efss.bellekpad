@@ -1,6 +1,7 @@
 """User-controlled workspace root, transactional notes and consistent SQLite backups."""
 from __future__ import annotations
 import json
+import hashlib
 import os
 import sqlite3
 import tempfile
@@ -46,6 +47,16 @@ class Workspace:
                 updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
                 failure_code TEXT,
                 queue_number INTEGER
+              );
+              CREATE TABLE IF NOT EXISTS generation_assets (
+                id TEXT PRIMARY KEY,
+                generation_id TEXT NOT NULL REFERENCES generation_jobs(id),
+                filename TEXT NOT NULL,
+                media_type TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                sha256 TEXT NOT NULL,
+                source_node_id TEXT NOT NULL,
+                source_filename TEXT NOT NULL
               );
             """)
 
@@ -215,6 +226,74 @@ class Workspace:
             if result.rowcount != 1 and self.get_generation(jid) is None:
                 raise ValueError("GENERATION_NOT_FOUND")
         return self.get_generation(jid)
+
+    def list_generation_assets(self, job_id: str) -> list[dict]:
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT id,filename,media_type,size_bytes,sha256,source_node_id,source_filename "
+                "FROM generation_assets WHERE generation_id=? ORDER BY rowid", (job_id,)
+            ).fetchall()
+        return [{"id": rid, "url": f"/api/assets/{rid}", "filename": original,
+                 "mime": mime, "size_bytes": size, "sha256": digest, "node_id": node}
+                for rid, file, mime, size, digest, node, original in rows]
+
+    def archive_generation_image(self, job_id: str, body: bytes,
+                                  mime: str, node_id: str, source_filename: str) -> dict:
+        """Persist file bytes *then* SQLite metadata. Never trust browser paths."""
+        suffix = {"image/png":".png","image/jpeg":".jpg",
+                  "image/webp":".webp","image/gif":".gif"}.get(mime)
+        if suffix is None or not body:
+            raise ValueError("INVALID_IMAGE_DATA")
+        job = self.get_generation(job_id)
+        if job is None or job["state"] != "completed":
+            raise ValueError("GENERATION_NOT_COMPLETED")
+        asset_id = str(uuid.uuid4())
+        folder = self.root / "assets" / "generations" / job_id
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / (asset_id + suffix)
+        fd, tempname = tempfile.mkstemp(prefix=".pending-", dir=folder)
+        temp = Path(tempname)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(body)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp, target)
+            try:
+                with self.connect() as db:
+                    db.execute(
+                        "INSERT INTO generation_assets(id,generation_id,filename,"
+                        "media_type,size_bytes,sha256,source_node_id,source_filename)"
+                        " VALUES(?,?,?,?,?,?,?,?)",
+                        (asset_id, job_id, target.name, mime, len(body),
+                         hashlib.sha256(body).hexdigest(), node_id, source_filename))
+            except Exception:
+                target.unlink(missing_ok=True)
+                raise
+        finally:
+            temp.unlink(missing_ok=True)
+        return {"id": asset_id, "url": f"/api/assets/{asset_id}",
+                "filename": source_filename, "mime":mime,
+                "size_bytes":len(body), "sha256":hashlib.sha256(body).hexdigest(),
+                "node_id":node_id}
+
+    def get_generation_asset(self, asset_id: str) -> tuple[bytes, str] | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT generation_id,filename,media_type,sha256 "
+                "FROM generation_assets WHERE id=?", (asset_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        job_id, filename, mime, expected_sha = row
+        path = self.root / "assets" / "generations" / job_id / filename
+        try:
+            content = path.read_bytes()
+        except FileNotFoundError:
+            return None
+        if hashlib.sha256(content).hexdigest() != expected_sha:
+            raise ValueError("ASSET_INTEGRITY_ERROR")
+        return content, mime
 
     def backup(self) -> Path:
         fd, path = tempfile.mkstemp(prefix=".snapshot-", suffix=".sqlite3",
