@@ -40,7 +40,8 @@ class NoteCreate(BaseModel):
 class NotePatch(BaseModel):
     revision: int
     source_sha: str
-    changes: list[dict]
+    changes: list[dict] = Field(default_factory=list)
+    draft: list[dict] | None = None
 
 
 def build_app(root: str | None = None, comfy=None, profile=None, supervisor_override=None):
@@ -303,7 +304,7 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
     @app.patch("/api/notes/{note_id}")
     async def update_note(note_id: str, body: NotePatch):
         try:
-            return workspace.patch_note(note_id, body.revision, body.source_sha, body.changes)
+            return workspace.patch_note(note_id, body.revision, body.source_sha, body.changes, body.draft)
         except SourceConflict as exc:
             raise HTTPException(409, detail=str(exc)) from exc
 
