@@ -65,3 +65,10 @@ button.nav.active{background:#25383e}
 .workspace-backups select{font-size:10px;margin-top:5px;max-width:100%}
 .backup-note{font-size:10px;color:#8299a1;line-height:1.5;overflow-wrap:anywhere}
 .backup-status{font-size:10px;color:#a4d0bf;line-height:1.55;overflow-wrap:anywhere}
+
+.engine-settings{border:1px solid #35444c;border-radius:9px;padding:10px 9px;margin:7px 0 10px;max-height:310px;overflow:auto}
+.engine-settings summary{font-size:12px;color:#b6ccc8;cursor:pointer}
+.engine-settings label{display:block;margin-top:10px;color:#91a5ac;font-size:10px}
+.engine-settings input{width:100%;max-width:100%;box-sizing:border-box;margin-top:4px;font-size:11px;padding:7px 6px}
+.engine-settings button{display:block;margin-top:10px;width:100%;font-size:11px}
+.engine-config-message{font-size:11px;color:#a6c6c0;line-height:1.5;overflow-wrap:anywhere}
