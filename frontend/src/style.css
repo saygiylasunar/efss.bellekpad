@@ -56,3 +56,12 @@ button.nav.active{background:#25383e}
 .generation-image-card{border:1px solid #3a515a;border-radius:7px;overflow:hidden}
 .generation-image-card a{border:0}
 .generation-image-card button{margin:0;width:100%;padding:7px 5px;border-radius:0;font-size:11px}
+
+/* Verified portable workspace backups; no free-form file paths in the browser. */
+.workspace-backups{border:1px solid #35444c;border-radius:9px;padding:10px 9px;margin:3px 0;max-height:280px;overflow:auto}
+.workspace-backups summary{font-size:12px;color:#b6ccc8;cursor:pointer}
+.workspace-backups button{display:block;width:100%;font-size:11px;margin-top:8px}
+.workspace-backups label{font-size:10px;color:#91a5ac;display:block;margin-top:12px}
+.workspace-backups select{font-size:10px;margin-top:5px;max-width:100%}
+.backup-note{font-size:10px;color:#8299a1;line-height:1.5;overflow-wrap:anywhere}
+.backup-status{font-size:10px;color:#a4d0bf;line-height:1.55;overflow-wrap:anywhere}
