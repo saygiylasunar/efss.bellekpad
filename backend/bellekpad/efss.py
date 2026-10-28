@@ -20,6 +20,15 @@ def _hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _is_plain_body(text: str) -> bool:
+    # A hashtag without heading whitespace (e.g. "#31") is plain text.
+    # Keep list markers, indents and unknown EFSS syntax opaque.
+    return (bool(_PLAIN.fullmatch(text))
+            and not (text.startswith((" ", "-", "+"))
+                     or re.match(r"^\d+[.)]\s", text))
+            and not re.match(r"^#{7,}\s", text))
+
+
 def project(source: str) -> dict:
     lines = source.splitlines(keepends=True)
     blocks = []
@@ -33,7 +42,7 @@ def project(source: str) -> dict:
         heading = _HEADING.fullmatch(body)
         if heading and _PLAIN.fullmatch(heading.group(2)):
             kind, content, level = "heading", heading.group(2), len(heading.group(1))
-        elif body and _PLAIN.fullmatch(body) and not body.startswith((" ", "-", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9")):
+        elif _is_plain_body(body):
             kind, content, level = "paragraph", body, None
         else:
             kind, content, level = "opaque", body, None
@@ -107,6 +116,8 @@ def rewrite_blocks(source: str, expected_revision: str, draft: list[dict]) -> st
                 raise SourceConflict("INVALID_NEW_OPAQUE_BLOCK")
             if not _PLAIN.fullmatch(value):
                 raise SourceConflict("UNSUPPORTED_TEXT")
+            if kind == "paragraph" and not _is_plain_body(value):
+                raise SourceConflict("UNSUPPORTED_TEXT")
             if kind == "paragraph" and _HEADING.fullmatch(value):
                 raise SourceConflict("UNSUPPORTED_TEXT")
             prefix = "#" * level + " " if kind == "heading" else ""
@@ -134,6 +145,8 @@ def rewrite_blocks(source: str, expected_revision: str, draft: list[dict]) -> st
         if kind == "opaque":
             raise SourceConflict("EDITABLE_BLOCK_BECAME_OPAQUE")
         if not _PLAIN.fullmatch(value):
+            raise SourceConflict("UNSUPPORTED_TEXT")
+        if kind == "paragraph" and not _is_plain_body(value):
             raise SourceConflict("UNSUPPORTED_TEXT")
         if kind == "paragraph" and _HEADING.fullmatch(value):
             raise SourceConflict("UNSUPPORTED_TEXT")
