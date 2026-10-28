@@ -82,3 +82,13 @@ multi-process web server deployment, browser click-through E2E, malicious
 concurrent filesystem modification by an external process and long-running
 large-volume backup performance. Before beta the backup contract must
 be extended alongside every additional workspace asset type.
+
+## Windows file-lock regression (28 October)
+
+The first live Windows backup attempt returned `500` / `WinError 32`
+while removing a temporary `snapshot.sqlite3`. Python's
+`with sqlite3.connect(...)` **does not close the database connection**;
+it manages transactions. Verifier/read connections and the online-backup
+destination are now explicitly closed using `contextlib.closing`.
+A regression test tracks open connections. A new physical Windows
+backup/verify run is required to accept the fix.
