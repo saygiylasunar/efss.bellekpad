@@ -197,15 +197,15 @@ export default function App() {
   },[]);
   return <div className="app">
     <aside className="side">
-      <div className="brand"><span>◈</span> bellekpad <small>EFSS · WEB AI CORE</small></div>
+      <div className="brand"><span>◈</span> bellekpad</div>
       <button className={"nav " + (mode==="workflow"?"active":"")} onClick={()=>setMode("workflow")}>◆ Workflow Studio</button>
-      <div className="nav disabled">Sohbet · R3</div>
+      
       <button className={"nav " + (mode==="notes"?"active":"")} onClick={()=>setMode("notes")}>◈ Notlar · EFSS</button>
-      <div className="nav disabled">Projeler · R6</div>
+      
       <div className="spacer"/>
       <WorkspaceBackupPanel />
-      <p className="caption">Backend yönetiminde</p>
-      <div className={"engine "+engine.state}><b>● {engine.state.toUpperCase()}</b><small>{engine.pid? "PID "+engine.pid : engine.failure || "Kendi motorumuz"}</small></div>
+      
+      <div className={"engine "+engine.state}><b>● {({unconfigured:"Motor tanımlanmadı",stopped:"Motor kapalı",starting:"Başlatılıyor",ready:"Motor hazır",stopping:"Durduruluyor",failed:"Motor hatası"} as Record<string,string>)[engine.state]||engine.state}</b>{engine.failure?<small>{engine.failure}</small>:null}</div>
       <div className="actions">
         <button onClick={()=>void engineAction("start")} disabled={busy||!["stopped","failed"].includes(engine.state)}>Başlat</button>
         <button onClick={()=>void engineAction("stop")} disabled={busy||!["starting","ready","failed"].includes(engine.state)}>Durdur</button>
@@ -213,7 +213,7 @@ export default function App() {
     </aside>
     <main className="workspace">
       {mode==="notes" ? <Notes /> : <>
-      <header><div><strong>Workflow Studio</strong><small>React Flow → BellekPad validator → ComfyUI Engine</small></div>
+      <header><div><strong>Workflow Studio</strong></div>
         <div className="actions">
           <button disabled={busy||engine.state!=="ready"||!nodes.length} onClick={()=>void run(false)}>Kontrol et</button>
           <button className="primary" disabled={busy||engine.state!=="ready"||!nodes.length} onClick={()=>void run(true)}>▶ Üret</button>
@@ -242,8 +242,7 @@ export default function App() {
             {savedWorkflows.map(w=><option key={w.id} value={w.id}>{w.name} (rev {w.revision})</option>)}
           </select>
           <button disabled={!pickedWorkflow||busy} onClick={()=>void openWorkflow()}>Seçileni aç</button>
-          <p className="hint">{workflowRef ? "Revizyon "+workflowRef.revision : "Yeni taslak"} ·
-            {draftDirty ? " Kaydedilmemiş değişiklikler" : " Kaydedildi / değişiklik yok"}</p>
+          <p className="hint">{draftDirty ? "Kaydedilmemiş değişiklikler" : workflowRef ? "Kaydedildi" : ""}</p>
           <hr />
           <h3>Node özellikleri</h3>
           <label>Node ara</label>
@@ -259,7 +258,7 @@ export default function App() {
             <label>Node girdileri (JSON)</label>
             <textarea spellCheck={false} rows={10} value={parameters} onChange={e=>setParameters(e.target.value)}/>
             <button onClick={saveParams}>Girdileri uygula</button>
-            <small>Girdiler canlı node kataloğuyla backend tarafından doğrulanır. Bağlantılar için portları sürükle.</small>
+
           </div>:<p className="hint">Özelliklerini düzenlemek için bir node seç.</p>}
           <hr />
           <GenerationPanel activeId={job?.id||null} />
