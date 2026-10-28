@@ -74,7 +74,7 @@ class IntegrationTests(unittest.TestCase):
                 for origin in ("http://127.0.0.1:5173", "http://localhost:5173"):
                     headers = {"Origin": origin}
                     created = client.post("/api/notes",
-                        json={"title": "Başlık", "source": "Satır\\n"}, headers=headers)
+                        json={"title": "Başlık", "source": "Satır\n"}, headers=headers)
                     self.assertEqual(created.status_code, 200, created.text)
                     note_id = created.json()["id"]
                     doc = client.get("/api/notes/" + note_id, headers=headers)
