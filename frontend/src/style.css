@@ -51,3 +51,8 @@ button.nav.active{background:#25383e}
 .generation-images a{display:block;border:1px solid #375058;border-radius:7px;overflow:hidden}
 .generation-images img{display:block;width:100%;height:auto;max-height:200px;object-fit:contain}
 .job-notice{font-size:11px;color:#b5c2c5;line-height:1.5;overflow-wrap:anywhere}
+
+.archive-gallery{margin:15px 0;padding:12px;background:#182d30;border:1px solid #34534f;border-radius:8px}
+.generation-image-card{border:1px solid #3a515a;border-radius:7px;overflow:hidden}
+.generation-image-card a{border:0}
+.generation-image-card button{margin:0;width:100%;padding:7px 5px;border-radius:0;font-size:11px}
