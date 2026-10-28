@@ -18,7 +18,7 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 
 ## Important: implemented vs planned
 
-**Implemented in this foundation:** a core workflow compiler, an isolated process supervisor, a version-checked EFSS line patch contract, a user-chosen SQLite workspace and online backup, a Comfy API adapter, **offline-capable versioned workflow draft create/list/open/update with SQLite revision checks and React Flow Save/Open controls**, and core/API contract tests. **Not implemented:** model inference, multi-agent chat, general rich EFSS editing, automated Comfy installation, a release installer. No fake readiness or GPU checks.
+**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. A schema-v2 additive migration is tested. **Not implemented:** model inference, multi-agent chat, general rich EFSS editing, automated Comfy installation, a release installer. No fake readiness or GPU checks.
 
 ## Development (after installing Python dependencies)
 
@@ -32,7 +32,7 @@ From repo root:
 - Optional managed Comfy engine: set BELLEKPAD_COMFY_PYTHON to the trusted Comfy venv Python executable, and BELLEKPAD_COMFY_MAIN to its main.py; optionally set BELLEKPAD_COMFY_CWD.
 - python -m uvicorn bellekpad.api:create_app --factory --app-dir backend --host 127.0.0.1 --port 8765
 
-Do not expose the backend or Comfy engine on a LAN/public interface. Read docs/ARCHITECTURE.md and docs/ACCEPTANCE.md before extending.
+Do not expose the backend or Comfy engine on a LAN/public interface. Read [generation lifecycle](docs/GENERATION_LIFECYCLE.md), [architecture](docs/ARCHITECTURE.md) and [acceptance](docs/ACCEPTANCE.md) before extending. **Database snapshots do not include archived images in assets/**; coordinated full-workspace backup is still required.
 
 ## Release/licensing
 
