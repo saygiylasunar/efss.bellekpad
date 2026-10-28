@@ -40,6 +40,7 @@ export default function EngineSettings({
   const [configured,setConfigured] = useState(false);
   const [busy,setBusy] = useState(false);
   const [message,setMessage] = useState("");
+  const [logs,setLogs] = useState<string[]>([]);
 
   useEffect(()=>{
     let active=true;
@@ -70,6 +71,12 @@ export default function EngineSettings({
     }catch(e){setMessage(String(e))}
     finally{setBusy(false)}
   };
+  const readLogs=async()=>{
+    try {
+      const result=await request<{lines:string[]}>("/api/runtime/logs");
+      setLogs(result.lines);
+    }catch(e){setMessage(String(e))}
+  };
   const locked=["starting","ready","stopping"].includes(state);
 
   return <details className="engine-settings" open={!configured||undefined}>
@@ -86,5 +93,10 @@ export default function EngineSettings({
       {busy?"Kaydediliyor…":"Motoru kaydet"}
     </button>
     {message?<p role="status" className="engine-config-message">{message}</p>:null}
+    {configured?<details className="engine-output">
+      <summary>Motor kayıtları</summary>
+      <button onClick={()=>void readLogs()}>Yenile</button>
+      <pre>{logs.length?logs.join("\n"):"Kayıt yok."}</pre>
+    </details>:null}
   </details>;
 }
