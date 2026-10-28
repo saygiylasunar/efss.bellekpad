@@ -54,7 +54,10 @@ def image_outputs(history: dict) -> list[ImageOutput]:
     for node_id, details in outputs.items():
         if not isinstance(node_id, str) or not isinstance(details, dict):
             continue
-        for obj in details.get("images", []):
+        entries = details.get("images")
+        if not isinstance(entries, list):
+            continue
+        for obj in entries:
             if not isinstance(obj, dict):
                 continue
             filename = obj.get("filename")
