@@ -102,6 +102,34 @@ class ModelRegistryTests(unittest.TestCase):
         self.assertTrue((self.models / "loras" / "bellekpad_lora.safetensors").is_file())
         self.assertFalse(workspace.delete_model_root(root["id"]))
 
+    def test_v3_runtime_settings_migrate_to_v4_without_loss(self):
+        workspace = Workspace(self.root / "data")
+        workspace.save_runtime_profile("C:/Comfy/python.exe", "C:/ComfyUI")
+        note = workspace.new_note("Existing", "Preserved\n")
+        with closing(sqlite3.connect(workspace.db_path)) as db:
+            with db:
+                db.execute("PRAGMA user_version=3")
+        upgraded = Workspace(self.root / "data")
+        self.assertEqual(upgraded.get_runtime_profile()["comfy_root"], "C:/ComfyUI")
+        self.assertEqual(upgraded.get_note(note["id"])["source"], "Preserved\n")
+        with closing(sqlite3.connect(workspace.db_path)) as db:
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
+
+    def test_failed_scan_endpoint_preserves_index(self):
+        with TestClient(build_app(root=str(self.root / "data"),
+                                  supervisor_override=NoEngine())) as api:
+            created = api.post("/api/models/roots",json={"path":str(self.models)})
+            rid = created.json()["id"]
+            first = api.post(f"/api/models/roots/{rid}/scan")
+            self.assertEqual(first.status_code,200)
+            previous = api.get("/api/models").json()
+            with patch("bellekpad.api.discover",
+                       side_effect=ModelRegistryError("MODEL_SCAN_INCOMPLETE")):
+                failed = api.post(f"/api/models/roots/{rid}/scan")
+                self.assertEqual(failed.status_code,409,failed.text)
+                self.assertEqual(failed.json()["detail"],"MODEL_SCAN_INCOMPLETE")
+            self.assertEqual(api.get("/api/models").json(),previous)
+
     def test_http_contract_and_restore_includes_index_not_weights(self):
         with TestClient(build_app(root=str(self.root / "data"),
                                   supervisor_override=NoEngine())) as api:
