@@ -22,3 +22,16 @@ header strong{font-size:15px}header small{display:block;color:#758e99;font-size:
 footer{background:#151f26;border-top:1px solid #2e3e47;padding:11px 17px;font-size:11px;color:#91a7b3;max-height:180px;overflow:auto}
 footer pre{white-space:pre-wrap}footer details{margin-top:8px}
 @media(max-width:970px){.side{width:180px;min-width:180px}.inspector{width:230px}}@media(max-width:700px){.side{display:none}.work-body{flex-direction:column}.inspector{width:100%;max-height:220px;border-top:1px solid #33424b}}
+
+/* EFSS Notes: simple safe editing, without pretending rich source edits exist. */
+button.nav{display:block;text-align:left;background:transparent;border:0;width:100%;padding:12px}
+button.nav.active{background:#25383e}
+.note-workspace{display:flex;flex:1;min-height:0}.note-list{width:218px;border-right:1px solid #33414b;background:#141e25;padding:18px;overflow:auto}
+.note-list>button.primary{width:100%;margin:0 0 17px}.note-link{display:block;width:100%;text-align:left;background:transparent;border:0;margin:4px 0;color:#a7bac1}
+.note-link.picked{background:#2a3d42}.note-link small{display:block;color:#778c94;font-size:10px;margin-top:4px}
+.note-body{flex:1;overflow:auto;padding:24px 40px}.note-toolbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #304049;margin-bottom:26px}
+.note-toolbar h2{margin:0;font-size:23px}.note-toolbar p{font-size:11px;color:#7f99a2}.note-paper{background:#19252d;max-width:860px;min-height:320px;border:1px solid #33464e;border-radius:10px;padding:26px 35px}
+.note-paper .tiptap{outline:0;min-height:240px;line-height:1.75;font-size:15px}.note-paper .tiptap h1{font-size:27px}
+.note-paper .tiptap p{margin:10px 0}.efss-opaque{padding:8px 12px;margin:6px 0;border-left:3px solid #8b8063;background:#2d2b27;color:#c7bba0;font:12px/1.6 Consolas,monospace;white-space:pre-wrap}
+.note-status{margin-top:18px;color:#91c6bc;font-size:12px}.note-warning{display:block;color:#8d9ea8;max-width:760px;line-height:1.7;margin-top:14px}
+@media(max-width:850px){.note-list{width:156px}.note-body{padding:16px}.note-paper{padding:16px}}
