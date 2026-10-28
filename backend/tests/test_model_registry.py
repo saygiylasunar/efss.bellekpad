@@ -3,6 +3,7 @@
 Do not launch model runners or read model payload bytes.
 """
 from __future__ import annotations
+from contextlib import closing
 import os
 import sqlite3
 import sys
@@ -132,7 +133,7 @@ class ModelRegistryTests(unittest.TestCase):
         self.assertTrue(verify_backup(backup)["valid"])
         newroot = self.root / "restored"
         restore_backup(backup,newroot)
-        with sqlite3.connect(newroot / "database" / "bellekpad.sqlite3") as db:
+        with closing(sqlite3.connect(newroot / "database" / "bellekpad.sqlite3")) as db:
             self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],4)
         recovered = Workspace(newroot)
         self.assertEqual(recovered.list_model_files()["total"],3)
