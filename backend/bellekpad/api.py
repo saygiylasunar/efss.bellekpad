@@ -12,10 +12,16 @@ from .comfy import ComfyClient, EngineOffline
 from .efss import SourceConflict
 from .storage import Workspace
 from .supervisor import Supervisor, EngineProfile
+from .runtime_settings import RuntimeConfigError, build_comfy_profile, profile_info
 from .workflow import WorkflowError, compile_graph
 from .workflow_store import WorkflowStoreError
 from .generation import GenerationError, image_outputs, normalized_engine_state, parse_uuid
 from .workspace_backup import BackupError, ARCHIVE_PATTERN, create_backup, verify_backup
+
+
+class RuntimeConfiguration(BaseModel):
+    comfy_root: str = Field(min_length=1, max_length=2048)
+    python_executable: str | None = Field(default=None, max_length=2048)
 
 
 class GraphRequest(BaseModel):
@@ -50,10 +56,16 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
         raise RuntimeError("BELLEKPAD_DATA_ROOT_REQUIRED")
     workspace = Workspace(data_root)
     client = comfy or ComfyClient()
-    if profile is None and os.environ.get("BELLEKPAD_COMFY_PYTHON") and os.environ.get("BELLEKPAD_COMFY_MAIN"):
-        script = os.environ["BELLEKPAD_COMFY_MAIN"]
-        profile = EngineProfile(os.environ["BELLEKPAD_COMFY_PYTHON"], script,
-                                os.environ.get("BELLEKPAD_COMFY_CWD", str(Path(script).parent)))
+    if profile is None:
+        # Saved workspace runtime is preferred over transient shell variables.
+        saved = workspace.get_runtime_profile()
+        if saved:
+            root = Path(saved["comfy_root"])
+            profile = EngineProfile(saved["python_executable"], str(root / "main.py"), str(root))
+        elif os.environ.get("BELLEKPAD_COMFY_PYTHON") and os.environ.get("BELLEKPAD_COMFY_MAIN"):
+            script = os.environ["BELLEKPAD_COMFY_MAIN"]
+            profile = EngineProfile(os.environ["BELLEKPAD_COMFY_PYTHON"], script,
+                                    os.environ.get("BELLEKPAD_COMFY_CWD", str(Path(script).parent)))
     supervisor = supervisor_override if supervisor_override is not None else Supervisor(client.ready, profile)
 
     @asynccontextmanager
@@ -82,6 +94,26 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
     @app.get("/api/engine")
     async def engine():
         return supervisor.status()
+
+    @app.get("/api/runtime/config")
+    async def runtime_config():
+        return profile_info(getattr(supervisor, "profile", None))
+
+    @app.put("/api/runtime/config")
+    async def runtime_config_save(body: RuntimeConfiguration):
+        try:
+            selected = build_comfy_profile(body.comfy_root, body.python_executable)
+        except RuntimeConfigError as exc:
+            raise HTTPException(422, detail=exc.code) from exc
+        # Profile, backend state and on-disk preference are one ordered change.
+        # The browser never supplies process flags or arbitrary script paths.
+        try:
+            await supervisor.configure(
+                selected, persist=lambda p: workspace.save_runtime_profile(
+                    p.executable, p.cwd))
+        except ValueError as exc:
+            raise HTTPException(409, detail=str(exc)) from exc
+        return profile_info(selected)
 
     @app.post("/api/engine/start")
     async def engine_start():
