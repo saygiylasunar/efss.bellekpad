@@ -50,9 +50,11 @@ User data only inside `BELLEKPAD_DATA_ROOT`:
 - `assets/generations/{job_uuid}/{asset_uuid}.png|jpg|webp|gif` —
   explicitly archived images.
 
-**Important:** `POST /api/backups` currently backs up SQLite only.
-An image in `assets/` is NOT included in that snapshot. A coordinated
-manifest-based asset + DB backup/restore is required before beta.
+**Important:** The legacy `POST /api/backups` endpoint backs up SQLite only.
+The new `POST /api/workspace-backups` creates a verified ZIP containing both
+the online DB snapshot and every referenced archived image, with full offline
+restore into a new directory. See `WORKSPACE_BACKUP.md`. Real Windows/NTFS
+and browser end-to-end acceptance are not yet complete.
 
 Migration is additive from workspace schema v1 to v2; a future unknown
 schema is refused instead of overwritten.
@@ -68,6 +70,6 @@ schema is refused instead of overwritten.
 - Large image streaming to the browser instead of buffering full asset,
   deduplicated archive calls and transactionally coordinated DB/files.
 - Browser session authentication, CSRF, origin hardening and Windows E2E.
-- Restore from a crash-consistent **entire** workspace backup.
+- Verify the implemented portable workspace restore on real Windows/NTFS and include future user asset types as they are introduced.
 
 The CI fake runtime tests safety and contracts, not real inference.
