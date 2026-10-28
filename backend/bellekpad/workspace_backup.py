@@ -79,6 +79,8 @@ def _manifest_check(archive: zipfile.ZipFile) -> dict:
         raise BackupError("BACKUP_INVALID_MEMBER_LIST")
     if MANIFEST not in names or DB_MEMBER not in names:
         raise BackupError("BACKUP_MISSING_CORE")
+    if archive.getinfo(MANIFEST).file_size > 8 * 1024 * 1024:
+        raise BackupError("BACKUP_MANIFEST_TOO_LARGE")
     # Each zip member must correspond to a declared archive resource.
     try:
         manifest = json.loads(archive.read(MANIFEST))
@@ -101,7 +103,8 @@ def _manifest_check(archive: zipfile.ZipFile) -> dict:
                 or (path != DB_MEMBER and not re.fullmatch(
                     r"assets/generations/[0-9a-f-]+/[0-9a-f-]+\.(?:png|jpg|webp|gif)", path))
                 or path in described or path not in names
-                or type(size) is not int or size < 0 or size > MAX_MEMBER
+                or type(size) is not int or size < 0
+                or size > (MAX_TOTAL if path == DB_MEMBER else MAX_MEMBER)
                 or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
             raise BackupError("BACKUP_INVALID_MANIFEST_FILES")
         if path != DB_MEMBER:
@@ -188,7 +191,7 @@ def create_backup(workspace) -> dict:
                 with path.open("rb") as source, archive.open(member, "w", force_zip64=True) as output:
                     while chunk := source.read(1024 * 1024):
                         size += len(chunk)
-                        if size > MAX_MEMBER:
+                        if size > (MAX_TOTAL if member == DB_MEMBER else MAX_MEMBER):
                             raise BackupError("BACKUP_ASSET_TOO_LARGE")
                         checksum.update(chunk)
                         output.write(chunk)
@@ -239,8 +242,17 @@ def restore_backup(archive_path: str | Path, new_root: str | Path) -> dict:
             for item in manifest["files"]:
                 target = staging.joinpath(*item["path"].split("/"))
                 target.parent.mkdir(parents=True, exist_ok=True)
+                digest = hashlib.sha256()
+                length = 0
                 with archive.open(item["path"]) as source, target.open("wb") as output:
-                    shutil.copyfileobj(source, output, length=1024 * 1024)
+                    while chunk := source.read(1024 * 1024):
+                        length += len(chunk)
+                        if length > item["bytes"]:
+                            raise BackupError("BACKUP_FILE_SIZE_MISMATCH")
+                        digest.update(chunk)
+                        output.write(chunk)
+                if length != item["bytes"] or digest.hexdigest() != item["sha256"]:
+                    raise BackupError("BACKUP_CHECKSUM_MISMATCH")
         # Reverify restored DB and archive (integrity check independently).
         _integrity(staging / DB_MEMBER)
         if destination.exists():
