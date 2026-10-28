@@ -76,3 +76,25 @@ button.nav.active{background:#25383e}
 .engine-output{margin-top:12px;padding-top:10px;border-top:1px solid #37454d}
 .engine-output summary{font-size:11px;color:#9db7b6}
 .engine-output pre{font-size:10px;max-height:140px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#a4b5bd}
+
+.models-workspace{flex:1;min-width:0;display:flex;flex-direction:column;overflow:auto;padding:22px 32px}
+.models-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.models-header h2{font-size:23px;margin:0}.models-header span{font-size:12px;color:#91aaaf}
+.models-controls{background:#19262f;padding:17px;border:1px solid #304550;border-radius:10px;max-width:980px}
+.models-controls label{display:block;font-size:11px;color:#9bafb5;margin:9px 0 5px}
+.models-row{display:flex;align-items:center;gap:9px;min-width:0;margin-bottom:9px}
+.models-row input,.models-row select{min-width:0;flex:1;font-size:13px}
+.models-row button{white-space:nowrap}.models-row select[aria-label="Dosya biçimi"]{flex:0 0 155px}
+.models-status{font-size:12px;color:#9fd3bf;overflow-wrap:anywhere}
+.models-table-wrap{margin-top:19px;max-width:1100px;overflow-x:auto}
+.models-table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}
+.models-table th{text-align:left;color:#849da8;padding:10px;border-bottom:1px solid #34474e}
+.models-table td{padding:13px 10px;border-bottom:1px solid #293b43;vertical-align:top;color:#c2ced3}
+.models-table th:first-child{width:55%}.models-table th:last-child{width:13%}
+.models-table td strong{font-weight:500;overflow-wrap:anywhere}
+.models-table td small{display:block;font-size:10px;color:#78929c;margin-top:5px;overflow-wrap:anywhere}
+.models-empty{padding:35px 10px;color:#8096a0;font-size:13px}
+.models-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;max-width:1100px;padding:15px 0;color:#869ca5}
+.models-footer small{font-size:10px;line-height:1.5}
+.models-footer .models-row{margin:0}.models-footer .models-row span{font-size:11px;white-space:nowrap}
+@media(max-width:850px){.models-workspace{padding:15px}.models-row{flex-wrap:wrap}.models-row button{flex:1}.models-table{min-width:610px}}
