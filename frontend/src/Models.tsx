@@ -8,6 +8,16 @@ type ModelRecord = {
   component_hint:string;size_bytes:number;modified_ns:number
 };
 type ModelPage = {total:number;items:ModelRecord[];limit:number;offset:number};
+type Descriptor = {
+  model_id:string;name:string;format:string;component_hint:string;
+  inspection:{
+    status:string;format_verified:boolean;architecture?:string|null;
+    model_name?:string|null;gguf_version?:number;tensor_count?:number;
+    dtypes?:string[];header_metadata?:Record<string,string>;
+    reason?:string
+  };
+  runtime:{state:string;candidate_engines:string[]};
+};
 
 async function api<T>(url:string,init?:RequestInit):Promise<T> {
   const response=await fetch(url,{cache:"no-store",
@@ -44,6 +54,9 @@ export default function Models(){
   const [offset,setOffset]=useState(0);
   const [notice,setNotice]=useState("");
   const [busy,setBusy]=useState(false);
+  const [descriptor,setDescriptor]=useState<Descriptor|null>(null);
+  const [selectedModel,setSelectedModel]=useState<string|null>(null);
+  const [inspecting,setInspecting]=useState(false);
 
   const loadRoots=useCallback(async()=> {
     setRoots(await api<ModelRoot[]>("/api/models/roots"));
@@ -69,6 +82,16 @@ export default function Models(){
     void load();
     return()=>{cancelled=true};
   },[selected,query,format,offset]);
+  const inspect=async(id:string)=>{
+    setSelectedModel(id);setDescriptor(null);setInspecting(true);
+    try{
+      const data=await api<Descriptor>(
+        "/api/models/"+encodeURIComponent(id)+"/descriptor");
+      setDescriptor(data);
+      setNotice("");
+    }catch(e){setNotice(String(e))}
+    finally{setInspecting(false)}
+  };
   const add=async()=>{
     if(busy||!rootInput.trim())return;
     setBusy(true);
@@ -83,6 +106,7 @@ export default function Models(){
     finally{setBusy(false)}
   };
   const scan=async()=>{
+    setDescriptor(null);setSelectedModel(null);
     if(busy||!selected)return;
     setBusy(true);setNotice("Taranıyor…");
     try{
@@ -95,6 +119,7 @@ export default function Models(){
     finally{setBusy(false)}
   };
   const remove=async()=>{
+    setDescriptor(null);setSelectedModel(null);
     if(busy||!selected)return;
     const item=roots.find(r=>r.id===selected);
     if(!window.confirm((item?.path||"Klasör")+
@@ -145,7 +170,9 @@ export default function Models(){
     <div className="models-table-wrap">
       <table className="models-table">
         <thead><tr><th>Dosya</th><th>Biçim</th><th>Grup*</th><th>Boyut</th></tr></thead>
-        <tbody>{page.items.map(model=><tr key={model.id}>
+        <tbody>{page.items.map(model=><tr key={model.id}
+          className={selectedModel===model.id?"selected":""}
+          onClick={()=>void inspect(model.id)}>
           <td title={model.relative_path}><strong>{model.name}</strong>
             <small>{model.relative_path}</small></td>
           <td>{model.format.toUpperCase()}</td>
@@ -156,6 +183,30 @@ export default function Models(){
       {page.items.length===0?<div className="models-empty">
         Henüz indekslenmiş model yok.</div>:null}
     </div>
+    {(descriptor||inspecting)?<section className="model-descriptor">
+      <div className="model-descriptor-title">
+        <h3>{descriptor?.name||"İnceleniyor"}</h3>
+        <button onClick={()=>{setDescriptor(null);setSelectedModel(null)}}>
+          Kapat</button>
+      </div>
+      {descriptor ? <>
+        <div className="models-meta">
+          <span>Dosya: <strong>{descriptor.format.toUpperCase()}</strong></span>
+          <span>Durum: <strong>{descriptor.inspection.status}</strong></span>
+          {descriptor.inspection.architecture?
+            <span>Mimari: <strong>{descriptor.inspection.architecture}</strong></span>:null}
+          {typeof descriptor.inspection.tensor_count==="number"?
+            <span>Tensor: <strong>{descriptor.inspection.tensor_count}</strong></span>:null}
+          {descriptor.inspection.dtypes?.length?
+            <span>Veri tipi: <strong>{descriptor.inspection.dtypes.join(", ")}</strong></span>:null}
+          {descriptor.inspection.reason?
+            <span>{descriptor.inspection.reason}</span>:null}
+        </div>
+        {descriptor.runtime.candidate_engines.length?
+          <small>Olası motorlar: {descriptor.runtime.candidate_engines.join(", ")}</small>
+          :null}
+      </>:null}
+    </section>:null}
     <div className="models-footer">
       <small>* Grup bilgisi klasör adına dayalı ipucudur, model doğrulaması değildir.</small>
       <div className="models-row">
