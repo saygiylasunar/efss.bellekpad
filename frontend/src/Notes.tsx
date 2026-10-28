@@ -98,7 +98,8 @@ export default function Notes(){
     setPending(true);
     try{const n=await api<{id:string}>("/api/notes",{method:"POST",
       body:JSON.stringify({title:title.trim(),source:"Yeni not\n"})});
-      await reload();await open(n.id);
+      await reload();setDoc(await api<Note>("/api/notes/"+encodeURIComponent(n.id)));
+      setNotice("Yeni not oluşturuldu.");
     }catch(e){setNotice(String(e))}finally{setPending(false)}
   };
   const save=async()=>{
