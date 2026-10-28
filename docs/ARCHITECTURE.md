@@ -10,6 +10,15 @@ Limitations to close before runtime GA: monitor old listener / port identity, Wi
 
 Canonical source remains EFSS text + version/hash. The editor sees an AST projection; unknown EFSS regions are opaque, immutable placeholders. Only supported content may be changed, via source revision and block-hash compare-and-swap. Never serialize the entire document from Tiptap Markdown, because unknown extensions/formatting could vanish. First executable proof supports simple single-line paragraphs and headings, preserving CRLF and opaque text. Full Tiptap node/mark schema, tables, symbol bindings and multi-line rich edits are separate R5 milestones and MUST pass source roundtrip before UI enables them.
 
+## 2.5 User model index (R2.5)
+
+The user explicitly registers absolute directories; initial registration never
+traverses. A manual scan walks only the registered directory without following
+symlinks or reading/copying model weights; metadata is atomically persisted in
+workspace SQLite v4. Model format and component folder hints are not verified
+model family/runtime compatibility. The Models React view reads only the
+backend's source-of-truth catalog. See MODEL_REGISTRY.md.
+
 ## 3. React Flow ↔ ComfyUI
 
 UI graph: node {id,type,inputs}, edge {source, sourceHandle: output index, target, targetHandle: input name}. Backend compiles against live /object_info, checking all required ports, enums, literal types, connection types, duplicate inputs and DAG cycles. Output is Comfy API /prompt graph; execution uses isolated loopback HTTP, never Comfy web UI. Use job IDs for history and targeted cancellation; no global /interrupt. Offline workflow **draft** persistence now exists as a versioned schema: graph nodes, coordinates, inputs and edges, stored in SQLite with revision compare-and-swap. Draft validity is structural; **execution validity is only checked against current live Comfy /object_info when compiling/submitting**. Immutable submitted-prompt job snapshots, local job state history, Comfy output proxy and opt-in hash-verified image archive are now implemented. **Still open:** per-run overrides, WebSocket events, engine timeout reconciliation and real Windows/Comfy acceptance. Portable workspace ZIP archives now include SQLite snapshots plus all referenced generation images; see WORKSPACE_BACKUP.md. See GENERATION_LIFECYCLE.md. No user-specified remote URL/renderer-computed permission.
