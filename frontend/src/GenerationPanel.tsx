@@ -9,6 +9,7 @@ type Generation = {
   failure_code: string | null;
   engine_reachable?: boolean;
   images?: {index: number; node_id: string; filename: string; url: string}[];
+  archived?: {id: string; node_id: string; filename: string; url: string; sha256: string}[];
 };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
@@ -77,6 +78,18 @@ export default function GenerationPanel({activeId}: {activeId: string | null}) {
     finally{setBusy(false)}
   };
 
+  const archive=async(index:number)=>{
+    if (!selectedId||busy)return;
+    setBusy(true);
+    try {
+      await api("/api/generations/"+encodeURIComponent(selectedId)+
+        "/images/"+index+"/archive",{method:"POST"});
+      setDetail(await api<Generation>("/api/generations/"+encodeURIComponent(selectedId)));
+      setNotice("Görsel, seçilen BellekPad veri klasörüne kaydedildi.");
+    } catch(e) {setNotice("Arşivleme başarısız: "+String(e));}
+    finally {setBusy(false);}
+  };
+
   return <div className="generation-panel">
     <div className="generation-title">Üretim geçmişi <small>Kalıcı görev kayıtları</small></div>
     <select aria-label="Üretim görevi seç" value={selectedId||""}
@@ -97,12 +110,26 @@ export default function GenerationPanel({activeId}: {activeId: string | null}) {
       {detail.failure_code ? <p className="hint">{detail.failure_code}</p> : null}
       <button disabled={busy||terminal.has(detail.state)||!detail.engine_reachable}
         onClick={()=>void cancel()}>Görevi iptal et</button>
-      <div className="generation-images">
-        {(detail.images||[]).map(img=><a key={img.index} target="_blank" rel="noreferrer" href={img.url}
-            aria-label={img.filename} title={img.filename}>
-          <img loading="lazy" src={img.url} alt={img.filename}/>
-        </a>)}
-      </div>
+      {(detail.archived?.length||0)>0 ? <div className="archive-gallery">
+        <p className="hint">BellekPad veri klasörüne arşivlenen çıktılar</p>
+        <div className="generation-images">
+          {(detail.archived||[]).map(img=><a key={img.id} href={img.url}
+            target="_blank" rel="noreferrer" title={img.filename}>
+            <img loading="lazy" src={img.url} alt={img.filename}/>
+          </a>)}
+        </div>
+      </div> : null}
+      {detail.engine_reachable && (detail.images?.length||0)>0 ? <>
+        <p className="hint">ComfyUI çıktı önizlemeleri</p>
+        <div className="generation-images">
+          {(detail.images||[]).map(img=><div className="generation-image-card" key={img.index}>
+            <a target="_blank" rel="noreferrer" href={img.url} aria-label={img.filename}>
+              <img loading="lazy" src={img.url} alt={img.filename}/>
+            </a>
+            <button disabled={busy} onClick={()=>void archive(img.index)}>BellekPad'e arşivle</button>
+          </div>)}
+        </div>
+      </> : null}
       {detail.state==="completed" && detail.images?.length===0
         ? <p className="hint">Motor görev tamamlandı dedi; kayıtlı görsel çıktısı bulunamadı.</p>:null}
     </div> : <p className="hint">Henüz seçilmiş üretim yok.</p>}
