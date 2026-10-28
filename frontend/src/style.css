@@ -98,3 +98,14 @@ button.nav.active{background:#25383e}
 .models-footer small{font-size:10px;line-height:1.5}
 .models-footer .models-row{margin:0}.models-footer .models-row span{font-size:11px;white-space:nowrap}
 @media(max-width:850px){.models-workspace{padding:15px}.models-row{flex-wrap:wrap}.models-row button{flex:1}.models-table{min-width:610px}}
+
+.models-table tbody tr{cursor:pointer;transition:background .12s}
+.models-table tbody tr:hover{background:#22353b}
+.models-table tbody tr.selected{background:#274247}
+.model-descriptor{max-width:1100px;margin-top:16px;background:#1b2b33;border:1px solid #34505b;border-radius:10px;padding:15px 17px}
+.model-descriptor-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.model-descriptor-title h3{font-size:15px;margin:0;overflow-wrap:anywhere}
+.model-descriptor-title button{font-size:11px}
+.models-meta{display:flex;gap:9px 25px;flex-wrap:wrap;font-size:11px;color:#8ea6b2;margin:12px 0}
+.models-meta strong{font-weight:500;color:#c3d8db}
+.model-descriptor>small{font-size:10px;color:#9baeb9}
