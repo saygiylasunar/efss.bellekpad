@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .comfy import ComfyClient, EngineOffline
@@ -13,6 +13,7 @@ from .storage import Workspace
 from .supervisor import Supervisor, EngineProfile
 from .workflow import WorkflowError, compile_graph
 from .workflow_store import WorkflowStoreError
+from .generation import GenerationError, image_outputs, normalized_engine_state, parse_uuid
 
 
 class GraphRequest(BaseModel):
@@ -138,31 +139,104 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
                 409 if exc.code == "WORKFLOW_REVISION_CONFLICT" else 422)
             raise HTTPException(code, detail=exc.code) from exc
 
-    @app.post("/api/generations")
+    @app.get("/api/generations")
+    async def list_generations():
+        return workspace.list_generations()
+
+    @app.post("/api/generations", status_code=202)
     async def generations(graph: GraphRequest):
         if supervisor.status()["state"] != "ready":
             raise HTTPException(409, detail="ENGINE_NOT_READY")
         try:
             compiled = compile_graph(graph.model_dump(), await client.node_registry())
-            return await client.submit(compiled)
         except WorkflowError as exc:
             raise HTTPException(422, detail=exc.code) from exc
         except EngineOffline as exc:
             raise HTTPException(503, detail=str(exc)) from exc
 
+        # The immutable prompt is committed before the remote submit.
+        # A network timeout can mean Comfy accepted the work; never say "failed".
+        pending = workspace.begin_generation(compiled)
+        try:
+            result = await client.submit(compiled)
+            return workspace.generation_submitted(
+                pending["id"], result["job_id"], result.get("queue_number"))
+        except EngineOffline as exc:
+            workspace.generation_uncertain(pending["id"])
+            raise HTTPException(
+                503, detail="ENGINE_SUBMISSION_UNCONFIRMED") from exc
+
+    def owned_generation(job_id: str) -> dict:
+        try:
+            job_id = parse_uuid(job_id)
+        except GenerationError as exc:
+            raise HTTPException(400, detail=exc.code) from exc
+        owned = workspace.get_generation(job_id)
+        if owned is None:
+            raise HTTPException(404, detail="GENERATION_NOT_FOUND")
+        return owned
+
     @app.get("/api/generations/{job_id}")
     async def generation_status(job_id: str):
+        job = owned_generation(job_id)
+        if not job["engine_job_id"]:
+            return {**job, "engine_reachable": False, "images": []}
+        if supervisor.status()["state"] != "ready":
+            return {**job, "engine_reachable": False, "images": []}
         try:
-            return await client.history(job_id)
-        except (ValueError, EngineOffline):
-            raise HTTPException(404, detail="JOB_NOT_FOUND")
+            upstream = await client.job_status(job["engine_job_id"])
+            state = normalized_engine_state(upstream)
+            if state is not None and job["state"] != state:
+                job = workspace.generation_observed(job["id"], state)
+            images = []
+            if job["state"] == "completed":
+                historical = await client.history(job["engine_job_id"])
+                images = [img.public(i, job["id"])
+                          for i, img in enumerate(image_outputs(historical))]
+            return {**job, "engine_reachable": True, "images": images}
+        except EngineOffline:
+            return {**job, "engine_reachable": False, "images": []}
+
+    @app.get("/api/generations/{job_id}/images/{index}")
+    async def generation_image(job_id: str, index: int):
+        job = owned_generation(job_id)
+        if index < 0 or index >= 256:
+            raise HTTPException(404, detail="IMAGE_NOT_FOUND")
+        if not job["engine_job_id"]:
+            raise HTTPException(409, detail="ENGINE_JOB_NOT_SUBMITTED")
+        if supervisor.status()["state"] != "ready":
+            raise HTTPException(503, detail="ENGINE_NOT_READY")
+        try:
+            historical = await client.history(job["engine_job_id"])
+            images = image_outputs(historical)
+            if index >= len(images):
+                raise HTTPException(404, detail="IMAGE_NOT_FOUND")
+            entry = images[index]
+            body, mime = await client.image(
+                entry.filename, entry.subfolder, entry.kind)
+            return Response(content=body, media_type=mime, headers={
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+            })
+        except EngineOffline as exc:
+            raise HTTPException(503, detail=str(exc)) from exc
 
     @app.post("/api/generations/{job_id}/cancel")
     async def generation_cancel(job_id: str):
+        job = owned_generation(job_id)
+        if not job["engine_job_id"]:
+            raise HTTPException(409, detail="ENGINE_JOB_NOT_SUBMITTED")
+        if job["state"] in ("completed","failed","cancelled"):
+            return {"accepted": False, "state": job["state"]}
+        if supervisor.status()["state"] != "ready":
+            raise HTTPException(503, detail="ENGINE_NOT_READY")
         try:
-            return {"cancelled": await client.cancel(job_id)}
-        except (ValueError, EngineOffline):
-            raise HTTPException(409, detail="CANCEL_UNAVAILABLE")
+            accepted = await client.cancel(job["engine_job_id"])
+            # An accepted cancellation request is NOT terminal state.
+            # Follow-up job status must report cancelled.
+            return {"accepted": accepted, "state": job["state"]}
+        except EngineOffline as exc:
+            raise HTTPException(503, detail=str(exc)) from exc
 
     @app.get("/api/notes")
     async def list_notes():
