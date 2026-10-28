@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import sys
 import tempfile
 import unittest
@@ -93,7 +94,7 @@ class FullWorkspaceBackupTests(unittest.TestCase):
         self.assertEqual(destination.get_generation(generation["id"])["state"],"completed")
         self.assertEqual(destination.get_generation_asset(asset["id"])[0],payload)
         self.assertEqual(list((restored/"backups").glob("*.zip")),[])
-        with sqlite3.connect(destination.db_path) as db:
+        with closing(sqlite3.connect(destination.db_path)) as db:
             self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],3)
 
     def test_missing_asset_fails_without_publishing_partial_archive(self):
