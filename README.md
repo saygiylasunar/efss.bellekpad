@@ -21,10 +21,12 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 From repo root:
 
 - python -m unittest discover -s backend/tests -v
+- cd frontend && npm install && npm run dev (development UI, backend listens on :8765)
+- cd frontend && npm run build (built UI is served by FastAPI on :8765)
 - python -m pip install -e ./backend
 - Set BELLEKPAD_DATA_ROOT to an explicit writable folder before starting.
 - Optional managed Comfy engine: set BELLEKPAD_COMFY_PYTHON to the trusted Comfy venv Python executable, and BELLEKPAD_COMFY_MAIN to its main.py; optionally set BELLEKPAD_COMFY_CWD.
-- python -m uvicorn bellekpad.api:app --app-dir backend --host 127.0.0.1 --port 8765
+- python -m uvicorn bellekpad.api:create_app --factory --app-dir backend --host 127.0.0.1 --port 8765
 
 Do not expose the backend or Comfy engine on a LAN/public interface. Read docs/ARCHITECTURE.md and docs/ACCEPTANCE.md before extending.
 
