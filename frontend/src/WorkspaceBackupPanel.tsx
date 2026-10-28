@@ -15,7 +15,7 @@ export default function WorkspaceBackupPanel() {
   const [entries,setEntries]=useState<Backup[]>([]);
   const [selected,setSelected]=useState("");
   const [busy,setBusy]=useState(false);
-  const [message,setMessage]=useState("Veritabanı ve arşivlenmiş görselleri birlikte yedekler.");
+  const [message,setMessage]=useState("");
   const refresh=useCallback(async()=>{
     const result=await localApi<Backup[]>("/api/workspace-backups");
     setEntries(result);
@@ -29,7 +29,7 @@ export default function WorkspaceBackupPanel() {
       const created=await localApi<CreatedBackup>("/api/workspace-backups","POST");
       await refresh();
       setSelected(created.name);
-      setMessage("Doğrulanmış tam yedek: "+created.name+" · "+created.asset_count+" görsel.");
+      setMessage("Yedek oluşturuldu · "+created.asset_count+" görsel");
     }catch(e){setMessage("Yedek oluşturulamadı: "+String(e))}
     finally{setBusy(false)}
   };
@@ -40,14 +40,14 @@ export default function WorkspaceBackupPanel() {
       const answer=await localApi<Verification>(
         "/api/workspace-backups/"+encodeURIComponent(selected)+"/verify","POST");
       setMessage(answer.valid
-        ? "Bütünlük doğrulandı: "+answer.files+" dosya, "+answer.asset_count+" görsel."
+        ? "Yedek sağlam · "+answer.files+" dosya"
         : "Doğrulama başarısız.");
     }catch(e){setMessage("Yedek doğrulaması başarısız: "+String(e))}
     finally{setBusy(false)}
   };
   return <details className="workspace-backups">
-    <summary>◈ Çalışma alanı yedeği</summary>
-    <p className="backup-note">Tam yedekler seçili veri klasörünün <code>backups/</code> altında saklanır. Model ağırlıkları kopyalanmaz.</p>
+    <summary title="Veri klasöründeki notları, kayıtları ve arşivlenmiş görselleri yedekle">◈ Yedekler</summary>
+
     <button disabled={busy} onClick={()=>void create()}>{busy?"İşleniyor…":"Tam yedek oluştur"}</button>
     <label htmlFor="workspace-backups-select">Kayıtlı arşiv</label>
     <select id="workspace-backups-select" value={selected}
@@ -59,6 +59,6 @@ export default function WorkspaceBackupPanel() {
     </select>
     <button disabled={!selected||busy} onClick={()=>void verify()}>Bütünlüğünü doğrula</button>
     <p role="status" className="backup-status">{message}</p>
-    <p className="backup-note">Geri yükleme, çalışan uygulamayı değiştirmemek için kapalıyken yeni klasöre yapılır.</p>
+
   </details>;
 }
