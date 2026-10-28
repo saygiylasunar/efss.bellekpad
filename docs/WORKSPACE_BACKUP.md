@@ -92,3 +92,11 @@ it manages transactions. Verifier/read connections and the online-backup
 destination are now explicitly closed using `contextlib.closing`.
 A regression test tracks open connections. A new physical Windows
 backup/verify run is required to accept the fix.
+
+## Model Registry v4
+
+SQLite v4 workspace snapshots also include the model registry's approved root
+paths and indexed file metadata. External model weights are intentionally not
+copied; if a restore happens on another machine, folder paths may need to be
+updated and manually rescanned. Existing supported v2/v3 archives can still be
+verified and restored.
