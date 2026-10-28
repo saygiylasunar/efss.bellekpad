@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .comfy import ComfyClient, EngineOffline
 from .efss import SourceConflict
@@ -148,6 +149,12 @@ def build_app(root: str | None = None, comfy=None, profile=None):
         # No arbitrary output path accepted from browser.
         path = workspace.backup()
         return {"created": True, "name": path.name}
+
+    # Serve the compiled web UI from the same local origin in production.
+    # In development Vite proxies /api to this service.
+    dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if (dist / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=str(dist), html=True), name="web")
 
     return app
 
