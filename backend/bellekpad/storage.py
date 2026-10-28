@@ -185,6 +185,18 @@ class Workspace:
         return {"total":total,"items":[dict(zip(keys,r)) for r in rows],
                 "limit":limit,"offset":offset}
 
+    def get_model_file(self, model_id: str) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT f.id,f.root_id,r.path,f.relative_path,f.name,f.format,"
+                "f.component_hint,f.size_bytes,f.modified_ns "
+                "FROM model_files f JOIN model_roots r ON r.id=f.root_id "
+                "WHERE f.id=?", (model_id,)
+            ).fetchone()
+        keys = ("id","root_id","root_path","relative_path","name",
+                "format","component_hint","size_bytes","modified_ns")
+        return dict(zip(keys,row)) if row else None
+
     def get_runtime_profile(self) -> dict | None:
         with self.connect() as db:
             row = db.execute(
