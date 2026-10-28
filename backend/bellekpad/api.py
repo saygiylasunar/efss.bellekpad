@@ -115,6 +115,10 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
             raise HTTPException(409, detail=str(exc)) from exc
         return profile_info(selected)
 
+    @app.get("/api/runtime/logs")
+    async def runtime_logs():
+        return {"lines": supervisor.logs() if hasattr(supervisor, "logs") else []}
+
     @app.post("/api/engine/start")
     async def engine_start():
         try:
