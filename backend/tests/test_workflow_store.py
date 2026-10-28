@@ -88,7 +88,7 @@ class SchemaMigrationTests(unittest.TestCase):
             self.assertEqual(upgraded.get_note(note["id"])["source"],"Kişisel metin\n")
             self.assertEqual(upgraded.get_workflow(saved["id"])["graph"],graph())
             with sqlite3.connect(first.db_path) as db:
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],2)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],3)
                 self.assertIsNotNone(db.execute(
                     "SELECT name FROM sqlite_master WHERE name='generation_assets'").fetchone())
 
