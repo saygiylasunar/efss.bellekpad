@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from .comfy import ComfyClient, EngineOffline
 from .efss import SourceConflict
@@ -14,6 +15,7 @@ from .supervisor import Supervisor, EngineProfile
 from .workflow import WorkflowError, compile_graph
 from .workflow_store import WorkflowStoreError
 from .generation import GenerationError, image_outputs, normalized_engine_state, parse_uuid
+from .workspace_backup import BackupError, ARCHIVE_PATTERN, create_backup, verify_backup
 
 
 class GraphRequest(BaseModel):
@@ -309,6 +311,35 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
         # No arbitrary output path accepted from browser.
         path = workspace.backup()
         return {"created": True, "name": path.name}
+
+    @app.get("/api/workspace-backups")
+    async def list_workspace_backups():
+        folder = workspace.root / "backups"
+        names = sorted(folder.iterdir(), key=lambda p: p.name, reverse=True)
+        return [{"name": path.name, "size_bytes": path.stat().st_size}
+                for path in names if ARCHIVE_PATTERN.fullmatch(path.name)
+                and path.is_file() and not path.is_symlink()][:100]
+
+    @app.post("/api/workspace-backups", status_code=201)
+    async def create_workspace_backup():
+        # Heavy compression must not stall generation-status polling.
+        try:
+            return await run_in_threadpool(create_backup, workspace)
+        except BackupError as exc:
+            raise HTTPException(409, detail=exc.code) from exc
+
+    @app.post("/api/workspace-backups/{name}/verify")
+    async def verify_workspace_backup(name: str):
+        if not ARCHIVE_PATTERN.fullmatch(name):
+            raise HTTPException(400, detail="BACKUP_NAME_INVALID")
+        path = workspace.root / "backups" / name
+        if path.is_symlink():
+            raise HTTPException(400, detail="BACKUP_SYMLINK_REJECTED")
+        try:
+            return await run_in_threadpool(verify_backup, path)
+        except BackupError as exc:
+            code = 404 if exc.code == "BACKUP_NOT_FOUND" else 409
+            raise HTTPException(code, detail=exc.code) from exc
 
     # Serve the compiled web UI from the same local origin in production.
     # In development Vite proxies /api to this service.
