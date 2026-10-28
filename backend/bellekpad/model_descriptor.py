@@ -56,6 +56,8 @@ def _safetensors(handle, file_size: int) -> dict:
         raise HeaderInvalid("INVALID_SAFETENSORS_JSON")
     try:
         header = json.loads(raw, object_pairs_hook=_pairs_unique)
+    except HeaderInvalid:
+        raise
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise HeaderInvalid("INVALID_SAFETENSORS_JSON") from exc
     if not isinstance(header, dict):
