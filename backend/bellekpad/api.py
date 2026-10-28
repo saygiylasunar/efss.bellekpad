@@ -126,6 +126,10 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
         except (ValueError, EngineOffline):
             raise HTTPException(409, detail="CANCEL_UNAVAILABLE")
 
+    @app.get("/api/notes")
+    async def list_notes():
+        return workspace.list_notes()
+
     @app.post("/api/notes")
     async def new_note(body: NoteCreate):
         return workspace.new_note(body.title, body.source)
