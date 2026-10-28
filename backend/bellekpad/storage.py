@@ -50,6 +50,11 @@ class Workspace:
             db.execute("INSERT INTO notes(id,title,source) VALUES(?,?,?)", (nid, title, source))
         return {"id": nid, "revision": 1}
 
+    def list_notes(self) -> list[dict]:
+        with self.connect() as db:
+            rows = db.execute("SELECT id,title,revision FROM notes ORDER BY rowid DESC LIMIT 500").fetchall()
+        return [{"id": r[0], "title": r[1], "revision": r[2]} for r in rows]
+
     def get_note(self, nid: str) -> dict | None:
         with self.connect() as db:
             row = db.execute("SELECT title,source,revision FROM notes WHERE id=?", (nid,)).fetchone()
