@@ -18,7 +18,7 @@ This is the **clean Web-First / AI-First rebuild** on branch rebuild/web-ai-core
 
 ## Important: implemented vs planned
 
-**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. A schema-v2 additive migration is tested. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
+**Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. An additive workspace schema-v3 migration preserves prior notes, workflows and saved generation jobs. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
 
 ## Development (after installing Python dependencies)
 
@@ -31,7 +31,7 @@ From repo root:
 - cd frontend && npm run build (built UI is served by FastAPI on :8765)
 - python -m pip install -e ./backend
 - Set BELLEKPAD_DATA_ROOT to an explicit writable folder before starting.
-- Optional managed Comfy engine: set BELLEKPAD_COMFY_PYTHON to the trusted Comfy venv Python executable, and BELLEKPAD_COMFY_MAIN to its main.py; optionally set BELLEKPAD_COMFY_CWD.
+- Managed Comfy engine: open **Motor ayarları** in the local web UI, select an existing Comfy installation and optionally its Python executable, save, then press **Başlat**. The profile is persisted with the workspace. No need to run ComfyUI separately. See [R2 runtime setup](docs/RUNTIME_SETUP.md).
 - python -m uvicorn bellekpad.api:create_app --factory --app-dir backend --host 127.0.0.1 --port 8765
 
 Do not expose the backend or Comfy engine on a LAN/public interface. Read [generation lifecycle](docs/GENERATION_LIFECYCLE.md), [architecture](docs/ARCHITECTURE.md), [workspace backup & restore](docs/WORKSPACE_BACKUP.md), and [acceptance](docs/ACCEPTANCE.md). **Portable workspace ZIP backups now contain both SQLite and referenced archived images.** The older `/api/backups` endpoint remains **database-only**; use the sidebar's **Tam yedek oluştur** for a complete supported-data backup.
