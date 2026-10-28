@@ -24,7 +24,7 @@ const Opaque = TiptapNode.create({
   parseHTML(){return [{tag:"div[data-efss-opaque]"}]},
   renderHTML({node}){
     return ["div", {"data-efss-opaque":"true",contenteditable:"false",class:"efss-opaque"},
-      "Korunan EFSS kaynağı · " + String(node.attrs.raw || "")];
+      String(node.attrs.raw || "")];
   }
 });
 
@@ -41,30 +41,50 @@ function toEditor(doc: Note): JSONContent {
     if (block.kind==="opaque")
       return {type:"efssOpaque",attrs:{...base,raw:block.text}};
     return {type:block.kind, attrs:{...base,...(block.level?{level:block.level}:{})},
-      content:[{type:"text",text:block.text}]};
+      content:block.text?[{type:"text",text:block.text}]:[]};
   })};
 }
-function makeChanges(doc: Note, content: JSONContent): Array<{id:string;hash:string;text:string}>{
-  const blocks = content.content || [];
-  if (blocks.length!==doc.projection.blocks.length)throw Error("Yapı değişti: satır ekleme/silme bu EFSS kesitinde desteklenmiyor.");
-  const changes: Array<{id:string;hash:string;text:string}> = [];
-  blocks.forEach((node,index)=>{
-    const original=doc.projection.blocks[index];
-    if (node.attrs?.lineId!==original.id || node.attrs?.sourceHash!==original.hash ||
-        node.type!==(original.kind==="opaque"?"efssOpaque":original.kind))
-      throw Error("EFSS kaynak blokları değiştirilemez veya yeniden sıralanamaz.");
-    if (original.kind==="opaque"){
-      if(node.attrs?.raw!==original.text)throw Error("Bilinmeyen EFSS içeriği değiştirilemez.");
-      return;
-    }
-    if(original.kind==="heading" && node.attrs?.level!==original.level)
-      throw Error("Başlık yapısı bu aşamada değiştirilemez.");
-    if(node.content?.some(n=>n.type!=="text" || (n.marks?.length||0)>0))
-      throw Error("Desteklenmeyen biçim işlemi: kaynak korunarak reddedildi.");
-    const text = (node.content||[]).map(n=>n.text||"").join("");
-    if(text!==original.text)changes.push({id:original.id,hash:original.hash,text});
+type DraftLine = {id: string | null; hash: string | null;
+  kind: "paragraph" | "heading" | "opaque"; text: string; level: number | null};
+
+function makeDraft(content: JSONContent): DraftLine[] {
+  const seen = new Set<string>();
+  return (content.content || []).map(node => {
+    if (node.type!=="paragraph" && node.type!=="heading" && node.type!=="efssOpaque")
+      throw Error("Desteklenmeyen not bloğu.");
+    const opaque = node.type === "efssOpaque";
+    if (!opaque && node.content?.some(n => n.type!=="text" || (n.marks?.length||0)>0))
+      throw Error("Desteklenmeyen biçimlendirme.");
+    const id = typeof node.attrs?.lineId === "string" ? node.attrs.lineId : null;
+    // ProseMirror may copy attributes while splitting a paragraph with Enter.
+    // Only the first fragment retains its original source identity.
+    const original = id !== null && !seen.has(id);
+    if (id && opaque && seen.has(id))
+      throw Error("Korunan EFSS bloğu çoğaltılamaz.");
+    if (id) seen.add(id);
+    const level = node.type === "heading" ? node.attrs?.level : null;
+    if (node.type === "heading" && (!Number.isInteger(level) || level<1 || level>6))
+      throw Error("Geçersiz başlık seviyesi.");
+    return {
+      id:original ? id : null,
+      hash:original && typeof node.attrs?.sourceHash==="string"
+        ? node.attrs.sourceHash : null,
+      kind:opaque ? "opaque" as const : node.type as "heading"|"paragraph",
+      level:node.type === "heading" ? level as number : null,
+      text:opaque ? String(node.attrs?.raw??"")
+        : (node.content||[]).map(n=>n.text||"").join("")
+    };
   });
-  return changes;
+}
+
+function unchanged(doc: Note, draft: DraftLine[]): boolean {
+  return draft.length === doc.projection.blocks.length &&
+    draft.every((line, i) => {
+      const original=doc.projection.blocks[i];
+      return line.id===original.id && line.hash===original.hash &&
+        line.kind===original.kind && line.text===original.text &&
+        line.level===original.level;
+    });
 }
 
 async function api<T>(url:string,init?:RequestInit):Promise<T>{
@@ -77,7 +97,7 @@ async function api<T>(url:string,init?:RequestInit):Promise<T>{
 export default function Notes(){
   const [list,setList]=useState<Item[]>([]);
   const [doc,setDoc]=useState<Note|null>(null);
-  const [notice,setNotice]=useState("Bilinmeyen EFSS blokları kayıpsız, salt okunur korunur.");
+  const [notice,setNotice]=useState("");
   const [pending,setPending]=useState(false);
   const editor=useEditor({extensions, content:{type:"doc",content:[{type:"paragraph"}]}});
   const reload=async()=>setList(await api<Item[]>("/api/notes"));
@@ -88,7 +108,7 @@ export default function Notes(){
 
   const open=async(id:string)=>{
     if(pending)return;
-    try{setDoc(await api<Note>("/api/notes/"+encodeURIComponent(id)));setNotice("Kaynak yüklendi. Güvenli düz satırlar düzenlenebilir.");}
+    try{setDoc(await api<Note>("/api/notes/"+encodeURIComponent(id)));setNotice("");}
     catch(e){setNotice(String(e))}
   };
   const create=async()=>{
@@ -97,7 +117,7 @@ export default function Notes(){
     if(!title?.trim())return;
     setPending(true);
     try{const n=await api<{id:string}>("/api/notes",{method:"POST",
-      body:JSON.stringify({title:title.trim(),source:"Yeni not\n"})});
+      body:JSON.stringify({title:title.trim(),source:""})});
       await reload();setDoc(await api<Note>("/api/notes/"+encodeURIComponent(n.id)));
       setNotice("Yeni not oluşturuldu.");
     }catch(e){setNotice(String(e))}finally{setPending(false)}
@@ -106,13 +126,13 @@ export default function Notes(){
     if(!doc||!editor||pending)return;
     setPending(true);
     try{
-      const changes=makeChanges(doc,editor.getJSON());
-      if(!changes.length){setNotice("Değişiklik bulunamadı.");return;}
+      const draft=makeDraft(editor.getJSON());
+      if(unchanged(doc,draft)){setNotice("Değişiklik yok.");return;}
       await api("/api/notes/"+encodeURIComponent(doc.id),{method:"PATCH",
-        body:JSON.stringify({revision:doc.revision,source_sha:doc.projection.revision,changes})});
+        body:JSON.stringify({revision:doc.revision,source_sha:doc.projection.revision,draft})});
       setDoc(await api<Note>("/api/notes/"+encodeURIComponent(doc.id)));
       await reload();
-      setNotice("EFSS kaynak korundu; revizyon kaydedildi.");
+      setNotice("Kaydedildi.");
     }catch(e){setNotice(String(e))}finally{setPending(false)}
   };
   return <div className="note-workspace">
@@ -123,12 +143,12 @@ export default function Notes(){
     </aside>
     <section className="note-body">
       <div className="note-toolbar"><div><h2>{doc?.title||"Not seç"}</h2>
-        <p>EFSS · Kayıpsız düzenleme kesiti (R5 hazırlığı)</p></div>
+        </div>
         <button disabled={!doc||pending} onClick={()=>void save()}>Kaydet</button>
       </div>
       {doc?<div className="note-paper"><EditorContent editor={editor}/></div>:<div className="note-paper placeholder">Bir not seç veya yenisini oluştur.</div>}
       <div role="status" className="note-status">{notice}</div>
-      <small className="note-warning">Bu ilk kesit yalnızca mevcut güvenli tek satır/paragraf metinlerini değiştirir. Yeni blok, karma biçim ve tablo düzenleme henüz etkin değildir; kaynak sessizce kaybedilmez.</small>
+
     </section>
   </div>;
 }
