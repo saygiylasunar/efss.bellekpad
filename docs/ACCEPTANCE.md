@@ -5,6 +5,10 @@
 - [x] Clean tree from scratch: no Electron, legacy scripts, old CI or editor files.
 - [x] Workflow compiled with live node schema; unknown/mismatched/cyclic graphs rejected.
 - [x] EFSS opaque lines preserved and edits revision checked.
+- [x] Revisioned EFSS draft API supports new lines / Enter / safe line deletion with opaque-block invariants; core and HTTP regression tests.
+- [ ] Real Windows Tiptap multiline save, reload and paste/IME/selection acceptance; advanced EFSS rich editing still open.
+- [x] All SQLite temporary/snapshot read connections explicitly closed; regression tests assert handles are released.
+- [ ] Windows NTFS backup+verify retest following observed WinError 32.
 - [x] SQLite online backup is a transactionally consistent DB snapshot.
 - [x] Managed subprocess lifecycle and API boundaries implemented.
 - [x] Workflow draft v1 storage: save while Comfy offline, list/open, layout roundtrip, optimistic revision conflict and backup tested through HTTP.
