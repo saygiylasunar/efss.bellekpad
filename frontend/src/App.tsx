@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Notes from "./Notes";
 import WorkspaceBackupPanel from "./WorkspaceBackupPanel";
+import EngineSettings from "./EngineSettings";
 import GenerationPanel from "./GenerationPanel";
 import {restoreDraft, serializeDraft,
   type Catalog, type GraphNode, type SavedWorkflow, type WorkflowSummary
@@ -66,7 +67,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("");
   const [parameters, setParameters] = useState("{}");
-  const [notice, setNotice] = useState("Motorun gerçek durumu backend üzerinden okunur.");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [job, setJob] = useState<Result | null>(null);
 
@@ -204,6 +205,7 @@ export default function App() {
       
       <div className="spacer"/>
       <WorkspaceBackupPanel />
+      <EngineSettings state={engine.state} onConfigured={refresh} />
       
       <div className={"engine "+engine.state}><b>● {({unconfigured:"Motor tanımlanmadı",stopped:"Motor kapalı",starting:"Başlatılıyor",ready:"Motor hazır",stopping:"Durduruluyor",failed:"Motor hatası"} as Record<string,string>)[engine.state]||engine.state}</b>{engine.failure?<small>{engine.failure}</small>:null}</div>
       <div className="actions">
