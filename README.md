@@ -24,6 +24,13 @@ copying weights**. Add each folder once, then press **Tara**; no automatic disk
 scan runs. Models are indexed, not loaded: real LLM/diffusion engine support
 must still be verified at runtime. See [Model Registry](docs/MODEL_REGISTRY.md).
 
+## Selected model inspection (R2.6)
+
+Select a file in **Modeller** to inspect its bounded **GGUF or Safetensors
+header** and see only metadata that is actually present. No model weights
+are loaded or copied. Candidate inference backends are *not* marked
+compatible until runtime checks pass. See [Model Descriptor](docs/MODEL_DESCRIPTOR.md).
+
 ## Important: implemented vs planned
 
 **Implemented:** a core workflow compiler, managed process supervisor, source-preserving EFSS edit boundary, explicit SQLite workspace root, API and React Flow/Tiptap slices, revisioned offline workflow drafts, and **durable generation jobs with status/cancellation tracking, engine-history image gallery and optional local image archiving**. An additive workspace schema-v4 migration preserves prior notes, workflows and saved generation jobs. **Not implemented:** real model inference, multi-agent chat, advanced EFSS formatting, automated Comfy installation, a release installer. Basic multi-paragraph Tiptap notes use a lossless EFSS ordered-draft contract. No fake readiness or GPU checks.
