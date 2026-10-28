@@ -1,6 +1,7 @@
 """Managed runtime lifecycle with no web-controlled commands or shell strings."""
 from __future__ import annotations
 import asyncio
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Awaitable
@@ -37,6 +38,8 @@ class Supervisor:
         self.proc = None
         self._lock = asyncio.Lock()
         self._watcher = None
+        self._stream_task = None
+        self._logs = deque(maxlen=120)
         self._generation = 0
 
     def status(self):
@@ -45,6 +48,17 @@ class Supervisor:
             self.failure = "ENGINE_EXITED"
         return {"state": "unconfigured" if self.profile is None else self.state,
                 "failure": self.failure, "pid": self.proc.pid if self.proc and self.proc.returncode is None else None}
+
+    def logs(self) -> list[str]:
+        return list(self._logs)
+
+    async def _drain_output(self, stream):
+        try:
+            while line := await stream.readline():
+                # Local diagnostics, capped to avoid unbounded model/runtime logs.
+                self._logs.append(line.decode("utf-8", errors="replace").rstrip()[-400:])
+        except (OSError, ValueError):
+            pass
 
     async def configure(self, profile: EngineProfile,
                         persist: Callable[[EngineProfile], object] | None = None):
@@ -79,19 +93,23 @@ class Supervisor:
             self._generation += 1
             gen = self._generation
             self.failure = None
+            self._logs.clear()
             self.state = "starting"
             try:
                 self.proc = await asyncio.create_subprocess_exec(
                     self.profile.executable, self.profile.main_script,
                     *self.profile.args, cwd=self.profile.cwd,
                     stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.DEVNULL,
-                    stderr=asyncio.subprocess.DEVNULL
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT
                 )
             except (OSError, ValueError) as exc:
                 self.state = "failed"
                 self.failure = "ENGINE_START_FAILED"
                 raise ValueError("ENGINE_START_FAILED") from exc
+            stream = getattr(self.proc, "stdout", None)
+            if stream is not None:
+                self._stream_task = asyncio.create_task(self._drain_output(stream))
             self._watcher = asyncio.create_task(self._observe(gen))
             return self.status()
 
