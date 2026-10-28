@@ -79,7 +79,7 @@ class SupervisorTests(unittest.TestCase):
                 with patch("bellekpad.supervisor.asyncio.create_subprocess_exec",side_effect=spawn):
                     await sup.start()
                     for index in range(140):
-                        child.stdout.feed_data(("engine line "+str(index)+"\\n").encode())
+                        child.stdout.feed_data(("engine line "+str(index)+"\n").encode())
                     child.stdout.feed_eof()
                     await asyncio.sleep(0.02)
                     self.assertEqual(len(sup.logs()),120)
