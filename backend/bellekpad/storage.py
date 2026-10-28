@@ -8,6 +8,7 @@ from contextlib import contextmanager, closing
 import uuid
 from pathlib import Path
 from .efss import patch, project, SourceConflict
+from .workflow_store import WorkflowStoreError, serialized_draft
 
 
 class Workspace:
@@ -82,6 +83,60 @@ class Workspace:
             if cursor.rowcount != 1:
                 raise SourceConflict("NOTE_REVISION_CONFLICT")
         return {"id": nid, "revision": revision + 1, "projection": project(edited)}
+
+    def create_workflow(self, name: str, graph: object) -> dict:
+        if not isinstance(name, str) or not 0 < len(name.strip()) <= 160:
+            raise WorkflowStoreError("INVALID_WORKFLOW_NAME")
+        data = serialized_draft(graph)
+        wid = str(uuid.uuid4())
+        with self.connect() as db:
+            db.execute("INSERT INTO workflows(id,name,graph_json,revision) VALUES(?,?,?,1)",
+                       (wid, name.strip(), data))
+        return {"id": wid, "name": name.strip(), "revision": 1, "graph": json.loads(data)}
+
+    def list_workflows(self) -> list[dict]:
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT id,name,revision FROM workflows ORDER BY rowid DESC LIMIT 500"
+            ).fetchall()
+        return [{"id": wid, "name": name, "revision": revision}
+                for wid, name, revision in rows]
+
+    def get_workflow(self, wid: str) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT name,graph_json,revision FROM workflows WHERE id=?", (wid,)
+            ).fetchone()
+        if row is None:
+            return None
+        return {"id": wid, "name": row[0], "revision": row[2],
+                "graph": json.loads(row[1])}
+
+    def update_workflow(self, wid: str, expected_revision: int,
+                        name: str, graph: object) -> dict:
+        if not isinstance(name, str) or not 0 < len(name.strip()) <= 160:
+            raise WorkflowStoreError("INVALID_WORKFLOW_NAME")
+        if type(expected_revision) is not int or expected_revision < 1:
+            raise WorkflowStoreError("INVALID_WORKFLOW_REVISION")
+        data = serialized_draft(graph)
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute(
+                "SELECT revision FROM workflows WHERE id=?", (wid,)
+            ).fetchone()
+            if current is None:
+                raise WorkflowStoreError("WORKFLOW_NOT_FOUND")
+            if current[0] != expected_revision:
+                raise WorkflowStoreError("WORKFLOW_REVISION_CONFLICT")
+            result = db.execute(
+                "UPDATE workflows SET name=?,graph_json=?,revision=revision+1 "
+                "WHERE id=? AND revision=?",
+                (name.strip(), data, wid, expected_revision)
+            )
+            if result.rowcount != 1:
+                raise WorkflowStoreError("WORKFLOW_REVISION_CONFLICT")
+        return {"id": wid, "name": name.strip(), "revision": expected_revision + 1,
+                "graph": json.loads(data)}
 
     def backup(self) -> Path:
         fd, path = tempfile.mkstemp(prefix=".snapshot-", suffix=".sqlite3",
