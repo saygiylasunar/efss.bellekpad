@@ -14,6 +14,8 @@ from .storage import Workspace
 from .supervisor import Supervisor, EngineProfile
 from .runtime_settings import RuntimeConfigError, build_comfy_profile, profile_info
 from .model_registry import ModelRegistryError, discover
+from .model_descriptor import (ModelInspectError, inspect_registered_model,
+                               execution_contract)
 from .workflow import WorkflowError, compile_graph
 from .workflow_store import WorkflowStoreError
 from .generation import GenerationError, image_outputs, normalized_engine_state, parse_uuid
@@ -190,6 +192,24 @@ def build_app(root: str | None = None, comfy=None, profile=None, supervisor_over
             return workspace.list_model_files(root_id, query, format, limit, offset)
         except ModelRegistryError as exc:
             raise HTTPException(422, detail=exc.code) from exc
+
+    @app.get("/api/models/{model_id}/descriptor")
+    async def model_descriptor(model_id: str):
+        indexed = workspace.get_model_file(model_id)
+        if indexed is None:
+            raise HTTPException(404, detail="MODEL_NOT_INDEXED")
+        try:
+            inspected = await run_in_threadpool(
+                inspect_registered_model, indexed["root_path"], indexed)
+        except ModelInspectError as exc:
+            raise HTTPException(409, detail=exc.code) from exc
+        return {
+            "model_id": indexed["id"], "name": indexed["name"],
+            "format": indexed["format"],
+            "component_hint": indexed["component_hint"],
+            "inspection": inspected,
+            "runtime": execution_contract(indexed, inspected),
+        }
 
     @app.get("/api/workflow/nodes")
     async def workflow_nodes():
