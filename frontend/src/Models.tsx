@@ -103,7 +103,8 @@ export default function Models(){
     try{
       await api("/api/models/roots/"+encodeURIComponent(selected),{method:"DELETE"});
       setSelected("");setOffset(0);
-      await loadRoots();await loadModels();
+      await loadRoots();
+      setPage({total:0,items:[],limit:100,offset:0});
       setNotice("Klasör dizinden kaldırıldı. Dosyalara dokunulmadı.");
     }catch(e){setNotice(String(e))}
     finally{setBusy(false)}
