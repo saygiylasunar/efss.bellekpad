@@ -30,7 +30,7 @@ Kök neden API `Origin` izni: Vite'nin gerçek adresi
 `http://127.0.0.1:5173` iken backend mutasyonlarda yalnız
 `http://localhost:5173` adresine izin veriyordu. GET çalışırken POST/PATCH
 403 `UNTRUSTED_ORIGIN` veriyor; UI gerçek hata kodunu göstermeyip genel
-Not kaydedilemedi` / `Yedekleme işlemi başarısız` mesajlarını gösteriyordu.
+`Not kaydedilemedi` / `Yedekleme işlemi başarısız` mesajlarını gösteriyordu.
 
 **Yapılanlar:** backend Origin allowlist düzeltildi; iki adres için not
 oluşturma+düzenleme ve tam yedek/verify POST sözleşme testleri eklendi;
