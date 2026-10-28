@@ -2,7 +2,7 @@
 
 **Son doğrulama:** 28.10.2026 · **Kaynak depo:** `saygiylasunar/efss.bellekpad` · **Aktif çalışma dalı:** `rebuild/web-ai-core`
 
-> Bu dosya **ürün kararlarının kalıcı kaydıdır**. Son kod durumu ve açık mühendislik işleri için `REBUILD_HANDOFF.md`; doğrulama koşulları için `ACCEPTANCE.md`. Geçmiş tartışmalarda geçen geçici seçenekleri "karar" gibi uygulamayın. Kullanıcı tarafından kilitlenmiş işlevleri onaysız kaldırmayın.
+> Bu dosya **ürün kararlarının yaşayan kaydıdır**. **28 Ekim tarihli 220 satırlık orijinal karar defteri** ayrıca [eksiksiz arşivlendi](decisions/2026-10-28-original.md). Arşivdeki eski "repo değişikliği yok / yalnız branch açıldı" durum kayıtları tarihsel olup sonraki uygulama kararlarını geçersiz kılmaz. Son kod durumu ve açık mühendislik işleri için `REBUILD_HANDOFF.md`; doğrulama koşulları için `ACCEPTANCE.md`. Geçmiş tartışmalarda geçen geçici seçenekleri "karar" gibi uygulamayın. Kullanıcı tarafından kilitlenmiş işlevleri onaysız kaldırmayın.
 
 ## Durum sözlüğü
 
