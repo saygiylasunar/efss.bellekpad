@@ -92,7 +92,7 @@ class FullWorkspaceBackupTests(unittest.TestCase):
         self.assertEqual(destination.get_workflow(workflow["id"])["graph"],draft())
         self.assertEqual(destination.get_generation(generation["id"])["state"],"completed")
         self.assertEqual(destination.get_generation_asset(asset["id"])[0],payload)
-        self.assertFalse((restored/"backups").glob("*.zip").__next__ if False else False)
+        self.assertEqual(list((restored/"backups").glob("*.zip")),[])
         with sqlite3.connect(destination.db_path) as db:
             self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],2)
 
