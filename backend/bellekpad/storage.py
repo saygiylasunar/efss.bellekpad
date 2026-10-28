@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from .efss import patch, project, rewrite_blocks, SourceConflict
 from .workflow_store import WorkflowStoreError, serialized_draft
+from .model_registry import ModelRegistryError, normalize_root
 
 
 class Workspace:
@@ -23,7 +24,7 @@ class Workspace:
         self.db_path = self.root / "database" / "bellekpad.sqlite3"
         with self.connect() as db:
             schema = db.execute("PRAGMA user_version").fetchone()[0]
-            if schema > 3:
+            if schema > 4:
                 raise RuntimeError("DATA_SCHEMA_NEWER_THAN_APP")
             # v2 is additive to v1: never reset a newer SQLite schema version.
             # All tables are CREATE IF NOT EXISTS for safe retry after interruption.
@@ -68,8 +69,27 @@ class Workspace:
                 comfy_root TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
               );
+              CREATE TABLE IF NOT EXISTS model_roots (
+                id TEXT PRIMARY KEY,
+                path TEXT NOT NULL UNIQUE,
+                indexed_at TEXT,
+                file_count INTEGER NOT NULL DEFAULT 0
+              );
+              CREATE TABLE IF NOT EXISTS model_files (
+                id TEXT PRIMARY KEY,
+                root_id TEXT NOT NULL REFERENCES model_roots(id) ON DELETE CASCADE,
+                relative_path TEXT NOT NULL,
+                name TEXT NOT NULL,
+                format TEXT NOT NULL,
+                component_hint TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                modified_ns INTEGER NOT NULL,
+                UNIQUE(root_id, relative_path)
+              );
+              CREATE INDEX IF NOT EXISTS idx_model_files_root ON model_files(root_id);
+              CREATE INDEX IF NOT EXISTS idx_model_files_format ON model_files(format);
             """)
-            db.execute("PRAGMA user_version = 3")
+            db.execute("PRAGMA user_version = 4")
 
     @contextmanager
     def connect(self):
@@ -81,6 +101,89 @@ class Workspace:
                 yield db
         finally:
             db.close()
+
+    def add_model_root(self, path: str) -> dict:
+        canonical = normalize_root(path)
+        with self.connect() as db:
+            row = db.execute("SELECT id FROM model_roots WHERE path=?", (canonical,)).fetchone()
+            if row:
+                return self.get_model_root(row[0])
+            root_id = str(uuid.uuid4())
+            db.execute("INSERT INTO model_roots(id,path) VALUES(?,?)", (root_id, canonical))
+        return self.get_model_root(root_id)
+
+    def get_model_root(self, root_id: str) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT id,path,indexed_at,file_count FROM model_roots WHERE id=?", (root_id,)
+            ).fetchone()
+        return (dict(zip(("id","path","indexed_at","file_count"),row))
+                if row else None)
+
+    def list_model_roots(self) -> list[dict]:
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT id,path,indexed_at,file_count FROM model_roots ORDER BY rowid"
+            ).fetchall()
+        return [dict(zip(("id","path","indexed_at","file_count"),row)) for row in rows]
+
+    def delete_model_root(self, root_id: str) -> bool:
+        # Only index rows are deleted; never unlink external model files.
+        with self.connect() as db:
+            result = db.execute("DELETE FROM model_roots WHERE id=?", (root_id,))
+            return result.rowcount == 1
+
+    def replace_model_index(self, root_id: str, snapshot: list[dict]) -> dict:
+        """Atomic refresh after complete disk traversal; a failed traversal does
+        not remove a previously successful registry snapshot."""
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT path FROM model_roots WHERE id=?", (root_id,)).fetchone()
+            if row is None:
+                raise ModelRegistryError("MODEL_ROOT_NOT_FOUND")
+            db.execute("DELETE FROM model_files WHERE root_id=?", (root_id,))
+            db.executemany(
+                "INSERT INTO model_files(id,root_id,relative_path,name,format,"
+                "component_hint,size_bytes,modified_ns) VALUES(?,?,?,?,?,?,?,?)",
+                ((str(uuid.uuid5(uuid.NAMESPACE_URL, root_id + "/" + item["relative_path"])),
+                  root_id,item["relative_path"],item["name"],item["format"],
+                  item["component_hint"],item["size_bytes"],item["modified_ns"])
+                 for item in snapshot)
+            )
+            db.execute("UPDATE model_roots SET file_count=?,"
+                       "indexed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",
+                       (len(snapshot), root_id))
+        return self.get_model_root(root_id)
+
+    def list_model_files(self, root_id: str | None = None,
+                         text_filter: str = "", format_filter: str = "",
+                         limit: int = 200, offset: int = 0) -> dict:
+        if not (1 <= limit <= 500 and 0 <= offset <= 1_000_000):
+            raise ModelRegistryError("MODEL_PAGE_INVALID")
+        clauses = []
+        args: list = []
+        if root_id:
+            clauses.append("root_id=?")
+            args.append(root_id)
+        if format_filter:
+            clauses.append("format=?")
+            args.append(format_filter)
+        if text_filter:
+            # Parameterized substring filtering, no SQL wildcard injection.
+            clauses.append("instr(lower(name),lower(?))>0")
+            args.append(text_filter)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        with self.connect() as db:
+            total = db.execute("SELECT count(*) FROM model_files"+where,args).fetchone()[0]
+            rows = db.execute(
+                "SELECT id,root_id,relative_path,name,format,component_hint,"
+                "size_bytes,modified_ns FROM model_files"+where+
+                " ORDER BY name COLLATE NOCASE,id LIMIT ? OFFSET ?",
+                [*args,limit,offset]).fetchall()
+        keys = ("id","root_id","relative_path","name","format","component_hint",
+                "size_bytes","modified_ns")
+        return {"total":total,"items":[dict(zip(keys,r)) for r in rows],
+                "limit":limit,"offset":offset}
 
     def get_runtime_profile(self) -> dict | None:
         with self.connect() as db:
