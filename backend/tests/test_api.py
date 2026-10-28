@@ -62,6 +62,43 @@ class IntegrationTests(unittest.TestCase):
                     headers={"Origin": "https://attacker.example"}).status_code, 403)
                 self.assertEqual(client.get("/api/health", headers={"Host": "attacker.example"}).status_code, 403)
 
+    def test_actual_vite_127_origin_allows_mutations_but_foreign_origin_does_not(self):
+        """Regression: screenshots showed GET working while POST notes/backups failed.
+
+        Browser runs at 127.0.0.1:5173; Vite proxies /api to 127.0.0.1:8765
+        and forwards the Origin header on POST/PATCH requests.
+        """
+        with tempfile.TemporaryDirectory() as root:
+            with TestClient(build_app(root=root, comfy=FakeComfy(),
+                                      supervisor_override=FakeSupervisor())) as client:
+                for origin in ("http://127.0.0.1:5173", "http://localhost:5173"):
+                    headers = {"Origin": origin}
+                    created = client.post("/api/notes",
+                        json={"title": "Başlık", "source": "Satır\\n"}, headers=headers)
+                    self.assertEqual(created.status_code, 200, created.text)
+                    note_id = created.json()["id"]
+                    doc = client.get("/api/notes/" + note_id, headers=headers)
+                    self.assertEqual(doc.status_code, 200, doc.text)
+                    source = doc.json()["projection"]
+                    modified = client.patch("/api/notes/" + note_id,
+                        json={"revision": doc.json()["revision"],
+                              "source_sha": source["revision"],
+                              "changes": [{"id": "line-0",
+                                           "hash": source["blocks"][0]["hash"],
+                                           "text": "Güncel"}]}, headers=headers)
+                    self.assertEqual(modified.status_code, 200, modified.text)
+                    backup = client.post("/api/workspace-backups", headers=headers)
+                    self.assertEqual(backup.status_code, 201, backup.text)
+                    self.assertTrue(backup.json()["valid"])
+                    checked = client.post("/api/workspace-backups/"
+                        + backup.json()["name"] + "/verify", headers=headers)
+                    self.assertEqual(checked.status_code, 200, checked.text)
+
+                foreign = client.post("/api/notes",
+                    json={"title": "Blocked"}, headers={"Origin": "http://127.0.0.1:6000"})
+                self.assertEqual(foreign.status_code, 403)
+                self.assertEqual(foreign.json()["error"], "UNTRUSTED_ORIGIN")
+
     def test_note_edit_and_database_backup_over_http(self):
         with tempfile.TemporaryDirectory() as root:
             with TestClient(build_app(root=root, comfy=FakeComfy(), supervisor_override=FakeSupervisor())) as client:
