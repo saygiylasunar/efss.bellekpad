@@ -4,6 +4,7 @@ These tests DO NOT claim real inference, native Windows, or real Comfy is verifi
 """
 from __future__ import annotations
 import sqlite3
+from contextlib import closing
 import sys
 import tempfile
 import unittest
@@ -133,7 +134,7 @@ class GenerationAPITests(unittest.TestCase):
                 self.assertEqual(api.get("/api/generations/not-a-uuid").status_code,400)
                 self.assertEqual(api.post("/api/backups").status_code,200)
                 backup=next((Path(root)/"backups").glob("backup-*.sqlite3"))
-                with sqlite3.connect(backup) as db:
+                with closing(sqlite3.connect(backup)) as db:
                     job=db.execute("SELECT state,prompt_json FROM generation_jobs WHERE id=?",
                                    (jid,)).fetchone()
                     self.assertEqual(job[0],"completed")
