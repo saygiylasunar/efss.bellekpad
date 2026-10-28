@@ -69,8 +69,8 @@ function makeChanges(doc: Note, content: JSONContent): Array<{id:string;hash:str
 
 async function api<T>(url:string,init?:RequestInit):Promise<T>{
   const response = await fetch(url,{headers:{"Content-Type":"application/json"},...init});
-  const body = await response.json() as {detail?:string};
-  if(!response.ok)throw Error(body.detail||"Not kaydedilemedi.");
+  const body = await response.json() as {detail?:string; error?:string};
+  if(!response.ok)throw Error(body.detail || body.error || ("HTTP " + response.status));
   return body as T;
 }
 
