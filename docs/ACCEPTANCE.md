@@ -15,7 +15,8 @@
 - [ ] Crash reconciliation after unknown submission; idempotent job/image archive requests.
 - [ ] Real browser click-to-save/reopen end-to-end acceptance (not replaced by TypeScript compilation).
 - [ ] Real Comfy startup, job-state/cancellation and image output on Windows verified.
-- [ ] Coordinated database AND archived-image snapshot/restore verified.
+- [x] Portable DB + archived-image ZIP snapshot: API creation, integrity verification, CLI offline restore to new root, corruption/missing asset and overwrite refusal tested with local filesystem.
+- [ ] Real Windows/NTFS restore, running multi-worker concurrency and browser click E2E acceptance.
 - [ ] Real Tiptap editor ↔ EFSS rich-schema roundtrip verified.
 - [ ] Browser end-to-end and model inference verified.
 - [ ] Process-tree kill, auth, dependency lockfiles, runtime packaging and licensing audit.
