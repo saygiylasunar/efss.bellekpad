@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Notes from "./Notes";
+import WorkspaceBackupPanel from "./WorkspaceBackupPanel";
 import GenerationPanel from "./GenerationPanel";
 import {restoreDraft, serializeDraft,
   type Catalog, type GraphNode, type SavedWorkflow, type WorkflowSummary
@@ -202,6 +203,7 @@ export default function App() {
       <button className={"nav " + (mode==="notes"?"active":"")} onClick={()=>setMode("notes")}>◈ Notlar · EFSS</button>
       <div className="nav disabled">Projeler · R6</div>
       <div className="spacer"/>
+      <WorkspaceBackupPanel />
       <p className="caption">Backend yönetiminde</p>
       <div className={"engine "+engine.state}><b>● {engine.state.toUpperCase()}</b><small>{engine.pid? "PID "+engine.pid : engine.failure || "Kendi motorumuz"}</small></div>
       <div className="actions">
