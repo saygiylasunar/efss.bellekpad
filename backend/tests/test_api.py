@@ -54,7 +54,7 @@ class IntegrationTests(unittest.TestCase):
                     {"id": "2", "type": "Viewer", "inputs": {}}],
                     "edges": [{"source": "1", "sourceHandle": 0, "target": "2", "targetHandle": "data"}]}
                 result = client.post("/api/generations", json=graph)
-                self.assertEqual(result.status_code, 200, result.text)
+                self.assertEqual(result.status_code, 202, result.text)
                 self.assertEqual(fake.last_prompt["2"]["inputs"]["data"], ["1", 0])
                 bad = dict(graph, edges=[{"source": [], "target": "2", "sourceHandle": 0, "targetHandle": "data"}])
                 self.assertEqual(client.post("/api/workflows/compile", json=bad).status_code, 422)
