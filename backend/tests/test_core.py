@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sqlite3
+from contextlib import closing
 import sys
 import tempfile
 import unittest
@@ -83,7 +84,7 @@ class StorageTests(unittest.TestCase):
                 vault.patch_note(item["id"], 1, b["revision"], [])
             backup = vault.backup()
             self.assertTrue(backup.exists())
-            with sqlite3.connect(backup) as db:
+            with closing(sqlite3.connect(backup)) as db:
                 self.assertEqual(db.execute("select revision from notes").fetchone()[0], 2)
 
 
