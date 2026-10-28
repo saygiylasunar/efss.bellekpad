@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from bellekpad.api import build_app
+from bellekpad.storage import Workspace
 from bellekpad.workflow_store import WorkflowStoreError, normalize_draft
 
 
@@ -73,6 +74,38 @@ class WorkflowValidationTests(unittest.TestCase):
         source["schema_version"] = 2
         with self.assertRaisesRegex(WorkflowStoreError, "WORKFLOW_SCHEMA_UNSUPPORTED"):
             normalize_draft(source)
+
+
+class SchemaMigrationTests(unittest.TestCase):
+    def test_additive_v1_to_v2_preserves_notes_and_workflows(self):
+        with tempfile.TemporaryDirectory() as root:
+            first=Workspace(root)
+            note=first.new_note("Korunacak", "Kişisel metin\n")
+            saved=first.create_workflow("Kayıt", graph())
+            with sqlite3.connect(first.db_path) as db:
+                db.execute("PRAGMA user_version = 1")
+            upgraded=Workspace(root)
+            self.assertEqual(upgraded.get_note(note["id"])["source"],"Kişisel metin\n")
+            self.assertEqual(upgraded.get_workflow(saved["id"])["graph"],graph())
+            with sqlite3.connect(first.db_path) as db:
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],2)
+                self.assertIsNotNone(db.execute(
+                    "SELECT name FROM sqlite_master WHERE name='generation_assets'").fetchone())
+
+    def test_future_schema_refused_without_destructive_downgrade(self):
+        with tempfile.TemporaryDirectory() as root:
+            rootpath=Path(root)
+            dbdir=rootpath/"database"
+            dbdir.mkdir(parents=True)
+            with sqlite3.connect(dbdir/"bellekpad.sqlite3") as db:
+                db.execute("PRAGMA user_version=99")
+                db.execute("CREATE TABLE future_data(secret TEXT)")
+                db.execute("INSERT INTO future_data VALUES ('preserved')")
+            with self.assertRaisesRegex(RuntimeError,"DATA_SCHEMA_NEWER_THAN_APP"):
+                Workspace(rootpath)
+            with sqlite3.connect(dbdir/"bellekpad.sqlite3") as db:
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0],99)
+                self.assertEqual(db.execute("SELECT secret FROM future_data").fetchone()[0],"preserved")
 
 
 class WorkflowAPITests(unittest.TestCase):
